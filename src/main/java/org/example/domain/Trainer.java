@@ -5,7 +5,6 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class Trainer extends User {
+public class Trainer extends User implements Identifiable{
     private TrainingType specialization;
-    private Long userId;
 }

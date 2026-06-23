@@ -7,7 +7,7 @@ import java.time.LocalDate;
 
 @Getter
 @Setter
-public class Training {
+public class Training implements Identifiable{
     private Long id;
     private Long trainerId;
     private Long traineeId;
