@@ -1,16 +1,15 @@
 package org.example.dao;
 
 
+import lombok.extern.slf4j.Slf4j;
 import org.example.domain.Identifiable;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
+@Slf4j
 public abstract class AbstractDao<T extends Identifiable> {
-    protected final Map<Long, T> storage;
+    protected Map<Long, T> storage;
     protected final AtomicLong idCounter;
 
     public AbstractDao(Map<Long, T> storage){
@@ -44,5 +43,18 @@ public abstract class AbstractDao<T extends Identifiable> {
 
     public void deleteById(Long id){
         storage.remove(id);
+    }
+
+    public void initStorage(Map<Long, T> initialData) {
+        if (this.storage == null) {
+            this.storage = (initialData != null) ? new HashMap<>(initialData) : new HashMap<>();
+            if (!this.storage.isEmpty()) {
+                long maxId = this.storage.keySet().stream()
+                        .mapToLong(Long::longValue)
+                        .max()
+                        .orElse(0L);
+                this.idCounter.set(maxId);
+            }
+        }
     }
 }

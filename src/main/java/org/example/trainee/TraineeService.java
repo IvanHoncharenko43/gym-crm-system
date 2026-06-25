@@ -19,7 +19,7 @@ public class TraineeService {
     private PasswordGenerator passwordGenerator;
 
     @Autowired
-    public void setTraineeDao(TraineeRepository traineeRepository) {
+    public void setTraineeRepository(TraineeRepository traineeRepository) {
         this.traineeRepository = traineeRepository;
     }
 

@@ -1,12 +1,13 @@
 package org.example.trainer;
 
-import org.example.dto.TrainingTypeDto;
+
+import org.example.domain.TrainingType;
 
 public record TrainerSummary(
         Long id,
         String firstName,
         String lastName,
         String username,
-        TrainingTypeDto specialization
+        TrainingType specialization
 ) {
 }

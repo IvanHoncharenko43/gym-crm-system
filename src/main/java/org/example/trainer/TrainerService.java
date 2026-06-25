@@ -19,12 +19,12 @@ public class TrainerService {
     private PasswordGenerator passwordGenerator;
 
     @Autowired
-    public void setTrainerDao(TrainerRepository trainerRepository){
+    public void setTrainerRepository(TrainerRepository trainerRepository){
         this.trainerRepository = trainerRepository;
     }
 
     @Autowired
-    public void setTrainerMapper(GymMapper gymMapper){
+    public void setGymMapper(GymMapper gymMapper){
         this.gymMapper = gymMapper;
     }
 

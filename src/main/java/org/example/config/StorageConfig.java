@@ -1,8 +1,8 @@
 package org.example.config;
 
-import org.example.domain.Trainee;
-import org.example.domain.Trainer;
-import org.example.domain.Training;
+import org.example.trainee.Trainee;
+import org.example.trainer.Trainer;
+import org.example.training.Training;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
