@@ -6,9 +6,9 @@ import org.springframework.stereotype.Repository;
 import java.util.Map;
 
 @Repository
-public class TrainingDao extends AbstractDao<Training> {
+public class TrainingRepository extends AbstractDao<Training> {
 
-    public TrainingDao(Map<Long, Training> storage){
+    public TrainingRepository(Map<Long, Training> storage){
         super(storage);
     }
 }

@@ -1,16 +1,11 @@
 package org.example.mapper;
 
 import org.example.dto.UserProfile;
-import org.example.trainee.CreateTraineeRequest;
-import org.example.trainee.Trainee;
-import org.example.trainee.TraineeResponse;
-import org.example.trainee.UpdateTraineeRequest;
-import org.example.trainer.CreateTrainerRequest;
-import org.example.trainer.Trainer;
-import org.example.trainer.TrainerResponse;
-import org.example.trainer.UpdateTrainerRequest;
+import org.example.trainee.*;
+import org.example.trainer.*;
 import org.example.training.CreateTrainingRequest;
 import org.example.training.Training;
+import org.example.training.TrainingResponse;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -54,8 +49,16 @@ public class GymMapper {
         );
     }
 
-    public TraineeSummary toTraineeSummaryResponse(Trainee trainee) {
-
+    public TraineeSummary toTraineeSummary(Trainee trainee) {
+        java.util.Objects.requireNonNull(trainee, "Trainee entity cannot be null");
+        return new TraineeSummary(
+                trainee.getId(),
+                trainee.getFirstName(),
+                trainee.getLastName(),
+                trainee.getUsername(),
+                trainee.getDateOfBirth(),
+                trainee.getAddress()
+        );
     }
 
     public Trainer toTrainer(CreateTrainerRequest request) {
@@ -93,19 +96,41 @@ public class GymMapper {
         );
     }
 
-    public TrainerSummaryResponse toTrainerSummaryResponse(Trainer trainer) {
+    public TrainerSummary toTrainerSummary(Trainer trainer) {
+        java.util.Objects.requireNonNull(trainer, "Trainer entity cannot be null");
+        return new TrainerSummary(
+                trainer.getId(),
+                trainer.getFirstName(),
+                trainer.getLastName(),
+                trainer.getUsername(),
+                trainer.getSpecialization()
+        );
     }
 
     public Training toTraining(CreateTrainingRequest request, Trainee trainee, Trainer trainer) {
         java.util.Objects.requireNonNull(request, "Create request cannot be null");
         Training training = new Training();
-        training.setTraineeId();
-        training.setLastName(request.lastName());
-        trainer.setSpecialization(request.specializationId());
-        return trainer;
+        training.setTraineeId(trainee.getId());
+        training.setTrainerId(trainer.getId());
+        training.setTrainingName(request.trainingName());
+        training.setTrainingType(trainer.getSpecialization());
+        training.setTrainingDate(request.trainingDate());
+        training.setDuration(request.duration());
+        return training;
     }
 
     public TrainingResponse toTrainingResponse(Training training, Trainee trainee, Trainer trainer) {
-
+        if(training == null || trainee == null || trainer == null){
+            throw new NullPointerException("Entities cannot be null");
+        }
+        return new TrainingResponse(
+                training.getId(),
+                toTrainerSummary(trainer),
+                toTraineeSummary(trainee),
+                training.getTrainingName(),
+                training.getTrainingType(),
+                training.getTrainingDate(),
+                training.getDuration()
+        );
     }
 }
