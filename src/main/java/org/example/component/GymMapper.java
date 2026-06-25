@@ -1,6 +1,6 @@
-package org.example.mapper;
+package org.example.component;
 
-import org.example.dto.UserProfile;
+import org.example.shared.UserProfile;
 import org.example.trainee.*;
 import org.example.trainer.*;
 import org.example.training.CreateTrainingRequest;

@@ -1,10 +1,9 @@
 package org.example.trainee;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.dao.TraineeRepository;
-import org.example.mapper.GymMapper;
-import org.example.shared.PasswordGenerator;
-import org.example.shared.UsernameGenerator;
+import org.example.component.GymMapper;
+import org.example.component.PasswordGenerator;
+import org.example.component.UsernameGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

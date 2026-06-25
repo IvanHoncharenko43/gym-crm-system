@@ -1,14 +1,14 @@
 package org.example.training;
 
+import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
-import org.example.domain.Identifiable;
-import org.example.domain.TrainingType;
+import org.example.shared.Identifiable;
+import org.example.shared.TrainingType;
 
 import java.time.LocalDate;
 
-@Getter
-@Setter
+@Data
 public class Training implements Identifiable {
     private Long id;
     private Long trainerId;

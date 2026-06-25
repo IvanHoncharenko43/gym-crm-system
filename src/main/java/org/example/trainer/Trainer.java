@@ -1,13 +1,15 @@
 package org.example.trainer;
 
+import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import org.example.domain.Identifiable;
-import org.example.domain.TrainingType;
-import org.example.domain.User;
+import org.example.shared.Identifiable;
+import org.example.shared.TrainingType;
+import org.example.shared.User;
 
-@Getter
-@Setter
+@EqualsAndHashCode(callSuper = true)
+@Data
 public class Trainer extends User implements Identifiable {
     private TrainingType specialization;
 }

@@ -1,6 +1,6 @@
 package org.example.trainee;
 
-import org.example.dto.UserProfile;
+import org.example.shared.UserProfile;
 
 import java.time.LocalDate;
 

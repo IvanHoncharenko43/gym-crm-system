@@ -4,15 +4,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import lombok.extern.slf4j.Slf4j;
-import org.example.dao.TraineeRepository;
-import org.example.dao.TrainerRepository;
-import org.example.dao.TrainingRepository;
-import org.example.domain.Identifiable;
+import org.example.trainee.TraineeRepository;
+import org.example.trainer.TrainerRepository;
+import org.example.training.TrainingRepository;
+import org.example.shared.Identifiable;
 import org.example.trainee.Trainee;
 import org.example.trainer.Trainer;
 import org.example.training.Training;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Component;
 
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 @Component
 public class DataInitializationProcessor implements BeanPostProcessor {
 
+    @Value("${data.file.path}")
     private String filePath;
     private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
 

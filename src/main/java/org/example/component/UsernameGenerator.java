@@ -1,7 +1,7 @@
-package org.example.shared;
+package org.example.component;
 
-import org.example.dao.TraineeRepository;
-import org.example.dao.TrainerRepository;
+import org.example.trainee.TraineeRepository;
+import org.example.trainer.TrainerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 

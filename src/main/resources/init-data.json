@@ -1,0 +1,288 @@
+{
+  "trainees": [
+    {
+      "id": 1,
+      "firstName": "John",
+      "lastName": "Doe",
+      "username": "John.Doe",
+      "password": "randomPassword123",
+      "isActive": true,
+      "dateOfBirth": "1995-05-15",
+      "address": "123 Main St, New York"
+    },
+    {
+      "id": 2,
+      "firstName": "Alice",
+      "lastName": "Johnson",
+      "username": "Alice.Johnson",
+      "password": "passWord456!",
+      "isActive": true,
+      "dateOfBirth": "1992-08-22",
+      "address": "456 Oak Ave, Chicago"
+    },
+    {
+      "id": 3,
+      "firstName": "Michael",
+      "lastName": "Williams",
+      "username": "Michael.Williams",
+      "password": "mySecret789",
+      "isActive": false,
+      "dateOfBirth": "1988-11-03",
+      "address": "789 Pine Rd, Austin"
+    },
+    {
+      "id": 4,
+      "firstName": "Emma",
+      "lastName": "Brown",
+      "username": "Emma.Brown",
+      "password": "emmaPass2024",
+      "isActive": true,
+      "dateOfBirth": "1998-02-14",
+      "address": "321 Cedar Ln, Seattle"
+    },
+    {
+      "id": 5,
+      "firstName": "James",
+      "lastName": "Davis",
+      "username": "James.Davis",
+      "password": "jdavis_safe!",
+      "isActive": true,
+      "dateOfBirth": "1990-07-30",
+      "address": "654 Birch Dr, Denver"
+    },
+    {
+      "id": 6,
+      "firstName": "Sophia",
+      "lastName": "Miller",
+      "username": "Sophia.Miller",
+      "password": "sophiM!ll3r",
+      "isActive": true,
+      "dateOfBirth": "1996-12-05",
+      "address": "987 Maple Ct, Boston"
+    },
+    {
+      "id": 7,
+      "firstName": "William",
+      "lastName": "Wilson",
+      "username": "William.Wilson",
+      "password": "williamPass99",
+      "isActive": true,
+      "dateOfBirth": "1985-04-18",
+      "address": "159 Spruce Way, Miami"
+    },
+    {
+      "id": 8,
+      "firstName": "Olivia",
+      "lastName": "Moore",
+      "username": "Olivia.Moore",
+      "password": "moorePassword8",
+      "isActive": true,
+      "dateOfBirth": "1993-09-27",
+      "address": "753 Elm St, Portland"
+    },
+    {
+      "id": 9,
+      "firstName": "Daniel",
+      "lastName": "Taylor",
+      "username": "Daniel.Taylor",
+      "password": "danTaylor22",
+      "isActive": false,
+      "dateOfBirth": "1991-01-12",
+      "address": "852 Willow Pl, Phoenix"
+    },
+    {
+      "id": 10,
+      "firstName": "Isabella",
+      "lastName": "Anderson",
+      "username": "Isabella.Anderson",
+      "password": "isa_anderson!",
+      "isActive": true,
+      "dateOfBirth": "1999-06-08",
+      "address": "951 Ash Blvd, Atlanta"
+    }
+  ],
+  "trainers": [
+    {
+      "id": 1,
+      "firstName": "Jane",
+      "lastName": "Smith",
+      "username": "Jane.Smith",
+      "password": "randomPassword789",
+      "isActive": true,
+      "specialization": "YOGA"
+    },
+    {
+      "id": 2,
+      "firstName": "David",
+      "lastName": "Clark",
+      "username": "David.Clark",
+      "password": "clark_str3ngth",
+      "isActive": true,
+      "specialization": "STRENGTH"
+    },
+    {
+      "id": 3,
+      "firstName": "Sarah",
+      "lastName": "Lewis",
+      "username": "Sarah.Lewis",
+      "password": "runFast2024",
+      "isActive": true,
+      "specialization": "CARDIO"
+    },
+    {
+      "id": 4,
+      "firstName": "Robert",
+      "lastName": "Walker",
+      "username": "Robert.Walker",
+      "password": "flex_rob_123",
+      "isActive": true,
+      "specialization": "FLEXIBILITY"
+    },
+    {
+      "id": 5,
+      "firstName": "Laura",
+      "lastName": "Hall",
+      "username": "Laura.Hall",
+      "password": "lauraPower99",
+      "isActive": false,
+      "specialization": "STRENGTH"
+    }
+  ],
+  "trainings": [
+    {
+      "id": 1,
+      "traineeId": 1,
+      "trainerId": 1,
+      "trainingName": "Morning Yoga Flow",
+      "trainingType": "YOGA",
+      "trainingDate": "2024-03-15",
+      "duration": 60
+    },
+    {
+      "id": 2,
+      "traineeId": 2,
+      "trainerId": 2,
+      "trainingName": "Heavy Deadlifts",
+      "trainingType": "STRENGTH",
+      "trainingDate": "2024-03-16",
+      "duration": 45
+    },
+    {
+      "id": 3,
+      "traineeId": 3,
+      "trainerId": 3,
+      "trainingName": "HIIT Interval",
+      "trainingType": "CARDIO",
+      "trainingDate": "2024-03-17",
+      "duration": 30
+    },
+    {
+      "id": 4,
+      "traineeId": 4,
+      "trainerId": 4,
+      "trainingName": "Full Body Stretch",
+      "trainingType": "FLEXIBILITY",
+      "trainingDate": "2024-03-18",
+      "duration": 45
+    },
+    {
+      "id": 5,
+      "traineeId": 5,
+      "trainerId": 5,
+      "trainingName": "Bench Press Basics",
+      "trainingType": "STRENGTH",
+      "trainingDate": "2024-03-19",
+      "duration": 60
+    },
+    {
+      "id": 6,
+      "traineeId": 6,
+      "trainerId": 1,
+      "trainingName": "Vinyasa Yoga",
+      "trainingType": "YOGA",
+      "trainingDate": "2024-03-20",
+      "duration": 90
+    },
+    {
+      "id": 7,
+      "traineeId": 7,
+      "trainerId": 2,
+      "trainingName": "Leg Day Routine",
+      "trainingType": "STRENGTH",
+      "trainingDate": "2024-03-21",
+      "duration": 60
+    },
+    {
+      "id": 8,
+      "traineeId": 8,
+      "trainerId": 3,
+      "trainingName": "Treadmill Sprints",
+      "trainingType": "CARDIO",
+      "trainingDate": "2024-03-22",
+      "duration": 30
+    },
+    {
+      "id": 9,
+      "traineeId": 9,
+      "trainerId": 4,
+      "trainingName": "Pilates Core",
+      "trainingType": "FLEXIBILITY",
+      "trainingDate": "2024-03-23",
+      "duration": 60
+    },
+    {
+      "id": 10,
+      "traineeId": 10,
+      "trainerId": 5,
+      "trainingName": "Upper Body Strength",
+      "trainingType": "STRENGTH",
+      "trainingDate": "2024-03-24",
+      "duration": 45
+    },
+    {
+      "id": 11,
+      "traineeId": 1,
+      "trainerId": 2,
+      "trainingName": "Core & Back Strength",
+      "trainingType": "STRENGTH",
+      "trainingDate": "2024-03-25",
+      "duration": 60
+    },
+    {
+      "id": 12,
+      "traineeId": 2,
+      "trainerId": 3,
+      "trainingName": "Endurance Run",
+      "trainingType": "CARDIO",
+      "trainingDate": "2024-03-26",
+      "duration": 45
+    },
+    {
+      "id": 13,
+      "traineeId": 3,
+      "trainerId": 4,
+      "trainingName": "Mobility Clinic",
+      "trainingType": "FLEXIBILITY",
+      "trainingDate": "2024-03-27",
+      "duration": 60
+    },
+    {
+      "id": 14,
+      "traineeId": 4,
+      "trainerId": 5,
+      "trainingName": "Powerlifting Intro",
+      "trainingType": "STRENGTH",
+      "trainingDate": "2024-03-28",
+      "duration": 90
+    },
+    {
+      "id": 15,
+      "traineeId": 5,
+      "trainerId": 1,
+      "trainingName": "Evening Meditation & Yoga",
+      "trainingType": "YOGA",
+      "trainingDate": "2024-03-29",
+      "duration": 45
+    }
+  ]
+}
