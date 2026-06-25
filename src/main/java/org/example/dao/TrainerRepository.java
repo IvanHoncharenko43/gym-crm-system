@@ -1,16 +1,15 @@
 package org.example.dao;
 
-import org.example.domain.Trainer;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.example.trainer.Trainer;
 import org.springframework.stereotype.Repository;
 
 import java.util.Map;
 import java.util.Optional;
 
 @Repository
-public class TrainerDao extends AbstractDao<Trainer> {
+public class TrainerRepository extends AbstractDao<Trainer> {
 
-    public TrainerDao(Map<Long, Trainer> storage){
+    public TrainerRepository(Map<Long, Trainer> storage){
         super(storage);
     }
 

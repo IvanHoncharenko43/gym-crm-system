@@ -1,15 +1,15 @@
 package org.example.dao;
 
-import org.example.domain.Trainee;
+import org.example.trainee.Trainee;
 import org.springframework.stereotype.Repository;
 
 import java.util.Map;
 import java.util.Optional;
 
 @Repository
-public class TraineeDao extends AbstractDao<Trainee> {
+public class TraineeRepository extends AbstractDao<Trainee> {
 
-    public TraineeDao(Map<Long, Trainee> storage){
+    public TraineeRepository(Map<Long, Trainee> storage){
         super(storage);
     }
 

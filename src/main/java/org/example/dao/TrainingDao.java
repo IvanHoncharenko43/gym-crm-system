@@ -1,6 +1,6 @@
 package org.example.dao;
 
-import org.example.domain.Training;
+import org.example.training.Training;
 import org.springframework.stereotype.Repository;
 
 import java.util.Map;
