@@ -1,5 +1,6 @@
 package org.example.shared;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,5 +12,7 @@ public class User {
     private String lastName;
     private String username;
     private String password;
+
+    @JsonProperty("isActive")
     private boolean isActive;
 }

@@ -5,7 +5,7 @@ import org.example.shared.UserProfile;
 
 public record TrainerResponse(
         Long id,
-        UserProfile userProfile,
+        UserProfile profile,
         TrainingType specialization
 ) {
 }

@@ -120,9 +120,9 @@ public class GymMapper {
     }
 
     public TrainingResponse toTrainingResponse(Training training, Trainee trainee, Trainer trainer) {
-        if(training == null || trainee == null || trainer == null){
-            throw new NullPointerException("Entities cannot be null");
-        }
+        java.util.Objects.requireNonNull(training, "Training entity cannot be null");
+        java.util.Objects.requireNonNull(trainee, "Trainee entity cannot be null");
+        java.util.Objects.requireNonNull(trainer, "Trainer entity cannot be null");
         return new TrainingResponse(
                 training.getId(),
                 toTrainerSummary(trainer),

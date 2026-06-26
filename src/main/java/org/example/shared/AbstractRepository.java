@@ -7,9 +7,9 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
-public abstract class AbstractDao<T extends Identifiable> {
+public abstract class AbstractRepository<T extends Identifiable> {
     protected Map<Long, T> storage;
-    protected AtomicLong idCounter;
+    protected AtomicLong idCounter = new AtomicLong(0);;
 
     public T create(T entity){
         Objects.requireNonNull(entity, "Entity cannot be null");
@@ -73,8 +73,8 @@ public abstract class AbstractDao<T extends Identifiable> {
     }
 
     private void initStorage() {
-        if (this.storage == null) {
-            this.storage = new HashMap<>();
+        if (storage == null) {
+            storage = new HashMap<>();
         }
     }
 }

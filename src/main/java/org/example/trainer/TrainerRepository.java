@@ -1,13 +1,12 @@
 package org.example.trainer;
 
-import org.example.shared.AbstractDao;
+import org.example.shared.AbstractRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Map;
 import java.util.Optional;
 
 @Repository
-public class TrainerRepository extends AbstractDao<Trainer> {
+public class TrainerRepository extends AbstractRepository<Trainer> {
 
     public Optional<Trainer> findByUsername(String username){
         if(username == null){
@@ -17,5 +16,4 @@ public class TrainerRepository extends AbstractDao<Trainer> {
                 .filter(trainer -> username.equals(trainer.getUsername()))
                 .findFirst();
     }
-
 }

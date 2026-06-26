@@ -70,7 +70,7 @@ public class TrainingService {
                 .orElseThrow(() -> new IllegalStateException("Trainee for training not found"));
         Trainer trainer = trainerRepository.getById(training.getTrainerId())
                 .orElseThrow(() -> new IllegalStateException("Trainer for training not found"));
-        log.info("Selected trainer by ID");
+        log.info("Selected training by ID");
         return gymMapper.toTrainingResponse(training, trainee, trainer);
     }
 }

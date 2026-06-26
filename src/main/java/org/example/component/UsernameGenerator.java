@@ -12,12 +12,12 @@ public class UsernameGenerator {
     private TraineeRepository traineeRepository;
 
     @Autowired
-    public void setTrainerDao(TrainerRepository trainerRepository) {
+    public void setTrainerRepository(TrainerRepository trainerRepository) {
         this.trainerRepository = trainerRepository;
     }
 
     @Autowired
-    public void setTraineeDao(TraineeRepository traineeRepository) {
+    public void setTraineeRepository(TraineeRepository traineeRepository) {
         this.traineeRepository = traineeRepository;
     }
 
