@@ -41,7 +41,7 @@ public class AbstractRepositoryTest {
     }
 
     @Test
-    void create_ThrowException_EntityHasId() {
+    void create_ThrowIllegalArgumentException_EntityHasId() {
         TestEntity entity = new TestEntity(1L, "Entity 1");
         assertThrows(IllegalArgumentException.class, () -> repository.create(entity));
     }
@@ -86,7 +86,7 @@ public class AbstractRepositoryTest {
     }
 
     @Test
-    void update_ThrowException_EntityDoesNotExist() {
+    void update_ThrowIllegalArgumentException_EntityDoesNotExist() {
         TestEntity nonExistentEntity = new TestEntity(99L, "Entity 99");
         assertThrows(IllegalArgumentException.class, () -> repository.update(nonExistentEntity));
     }

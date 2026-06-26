@@ -60,7 +60,7 @@ public class TrainingServiceTest {
     }
 
     @Test
-    void create_ThrowException_TraineeNotFound() {
+    void create_ThrowIllegalArgumentException_TraineeNotFound() {
         CreateTrainingRequest request = mock(CreateTrainingRequest.class);
         when(request.traineeUsername()).thenReturn("Unknown.Trainee");
         when(traineeRepository.findByUsername("Unknown.Trainee")).thenReturn(Optional.empty());
@@ -72,7 +72,7 @@ public class TrainingServiceTest {
     }
 
     @Test
-    void create_ThrowException_TrainerNotFound() {
+    void create_ThrowIllegalArgumentException_TrainerNotFound() {
         CreateTrainingRequest request = mock(CreateTrainingRequest.class);
         when(request.traineeUsername()).thenReturn("John.Doe");
         when(request.trainerUsername()).thenReturn("Unknown.Trainer");
@@ -108,7 +108,7 @@ public class TrainingServiceTest {
     }
 
     @Test
-    void getById_ThrowException_TrainingNotFound() {
+    void getById_ThrowIllegalArgumentException_TrainingNotFound() {
         Long id = 99L;
         when(trainingRepository.getById(id)).thenReturn(Optional.empty());
 
@@ -141,8 +141,6 @@ public class TrainingServiceTest {
         training.setTraineeId(traineeId);
         training.setTrainerId(trainerId);
         Trainee trainee = new Trainee();
-        Trainer trainer = new Trainer();
-        TrainingResponse expectedResponse = mock(TrainingResponse.class);
 
         when(trainingRepository.getById(trainingId)).thenReturn(Optional.of(training));
         when(traineeRepository.getById(traineeId)).thenReturn(Optional.of(trainee));

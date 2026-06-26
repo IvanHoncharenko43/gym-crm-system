@@ -63,7 +63,7 @@ public class TraineeServiceTest {
     }
 
     @Test
-    void create_ThrowException_FirstNameIsBlank() {
+    void create_ThrowIllegalArgumentException_FirstNameIsBlank() {
         CreateTraineeRequest request = new CreateTraineeRequest("", "Doe", LocalDate.now(), "123 Street");
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> traineeService.create(request));
@@ -72,7 +72,7 @@ public class TraineeServiceTest {
     }
 
     @Test
-    void create_ThrowException_FirstNameIsNull() {
+    void create_ThrowIllegalArgumentException_FirstNameIsNull() {
         CreateTraineeRequest request = new CreateTraineeRequest(null, "Doe", LocalDate.now(), "123 Street");
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> traineeService.create(request));
@@ -81,7 +81,7 @@ public class TraineeServiceTest {
     }
 
     @Test
-    void create_ThrowException_LastNameIsBlank() {
+    void create_ThrowIllegalArgumentException_LastNameIsBlank() {
         CreateTraineeRequest request = new CreateTraineeRequest("John", "", LocalDate.now(), "123 Street");
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> traineeService.create(request));
@@ -90,7 +90,7 @@ public class TraineeServiceTest {
     }
 
     @Test
-    void create_ThrowException_LastNameIsNull() {
+    void create_ThrowIllegalArgumentException_LastNameIsNull() {
         CreateTraineeRequest request = new CreateTraineeRequest("John", null, LocalDate.now(), "123 Street");
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> traineeService.create(request));
@@ -125,7 +125,7 @@ public class TraineeServiceTest {
     }
 
     @Test
-    void update_ThrowArgumentException_IdIsNull() {
+    void update_ThrowIllegalArgumentException_IdIsNull() {
         UpdateTraineeRequest requestWithNullId = new UpdateTraineeRequest(null, "Jane", "Doe", LocalDate.now(), "123 Street", true);
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
@@ -135,7 +135,7 @@ public class TraineeServiceTest {
     }
 
     @Test
-    void update_ThrowException_TraineeDoesNotExist() {
+    void update_ThrowIllegalArgumentException_TraineeDoesNotExist() {
         UpdateTraineeRequest request = mock(UpdateTraineeRequest.class);
         when(request.id()).thenReturn(99L);
         when(traineeRepository.getById(99L)).thenReturn(Optional.empty());
@@ -160,7 +160,7 @@ public class TraineeServiceTest {
     }
 
     @Test
-    void getById_ThrowException_TraineeDoesNotExist() {
+    void getById_ThrowIllegalArgumentException_TraineeDoesNotExist() {
         Long id = 99L;
         when(traineeRepository.getById(id)).thenReturn(Optional.empty());
         assertThrows(IllegalArgumentException.class, () -> traineeService.getById(id));
@@ -176,7 +176,7 @@ public class TraineeServiceTest {
     }
 
     @Test
-    void deleteById_ThrowException_TraineeDoesNotExist() {
+    void deleteById_ThrowIllegalArgumentException_TraineeDoesNotExist() {
         Long id = 99L;
         when(traineeRepository.getById(id)).thenReturn(Optional.empty());
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> traineeService.deleteById(id));
@@ -185,7 +185,7 @@ public class TraineeServiceTest {
     }
 
     @Test
-    void deleteById_ThrowException_IdIsNull() {
+    void deleteById_ThrowIllegalArgumentException_IdIsNull() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> traineeService.deleteById(null)

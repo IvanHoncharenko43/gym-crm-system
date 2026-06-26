@@ -4,14 +4,12 @@ import org.example.shared.GymMapper;
 import org.example.shared.PasswordGenerator;
 import org.example.shared.TrainingType;
 import org.example.shared.UsernameGenerator;
-import org.example.trainee.CreateTraineeRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -65,7 +63,7 @@ public class TrainerServiceTest {
     }
 
     @Test
-    void create_ThrowException_FirstNameIsBlank() {
+    void create_ThrowIllegalArgumentException_FirstNameIsBlank() {
         CreateTrainerRequest request = new CreateTrainerRequest("", "Doe", TrainingType.YOGA);
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> trainerService.create(request));
@@ -74,7 +72,7 @@ public class TrainerServiceTest {
     }
 
     @Test
-    void create_ThrowException_FirstNameIsNull() {
+    void create_ThrowIllegalArgumentException_FirstNameIsNull() {
         CreateTrainerRequest request = new CreateTrainerRequest(null, "Doe", TrainingType.YOGA);
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> trainerService.create(request));
@@ -83,7 +81,7 @@ public class TrainerServiceTest {
     }
 
     @Test
-    void create_ThrowException_LastNameIsBlank() {
+    void create_ThrowIllegalArgumentException_LastNameIsBlank() {
         CreateTrainerRequest request = new CreateTrainerRequest("John", "", TrainingType.YOGA);
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> trainerService.create(request));
@@ -92,7 +90,7 @@ public class TrainerServiceTest {
     }
 
     @Test
-    void create_ThrowException_LastNameIsNull() {
+    void create_ThrowIllegalArgumentException_LastNameIsNull() {
         CreateTrainerRequest request = new CreateTrainerRequest("John", null, TrainingType.YOGA);
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> trainerService.create(request));
@@ -137,7 +135,7 @@ public class TrainerServiceTest {
     }
 
     @Test
-    void update_ThrowException_TrainerDoesNotExist() {
+    void update_ThrowIllegalArgumentException_TrainerDoesNotExist() {
         UpdateTrainerRequest request = mock(UpdateTrainerRequest.class);
         when(request.id()).thenReturn(99L);
         when(trainerRepository.getById(99L)).thenReturn(Optional.empty());
@@ -162,7 +160,7 @@ public class TrainerServiceTest {
     }
 
     @Test
-    void getById_ThrowException_TrainerDoesNotExist() {
+    void getById_ThrowIllegalArgumentException_TrainerDoesNotExist() {
         Long id = 99L;
         when(trainerRepository.getById(id)).thenReturn(Optional.empty());
         assertThrows(IllegalArgumentException.class, () -> trainerService.getById(id));

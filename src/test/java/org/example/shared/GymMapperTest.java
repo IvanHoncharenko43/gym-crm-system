@@ -110,14 +110,14 @@ public class GymMapperTest {
     }
 
     @Test
-    void toTrainee_ThrowException_NullCreateRequest() {
+    void toTrainee_ThrowNullPointerException_NullCreateRequest() {
         NullPointerException exception = assertThrows(NullPointerException.class,
                 () -> gymMapper.toTrainee((CreateTraineeRequest) null));
         assertEquals("Create request cannot be null", exception.getMessage());
     }
 
     @Test
-    void toTraineeResponse_ThrowException_NullTrainee() {
+    void toTraineeResponse_ThrowNullPointerException_NullTrainee() {
         NullPointerException exception = assertThrows(NullPointerException.class,
                 () -> gymMapper.toTraineeResponse(null));
         assertEquals("Trainee entity cannot be null", exception.getMessage());
@@ -238,14 +238,14 @@ public class GymMapperTest {
     }
 
     @Test
-    void toTraining_ThrowException_NullRequest() {
+    void toTraining_ThrowNullPointerException_NullRequest() {
         NullPointerException exception = assertThrows(NullPointerException.class,
                 () -> gymMapper.toTraining(null, new Trainee(), new Trainer()));
         assertEquals("Create request cannot be null", exception.getMessage());
     }
 
     @Test
-    void toTrainingResponse_ThrowException_NullTraining() {
+    void toTrainingResponse_ThrowNullPointerException_NullTraining() {
         NullPointerException exception = assertThrows(NullPointerException.class,
                 () -> gymMapper.toTrainingResponse(null, new Trainee(), new Trainer()));
         assertEquals("Training entity cannot be null", exception.getMessage());
