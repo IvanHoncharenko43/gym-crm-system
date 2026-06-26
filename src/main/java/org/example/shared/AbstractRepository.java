@@ -4,6 +4,7 @@ package org.example.shared;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Slf4j
@@ -61,7 +62,7 @@ public abstract class AbstractRepository<T extends Identifiable> {
 
     public void initStorage(Map<Long, T> initialData) {
         if (this.storage == null) {
-            this.storage = (initialData != null) ? new HashMap<>(initialData) : new HashMap<>();
+            this.storage = (initialData != null) ? new ConcurrentHashMap<>(initialData) : new ConcurrentHashMap<>();
             if (!this.storage.isEmpty()) {
                 long maxId = this.storage.keySet().stream()
                         .mapToLong(Long::longValue)
@@ -74,7 +75,7 @@ public abstract class AbstractRepository<T extends Identifiable> {
 
     private void initStorage() {
         if (storage == null) {
-            storage = new HashMap<>();
+            storage = new ConcurrentHashMap<>();
         }
     }
 }

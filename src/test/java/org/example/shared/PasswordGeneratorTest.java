@@ -1,4 +1,4 @@
-package org.example.component;
+package org.example.shared;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

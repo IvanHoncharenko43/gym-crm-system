@@ -18,7 +18,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.*;
 import java.util.Arrays;
@@ -82,7 +81,7 @@ public class DataInitializationProcessor implements BeanPostProcessor {
             T[] items = objectMapper.treeToValue(arrayNode, clazz);
             return Arrays.stream(items)
                     .filter(Objects::nonNull)
-                    .collect(Collectors.toMap(
+                    .collect(Collectors.toConcurrentMap(
                             T::getId,
                             item -> item,
                             (existing, replacement) -> existing

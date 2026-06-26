@@ -3,7 +3,7 @@ package org.example.training;
 import lombok.extern.slf4j.Slf4j;
 import org.example.trainee.TraineeRepository;
 import org.example.trainer.TrainerRepository;
-import org.example.component.GymMapper;
+import org.example.shared.GymMapper;
 import org.example.trainee.Trainee;
 import org.example.trainer.Trainer;
 import org.springframework.beans.factory.annotation.Autowired;

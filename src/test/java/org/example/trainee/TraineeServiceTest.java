@@ -1,14 +1,15 @@
 package org.example.trainee;
 
-import org.example.component.GymMapper;
-import org.example.component.PasswordGenerator;
-import org.example.component.UsernameGenerator;
+import org.example.shared.GymMapper;
+import org.example.shared.PasswordGenerator;
+import org.example.shared.UsernameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -62,10 +63,35 @@ public class TraineeServiceTest {
     }
 
     @Test
-    void create_ThrowException_NamesAreMissing() {
-        CreateTraineeRequest request = mock(CreateTraineeRequest.class);
-        when(request.firstName()).thenReturn("");
+    void create_ThrowException_FirstNameIsBlank() {
+        CreateTraineeRequest request = new CreateTraineeRequest("", "Doe", LocalDate.now(), "123 Street");
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> traineeService.create(request));
+        assertEquals("First and last names are required for registration", exception.getMessage());
+        verify(traineeRepository, never()).create(any());
+    }
 
+    @Test
+    void create_ThrowException_FirstNameIsNull() {
+        CreateTraineeRequest request = new CreateTraineeRequest(null, "Doe", LocalDate.now(), "123 Street");
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> traineeService.create(request));
+        assertEquals("First and last names are required for registration", exception.getMessage());
+        verify(traineeRepository, never()).create(any());
+    }
+
+    @Test
+    void create_ThrowException_LastNameIsBlank() {
+        CreateTraineeRequest request = new CreateTraineeRequest("John", "", LocalDate.now(), "123 Street");
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> traineeService.create(request));
+        assertEquals("First and last names are required for registration", exception.getMessage());
+        verify(traineeRepository, never()).create(any());
+    }
+
+    @Test
+    void create_ThrowException_LastNameIsNull() {
+        CreateTraineeRequest request = new CreateTraineeRequest("John", null, LocalDate.now(), "123 Street");
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> traineeService.create(request));
         assertEquals("First and last names are required for registration", exception.getMessage());
@@ -96,6 +122,16 @@ public class TraineeServiceTest {
         assertEquals("John.Doe", mappedTrainee.getUsername());
         assertEquals("122333test", mappedTrainee.getPassword());
         verify(traineeRepository, times(1)).update(mappedTrainee);
+    }
+
+    @Test
+    void update_ThrowArgumentException_IdIsNull() {
+        UpdateTraineeRequest requestWithNullId = new UpdateTraineeRequest(null, "Jane", "Doe", LocalDate.now(), "123 Street", true);
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> traineeService.update(requestWithNullId)
+        );
+        assertEquals("Trainee ID is required for update", exception.getMessage());
     }
 
     @Test
@@ -143,7 +179,17 @@ public class TraineeServiceTest {
     void deleteById_ThrowException_TraineeDoesNotExist() {
         Long id = 99L;
         when(traineeRepository.getById(id)).thenReturn(Optional.empty());
-        assertThrows(IllegalArgumentException.class, () -> traineeService.deleteById(id));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> traineeService.deleteById(id));
+        assertTrue(exception.getMessage().contains("not found"));
         verify(traineeRepository, never()).deleteById(any());
+    }
+
+    @Test
+    void deleteById_ThrowException_IdIsNull() {
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> traineeService.deleteById(null)
+        );
+        assertEquals("ID cannot be null", exception.getMessage());
     }
 }

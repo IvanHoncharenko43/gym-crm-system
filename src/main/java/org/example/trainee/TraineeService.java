@@ -1,9 +1,9 @@
 package org.example.trainee;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.component.GymMapper;
-import org.example.component.PasswordGenerator;
-import org.example.component.UsernameGenerator;
+import org.example.shared.GymMapper;
+import org.example.shared.PasswordGenerator;
+import org.example.shared.UsernameGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -86,12 +86,10 @@ public class TraineeService {
         if (id == null) {
             throw new IllegalArgumentException("ID cannot be null");
         }
-
         if (traineeRepository.getById(id).isEmpty()) {
             log.error("Delete failed. Trainee with ID {} does not exist", id);
             throw new IllegalArgumentException("Trainee with ID " + id + " not found");
         }
-
         traineeRepository.deleteById(id);
         log.info("Deleted trainee profile with ID: {}", id);
     }

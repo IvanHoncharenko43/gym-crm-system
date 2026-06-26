@@ -1,6 +1,5 @@
-package org.example.component;
+package org.example.shared;
 
-import org.example.shared.TrainingType;
 import org.example.trainee.*;
 import org.example.trainer.*;
 import org.example.training.CreateTrainingRequest;

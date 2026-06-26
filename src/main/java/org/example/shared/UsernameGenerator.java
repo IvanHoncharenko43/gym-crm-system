@@ -1,4 +1,4 @@
-package org.example.component;
+package org.example.shared;
 
 import org.example.trainee.TraineeRepository;
 import org.example.trainer.TrainerRepository;

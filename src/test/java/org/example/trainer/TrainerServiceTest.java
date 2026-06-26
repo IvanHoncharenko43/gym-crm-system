@@ -1,14 +1,17 @@
 package org.example.trainer;
 
-import org.example.component.GymMapper;
-import org.example.component.PasswordGenerator;
-import org.example.component.UsernameGenerator;
+import org.example.shared.GymMapper;
+import org.example.shared.PasswordGenerator;
+import org.example.shared.TrainingType;
+import org.example.shared.UsernameGenerator;
+import org.example.trainee.CreateTraineeRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -62,10 +65,35 @@ public class TrainerServiceTest {
     }
 
     @Test
-    void create_ThrowException_NamesAreMissing() {
-        CreateTrainerRequest request = mock(CreateTrainerRequest.class);
-        when(request.firstName()).thenReturn("");
+    void create_ThrowException_FirstNameIsBlank() {
+        CreateTrainerRequest request = new CreateTrainerRequest("", "Doe", TrainingType.YOGA);
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> trainerService.create(request));
+        assertEquals("First and last names are required for registration", exception.getMessage());
+        verify(trainerRepository, never()).create(any());
+    }
 
+    @Test
+    void create_ThrowException_FirstNameIsNull() {
+        CreateTrainerRequest request = new CreateTrainerRequest(null, "Doe", TrainingType.YOGA);
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> trainerService.create(request));
+        assertEquals("First and last names are required for registration", exception.getMessage());
+        verify(trainerRepository, never()).create(any());
+    }
+
+    @Test
+    void create_ThrowException_LastNameIsBlank() {
+        CreateTrainerRequest request = new CreateTrainerRequest("John", "", TrainingType.YOGA);
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> trainerService.create(request));
+        assertEquals("First and last names are required for registration", exception.getMessage());
+        verify(trainerRepository, never()).create(any());
+    }
+
+    @Test
+    void create_ThrowException_LastNameIsNull() {
+        CreateTrainerRequest request = new CreateTrainerRequest("John", null, TrainingType.YOGA);
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
                 () -> trainerService.create(request));
         assertEquals("First and last names are required for registration", exception.getMessage());
@@ -96,6 +124,16 @@ public class TrainerServiceTest {
         assertEquals("Jane.Smith", mappedTrainer.getUsername());
         assertEquals("test122333", mappedTrainer.getPassword());
         verify(trainerRepository, times(1)).update(mappedTrainer);
+    }
+
+    @Test
+    void update_ThrowIllegalArgumentException_IdIsNull() {
+        UpdateTrainerRequest requestWithNullId = new UpdateTrainerRequest(null, "John", "Doe", TrainingType.YOGA, true);
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> trainerService.update(requestWithNullId)
+        );
+        assertEquals("Trainer ID is required for update", exception.getMessage());
     }
 
     @Test

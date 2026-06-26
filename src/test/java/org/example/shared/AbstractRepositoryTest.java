@@ -4,26 +4,22 @@ import lombok.Data;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 public class AbstractRepositoryTest {
 
-//    @Data
+    @Data
     private static class TestEntity implements Identifiable {
         private Long id;
         private String name;
 
         public TestEntity(String name) { this.name = name; }
         public TestEntity(Long id, String name) { this.id = id; this.name = name; }
-
-        @Override public Long getId() { return id; }
-        @Override public void setId(Long id) { this.id = id; }
-        public String getName() { return name; }
     }
 
     private static class TestRepository extends AbstractRepository<TestEntity> {}
@@ -59,19 +55,25 @@ public class AbstractRepositoryTest {
     }
 
     @Test
-    void getById_ShouldReturnEmpty_WhenIdDoesNotExist() {
+    void getById_ReturnEmpty_IdDoesNotExist() {
         Optional<TestEntity> retrieved = repository.getById(99L);
         assertTrue(retrieved.isEmpty());
     }
 
     @Test
-    void getAll_ShouldReturnImmutableList_WithAllEntities() {
+    void getAll_ReturnImmutableList_AllEntities() {
         repository.create(new TestEntity("Entity 1"));
         repository.create(new TestEntity("Entity 2"));
         List<TestEntity> allEntities = repository.getAll();
         assertEquals(2, allEntities.size());
         assertThrows(UnsupportedOperationException.class, () -> allEntities.add(new TestEntity("Entity 3")),
                 "The returned list must be immutable");
+    }
+
+    @Test
+    void getAll_ReturnEmptyList_StorageIsEmpty() {
+        List<TestEntity> result = repository.getAll();
+        assertTrue(result.isEmpty(), "Expected an empty list when storage is empty");
     }
 
     @Test
@@ -98,7 +100,7 @@ public class AbstractRepositoryTest {
 
     @Test
     void initStorage_InitializeMapAndSetMaxIdCounter() {
-        Map<Long, TestEntity> initialData = new HashMap<>();
+        Map<Long, TestEntity> initialData = new ConcurrentHashMap<>();
         initialData.put(10L, new TestEntity(10L, "Entity 10"));
         initialData.put(20L, new TestEntity(20L, "Entity 20"));
 
@@ -110,11 +112,11 @@ public class AbstractRepositoryTest {
 
     @Test
     void initStorage_NotOverwrite_CalledTwice() {
-        Map<Long, TestEntity> initialData = new HashMap<>();
+        Map<Long, TestEntity> initialData = new ConcurrentHashMap<>();
         initialData.put(1L, new TestEntity(1L, "Entity 1"));
 
         repository.initStorage(initialData);
-        Map<Long, TestEntity> overrideData = new HashMap<>();
+        Map<Long, TestEntity> overrideData = new ConcurrentHashMap<>();
         repository.initStorage(overrideData);
         assertFalse(repository.getAll().isEmpty(), "Storage should not be overwritten after the first initialization");
     }

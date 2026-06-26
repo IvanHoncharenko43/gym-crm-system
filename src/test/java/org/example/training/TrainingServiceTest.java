@@ -1,6 +1,6 @@
 package org.example.training;
 
-import org.example.component.GymMapper;
+import org.example.shared.GymMapper;
 import org.example.trainee.Trainee;
 import org.example.trainee.TraineeRepository;
 import org.example.trainer.Trainer;

@@ -1,4 +1,4 @@
-package org.example.component;
+package org.example.shared;
 
 import org.springframework.stereotype.Component;
 
