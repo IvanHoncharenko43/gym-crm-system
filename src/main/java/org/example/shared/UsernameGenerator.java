@@ -1,42 +1,34 @@
 package org.example.shared;
 
-import org.example.trainee.TraineeRepository;
-import org.example.trainer.TrainerRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 public class UsernameGenerator {
+    private final Map<String, AtomicInteger> usernameCount = new ConcurrentHashMap<>();
 
-    private TrainerRepository trainerRepository;
-    private TraineeRepository traineeRepository;
-
-    @Autowired
-    public void setTrainerRepository(TrainerRepository trainerRepository) {
-        this.trainerRepository = trainerRepository;
-    }
-
-    @Autowired
-    public void setTraineeRepository(TraineeRepository traineeRepository) {
-        this.traineeRepository = traineeRepository;
-    }
-
-    public String generate(String firstName, String lastName) {
-        String baseUsername = firstName + "." + lastName;
-        String finalUsername = baseUsername;
-        int serialNumber = 1;
-        while (usernameExists(finalUsername)) {
-            finalUsername = baseUsername + serialNumber;
-            serialNumber++;
+    public String generate(String firstName, String lastName){
+        String baseUsername = firstName + lastName;
+        int count = usernameCount.computeIfAbsent(baseUsername, v -> new AtomicInteger(0))
+                .incrementAndGet();
+        if(count == 1){
+            return baseUsername;
         }
-        return finalUsername;
+        return baseUsername + (count-1);
     }
 
-    private boolean usernameExists(String username) {
-        boolean existsInTrainers = trainerRepository.findByUsername(username).isPresent();
-        if (existsInTrainers) {
-            return true;
+    public void initData(List<String> existingUsernames) {
+        if (existingUsernames == null || existingUsernames.isEmpty()) {
+            return;
         }
-        return traineeRepository.findByUsername(username).isPresent();
+        for (String username : existingUsernames) {
+            String baseUsername = username.replaceAll("\\d+$", "");
+            usernameCount.computeIfAbsent(baseUsername, k -> new AtomicInteger(0))
+                    .incrementAndGet();
+        }
     }
 }

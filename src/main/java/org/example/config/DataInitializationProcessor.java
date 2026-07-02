@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
+import org.example.shared.UsernameGenerator;
 import org.example.trainee.TraineeRepository;
 import org.example.trainer.TrainerRepository;
 import org.example.training.TrainingRepository;
@@ -20,10 +21,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
 import java.nio.file.*;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -52,20 +51,25 @@ public class DataInitializationProcessor implements BeanPostProcessor {
 
     @Override
     public @Nullable Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
-        if (rootNode == null) {
-            return bean;
-        }
-        if (bean instanceof TraineeRepository traineeRepository) {
-            Map<Long, Trainee> initialData = loadDataAndMapToStorage("trainees", Trainee[].class);
-            traineeRepository.initStorage(initialData);
-        }
-        else if (bean instanceof TrainerRepository trainerRepository) {
-            Map<Long, Trainer> initialData = loadDataAndMapToStorage("trainers", Trainer[].class);
-            trainerRepository.initStorage(initialData);
-        }
-        else if (bean instanceof TrainingRepository trainingRepository) {
-            Map<Long, Training> initialData = loadDataAndMapToStorage("trainings", Training[].class);
-            trainingRepository.initStorage(initialData);
+        switch (bean) {
+            case TraineeRepository traineeRepository -> {
+                Map<Long, Trainee> initialData = loadDataAndMapToStorage("trainees", Trainee[].class);
+                traineeRepository.initStorage(initialData);
+            }
+            case TrainerRepository trainerRepository -> {
+                Map<Long, Trainer> initialData = loadDataAndMapToStorage("trainers", Trainer[].class);
+                trainerRepository.initStorage(initialData);
+            }
+            case TrainingRepository trainingRepository -> {
+                Map<Long, Training> initialData = loadDataAndMapToStorage("trainings", Training[].class);
+                trainingRepository.initStorage(initialData);
+            }
+            case UsernameGenerator usernameGenerator -> {
+                List<String> existingUsernames = extractUsernames();
+                usernameGenerator.initData(existingUsernames);
+            }
+            default -> {
+            }
         }
         return bean;
     }
@@ -83,12 +87,27 @@ public class DataInitializationProcessor implements BeanPostProcessor {
                     .filter(Objects::nonNull)
                     .collect(Collectors.toConcurrentMap(
                             T::getId,
-                            item -> item,
-                            (existing, replacement) -> existing
+                            Function.identity()
                     ));
         } catch (Exception e) {
             log.error("Failed to map {} data. Reason: {}", nodeName, e.getMessage());
             return Collections.emptyMap();
         }
+    }
+
+    private List<String> extractUsernames() {
+        Map<Long, Trainee> trainees = loadDataAndMapToStorage("trainees", Trainee[].class);
+        List<String> allUsernames = new ArrayList<>(trainees.values().stream()
+                .map(Trainee::getUsername)
+                .filter(Objects::nonNull)
+                .toList());
+        Map<Long, Trainer> trainers = loadDataAndMapToStorage("trainers", Trainer[].class);
+        allUsernames.addAll(trainers.values().stream()
+                .map(Trainer::getUsername)
+                .filter(Objects::nonNull)
+                .toList());
+
+        log.info("Extracted {} existing usernames for UsernameGenerator initialization", allUsernames.size());
+        return allUsernames;
     }
 }
