@@ -1,9 +1,12 @@
 package org.example.training;
 
+import org.example.TestUtils;
+import org.example.exception.NotFoundException;
 import org.example.shared.GymMapper;
-import org.example.trainee.Trainee;
+import org.example.shared.TrainingType;
+import org.example.trainee.TraineeEntity;
 import org.example.trainee.TraineeRepository;
-import org.example.trainer.Trainer;
+import org.example.trainer.TrainerEntity;
 import org.example.trainer.TrainerRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,6 +14,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -18,6 +22,10 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class TrainingServiceTest {
+
+    private static final Long TRAINING_ID = 1L;
+    private static final Long TRAINER_ID = 2L;
+    private static final Long TRAINEE_ID = 3L;
 
     @Mock
     private TrainingRepository trainingRepository;
@@ -36,118 +44,150 @@ public class TrainingServiceTest {
 
     @Test
     void create_CreateAndReturnTrainingResponse_AllEntitiesExist() {
-        CreateTrainingRequest request = mock(CreateTrainingRequest.class);
-        when(request.traineeUsername()).thenReturn("John.Doe");
-        when(request.trainerUsername()).thenReturn("Jane.Smith");
-        Trainee trainee = new Trainee();
-        Trainer trainer = new Trainer();
-        Training mappedTraining = new Training();
-        Training savedTraining = new Training();
-        savedTraining.setId(1L);
-        TrainingResponse expectedResponse = mock(TrainingResponse.class);
+        CreateTrainingRequest request = new CreateTrainingRequest(
+                TRAINER_ID, TRAINEE_ID, "Cardio",
+                LocalDate.of(2026, 5, 12), 45
+        );
+        TraineeEntity trainee = new TraineeEntity();
+        TrainerEntity trainer = new TrainerEntity();
+        TrainingEntity mappedTraining = new TrainingEntity();
+        TrainingEntity savedTraining = new TrainingEntity();
+        savedTraining.setId(TRAINING_ID);
+        TrainingSummary expectedResponse = new TrainingSummary(
+                TRAINING_ID,
+                TestUtils.getTrainerSummary(TRAINER_ID),
+                TestUtils.getTraineeSummary(TRAINEE_ID),
+                "Cardio",
+                TrainingType.YOGA,
+                LocalDate.of(2026, 5, 12), 45
+        );
 
-        when(traineeRepository.findByUsername("John.Doe")).thenReturn(Optional.of(trainee));
-        when(trainerRepository.findByUsername("Jane.Smith")).thenReturn(Optional.of(trainer));
+        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
+        when(trainerRepository.getById(TRAINER_ID)).thenReturn(Optional.of(trainer));
         when(gymMapper.toTraining(request, trainee, trainer)).thenReturn(mappedTraining);
         when(trainingRepository.create(mappedTraining)).thenReturn(savedTraining);
-        when(gymMapper.toTrainingResponse(savedTraining, trainee, trainer)).thenReturn(expectedResponse);
+        when(gymMapper.toTrainingSummary(savedTraining, trainee, trainer)).thenReturn(expectedResponse);
 
-        TrainingResponse actualResponse = trainingService.create(request);
+        TrainingSummary actualResponse = trainingService.create(request);
 
-        assertNotNull(actualResponse);
         assertEquals(expectedResponse, actualResponse);
+        verify(traineeRepository, times(1)).getById(TRAINEE_ID);
+        verify(trainerRepository, times(1)).getById(TRAINER_ID);
+        verify(gymMapper, times(1)).toTraining(request, trainee, trainer);
         verify(trainingRepository, times(1)).create(mappedTraining);
+        verify(gymMapper, times(1)).toTrainingSummary(savedTraining, trainee, trainer);
     }
 
     @Test
-    void create_ThrowIllegalArgumentException_TraineeNotFound() {
-        CreateTrainingRequest request = mock(CreateTrainingRequest.class);
-        when(request.traineeUsername()).thenReturn("Unknown.Trainee");
-        when(traineeRepository.findByUsername("Unknown.Trainee")).thenReturn(Optional.empty());
+    void create_ThrowNotFoundException_TraineeNotFound() {
+        CreateTrainingRequest request = new CreateTrainingRequest(
+                TRAINER_ID, TRAINEE_ID, "Cardio",
+                LocalDate.of(2026, 5, 12), 45
+        );
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.empty());
+
+        NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> trainingService.create(request));
-        assertEquals("Trainee not found", exception.getMessage());
+        assertTrue(exception.getMessage().contains("Trainee not found"));
+        verify(traineeRepository, times(1)).getById(TRAINEE_ID);
         verify(trainingRepository, never()).create(any());
     }
 
     @Test
-    void create_ThrowIllegalArgumentException_TrainerNotFound() {
-        CreateTrainingRequest request = mock(CreateTrainingRequest.class);
-        when(request.traineeUsername()).thenReturn("John.Doe");
-        when(request.trainerUsername()).thenReturn("Unknown.Trainer");
-        Trainee trainee = new Trainee();
-        when(traineeRepository.findByUsername("John.Doe")).thenReturn(Optional.of(trainee));
-        when(trainerRepository.findByUsername("Unknown.Trainer")).thenReturn(Optional.empty());
+    void create_ThrowNotFoundException_TrainerNotFound() {
+        CreateTrainingRequest request = new CreateTrainingRequest(
+                TRAINER_ID, TRAINEE_ID, "Cardio",
+                LocalDate.of(2026, 5, 12), 45
+        );
+        TraineeEntity trainee = new TraineeEntity();
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
+        when(trainerRepository.getById(TRAINER_ID)).thenReturn(Optional.empty());
+
+        NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> trainingService.create(request));
-        assertEquals("Trainer not found", exception.getMessage());
+        assertTrue(exception.getMessage().contains("Trainer not found"));
+        verify(traineeRepository, times(1)).getById(TRAINEE_ID);
+        verify(trainerRepository, times(1)).getById(TRAINER_ID);
         verify(trainingRepository, never()).create(any());
     }
 
     @Test
     void getById_ReturnResponse_TrainingAndRelationsExist() {
-        Long trainingId = 1L;
-        Long traineeId = 2L;
-        Long trainerId = 3L;
-        Training training = new Training();
-        training.setTraineeId(traineeId);
-        training.setTrainerId(trainerId);
-        Trainee trainee = new Trainee();
-        Trainer trainer = new Trainer();
-        TrainingResponse expectedResponse = mock(TrainingResponse.class);
+        TrainingEntity training = new TrainingEntity();
+        training.setTraineeId(TRAINEE_ID);
+        training.setTrainerId(TRAINER_ID);
+        TraineeEntity trainee = new TraineeEntity();
+        TrainerEntity trainer = new TrainerEntity();
+        TrainingSummary expectedResponse = new TrainingSummary(
+                TRAINING_ID,
+                TestUtils.getTrainerSummary(TRAINER_ID),
+                TestUtils.getTraineeSummary(TRAINEE_ID),
+                "Cardio",
+                TrainingType.YOGA,
+                LocalDate.of(2026, 5, 12), 45
+        );
 
-        when(trainingRepository.getById(trainingId)).thenReturn(Optional.of(training));
-        when(traineeRepository.getById(traineeId)).thenReturn(Optional.of(trainee));
-        when(trainerRepository.getById(trainerId)).thenReturn(Optional.of(trainer));
-        when(gymMapper.toTrainingResponse(training, trainee, trainer)).thenReturn(expectedResponse);
+        when(trainingRepository.getById(TRAINING_ID)).thenReturn(Optional.of(training));
+        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
+        when(trainerRepository.getById(TRAINER_ID)).thenReturn(Optional.of(trainer));
+        when(gymMapper.toTrainingSummary(training, trainee, trainer)).thenReturn(expectedResponse);
 
-        TrainingResponse actualResponse = trainingService.getById(trainingId);
+        TrainingSummary actualResponse = trainingService.getById(TRAINING_ID);
         assertEquals(expectedResponse, actualResponse);
+        verify(trainingRepository, times(1)).getById(TRAINING_ID);
+        verify(traineeRepository, times(1)).getById(TRAINEE_ID);
+        verify(trainerRepository, times(1)).getById(TRAINER_ID);
+        verify(gymMapper, times(1)).toTrainingSummary(training, trainee, trainer);
     }
 
     @Test
-    void getById_ThrowIllegalArgumentException_TrainingNotFound() {
-        Long id = 99L;
-        when(trainingRepository.getById(id)).thenReturn(Optional.empty());
+    void getById_ThrowNotFoundException_TrainingIsMissing() {
+        when(trainingRepository.getById(TRAINING_ID)).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> trainingService.getById(id));
-        assertTrue(exception.getMessage().contains("not found"));
-        verify(gymMapper, never()).toTrainingResponse(any(), any(), any());
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> trainingService.getById(TRAINING_ID));
+
+        assertTrue(exception.getMessage().contains("Training not found"));
+        verify(trainingRepository, times(1)).getById(TRAINING_ID);
+        verify(gymMapper, never()).toTrainingSummary(any(), any(), any());
     }
 
     @Test
-    void getById_ThrowIllegalStateException_RelatedTraineeIsMissing() {
-        Long trainingId = 1L;
-        Long traineeId = 2L;
-        Training training = new Training();
-        training.setTraineeId(traineeId);
-        when(trainingRepository.getById(trainingId)).thenReturn(Optional.of(training));
-        when(traineeRepository.getById(traineeId)).thenReturn(Optional.empty());
+    void getById_ThrowNotFoundException_RelatedTraineeIsMissing() {
+        TrainingEntity training = new TrainingEntity();
+        training.setTraineeId(TRAINING_ID);
+        when(trainingRepository.getById(TRAINING_ID)).thenReturn(Optional.of(training));
+        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.empty());
 
-        IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> trainingService.getById(trainingId));
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> trainingService.getById(TRAINING_ID));
+
         assertEquals("Trainee for training not found", exception.getMessage());
+        verify(trainingRepository, times(1)).getById(TRAINING_ID);
+        verify(traineeRepository, times(1)).getById(TRAINEE_ID);
+        verify(gymMapper, never()).toTrainingSummary(any(), any(), any());
     }
 
     @Test
-    void getById_ThrowIllegalStateException_RelatedTrainerIsMissing() {
-        Long trainingId = 1L;
-        Long traineeId = 2L;
-        Long trainerId = 3L;
-        Training training = new Training();
-        training.setTraineeId(traineeId);
-        training.setTrainerId(trainerId);
-        Trainee trainee = new Trainee();
+    void getById_ThrowNotFoundException_RelatedTrainerIsMissing() {
+        TrainingEntity training = new TrainingEntity();
+        training.setTraineeId(TRAINEE_ID);
+        training.setTrainerId(TRAINER_ID);
+        TraineeEntity trainee = new TraineeEntity();
 
-        when(trainingRepository.getById(trainingId)).thenReturn(Optional.of(training));
-        when(traineeRepository.getById(traineeId)).thenReturn(Optional.of(trainee));
-        when(trainerRepository.getById(trainerId)).thenReturn(Optional.empty());
+        when(trainingRepository.getById(TRAINING_ID)).thenReturn(Optional.of(training));
+        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
+        when(trainerRepository.getById(TRAINER_ID)).thenReturn(Optional.empty());
 
-        IllegalStateException exception = assertThrows(IllegalStateException.class,
-                () -> trainingService.getById(trainingId));
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> trainingService.getById(TRAINING_ID));
+
         assertEquals("Trainer for training not found", exception.getMessage());
+        verify(trainingRepository, times(1)).getById(TRAINING_ID);
+        verify(traineeRepository, times(1)).getById(TRAINEE_ID);
+        verify(trainerRepository, times(1)).getById(TRAINER_ID);
+        verify(gymMapper, never()).toTrainingSummary(any(), any(), any());
     }
 }

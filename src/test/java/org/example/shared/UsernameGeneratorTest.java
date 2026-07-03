@@ -1,8 +1,8 @@
 package org.example.shared;
 
-import org.example.trainee.Trainee;
+import org.example.trainee.TraineeEntity;
 import org.example.trainee.TraineeRepository;
-import org.example.trainer.Trainer;
+import org.example.trainer.TrainerEntity;
 import org.example.trainer.TrainerRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,7 +48,7 @@ public class UsernameGeneratorTest {
         String expectedUsername = "John.Doe1";
 
         when(trainerRepository.findByUsername(baseUsername)).thenReturn(Optional.empty());
-        when(traineeRepository.findByUsername(baseUsername)).thenReturn(Optional.of(new Trainee()));
+        when(traineeRepository.findByUsername(baseUsername)).thenReturn(Optional.of(new TraineeEntity()));
         when(trainerRepository.findByUsername(expectedUsername)).thenReturn(Optional.empty());
         when(traineeRepository.findByUsername(expectedUsername)).thenReturn(Optional.empty());
 
@@ -64,9 +64,9 @@ public class UsernameGeneratorTest {
         String collision1 = "John.Doe1";
         String expectedUsername = "John.Doe2";
 
-        when(trainerRepository.findByUsername(baseUsername)).thenReturn(Optional.of(new Trainer()));
+        when(trainerRepository.findByUsername(baseUsername)).thenReturn(Optional.of(new TrainerEntity()));
         when(trainerRepository.findByUsername(collision1)).thenReturn(Optional.empty());
-        when(traineeRepository.findByUsername(collision1)).thenReturn(Optional.of(new Trainee()));
+        when(traineeRepository.findByUsername(collision1)).thenReturn(Optional.of(new TraineeEntity()));
         when(trainerRepository.findByUsername(expectedUsername)).thenReturn(Optional.empty());
         when(traineeRepository.findByUsername(expectedUsername)).thenReturn(Optional.empty());
 

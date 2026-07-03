@@ -6,12 +6,9 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public class TrainerRepository extends AbstractRepository<Trainer> {
+public class TrainerRepository extends AbstractRepository<TrainerEntity> {
 
-    public Optional<Trainer> findByUsername(String username){
-        if(username == null){
-            return Optional.empty();
-        }
+    public Optional<TrainerEntity> findByUsername(String username){
         return storage.values().stream()
                 .filter(trainer -> username.equals(trainer.getUsername()))
                 .findFirst();

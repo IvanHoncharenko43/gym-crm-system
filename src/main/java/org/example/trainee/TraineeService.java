@@ -3,7 +3,7 @@ package org.example.trainee;
 import lombok.extern.slf4j.Slf4j;
 import org.example.exception.NotFoundException;
 import org.example.shared.GymMapper;
-import org.example.shared.User;
+import org.example.shared.UserEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -27,21 +27,21 @@ public class TraineeService {
 
     public TraineeSummary create(CreateTraineeRequest request) {
         Objects.requireNonNull(request, "Request body cannot be null");
-        Trainee trainee = gymMapper.toTraineeEntity(request);
-        Trainee savedTrainee = traineeRepository.create(trainee);
+        TraineeEntity trainee = gymMapper.toTraineeEntity(request);
+        TraineeEntity savedTrainee = traineeRepository.create(trainee);
         log.info("Created trainee profile with ID: {}", savedTrainee.getId());
         return gymMapper.toTraineeSummary(savedTrainee);
     }
 
     public TraineeSummary update(UpdateTraineeRequest request) {
         Objects.requireNonNull(request, "Request body cannot be null");
-        Trainee existingTrainee = traineeRepository.getById(request.id())
+        TraineeEntity existingTrainee = traineeRepository.getById(request.id())
                 .orElseThrow(() -> {
                     log.error("Trainee with ID {} not found", request.id());
                     return new NotFoundException("Trainee with ID " + request.id() + " not found");
                 });
-        Trainee trainee = gymMapper.toTraineeEntity(request, existingTrainee.getUsername(), existingTrainee.getPassword());
-        Trainee updatedTrainee = traineeRepository.update(trainee);
+        TraineeEntity trainee = gymMapper.toTraineeEntity(request, existingTrainee.getUsername(), existingTrainee.getPassword());
+        TraineeEntity updatedTrainee = traineeRepository.update(trainee);
         log.info("Updated trainee profile with ID: {}", updatedTrainee.getId());
         return gymMapper.toTraineeSummary(updatedTrainee);
     }
@@ -50,7 +50,7 @@ public class TraineeService {
         Objects.requireNonNull(id, "ID cannot be null");
         log.info("Selecting trainer by ID started");
         return traineeRepository.getById(id)
-                .filter(User::isActive)
+                .filter(UserEntity::isActive)
                 .map(gymMapper::toTraineeSummary)
                 .orElseThrow(() -> {
                     log.warn("Trainee with ID {} not found", id);

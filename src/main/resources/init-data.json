@@ -6,7 +6,7 @@
       "lastName": "Doe",
       "username": "John.Doe",
       "password": "randomPassword123",
-      "isActive": true,
+      "active": true,
       "dateOfBirth": "1995-05-15",
       "address": "123 Main St, New York"
     },
@@ -16,7 +16,7 @@
       "lastName": "Johnson",
       "username": "Alice.Johnson",
       "password": "passWord456!",
-      "isActive": true,
+      "active": true,
       "dateOfBirth": "1992-08-22",
       "address": "456 Oak Ave, Chicago"
     },
@@ -26,7 +26,7 @@
       "lastName": "Williams",
       "username": "Michael.Williams",
       "password": "mySecret789",
-      "isActive": false,
+      "active": false,
       "dateOfBirth": "1988-11-03",
       "address": "789 Pine Rd, Austin"
     },
@@ -36,7 +36,7 @@
       "lastName": "Brown",
       "username": "Emma.Brown",
       "password": "emmaPass2024",
-      "isActive": true,
+      "active": true,
       "dateOfBirth": "1998-02-14",
       "address": "321 Cedar Ln, Seattle"
     },
@@ -46,7 +46,7 @@
       "lastName": "Davis",
       "username": "James.Davis",
       "password": "jdavis_safe!",
-      "isActive": true,
+      "active": true,
       "dateOfBirth": "1990-07-30",
       "address": "654 Birch Dr, Denver"
     },
@@ -56,7 +56,7 @@
       "lastName": "Miller",
       "username": "Sophia.Miller",
       "password": "sophiM!ll3r",
-      "isActive": true,
+      "active": true,
       "dateOfBirth": "1996-12-05",
       "address": "987 Maple Ct, Boston"
     },
@@ -66,7 +66,7 @@
       "lastName": "Wilson",
       "username": "William.Wilson",
       "password": "williamPass99",
-      "isActive": true,
+      "active": true,
       "dateOfBirth": "1985-04-18",
       "address": "159 Spruce Way, Miami"
     },
@@ -76,7 +76,7 @@
       "lastName": "Moore",
       "username": "Olivia.Moore",
       "password": "moorePassword8",
-      "isActive": true,
+      "active": true,
       "dateOfBirth": "1993-09-27",
       "address": "753 Elm St, Portland"
     },
@@ -86,7 +86,7 @@
       "lastName": "Taylor",
       "username": "Daniel.Taylor",
       "password": "danTaylor22",
-      "isActive": false,
+      "active": false,
       "dateOfBirth": "1991-01-12",
       "address": "852 Willow Pl, Phoenix"
     },
@@ -96,7 +96,7 @@
       "lastName": "Anderson",
       "username": "Isabella.Anderson",
       "password": "isa_anderson!",
-      "isActive": true,
+      "active": true,
       "dateOfBirth": "1999-06-08",
       "address": "951 Ash Blvd, Atlanta"
     }
@@ -108,7 +108,7 @@
       "lastName": "Smith",
       "username": "Jane.Smith",
       "password": "randomPassword789",
-      "isActive": true,
+      "active": true,
       "specialization": "YOGA"
     },
     {
@@ -117,7 +117,7 @@
       "lastName": "Clark",
       "username": "David.Clark",
       "password": "clark_str3ngth",
-      "isActive": true,
+      "active": true,
       "specialization": "STRENGTH"
     },
     {
@@ -126,7 +126,7 @@
       "lastName": "Lewis",
       "username": "Sarah.Lewis",
       "password": "runFast2024",
-      "isActive": true,
+      "active": true,
       "specialization": "CARDIO"
     },
     {
@@ -135,7 +135,7 @@
       "lastName": "Walker",
       "username": "Robert.Walker",
       "password": "flex_rob_123",
-      "isActive": true,
+      "active": true,
       "specialization": "FLEXIBILITY"
     },
     {
@@ -144,7 +144,7 @@
       "lastName": "Hall",
       "username": "Laura.Hall",
       "password": "lauraPower99",
-      "isActive": false,
+      "active": false,
       "specialization": "STRENGTH"
     }
   ],

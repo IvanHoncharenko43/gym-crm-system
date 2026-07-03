@@ -5,8 +5,8 @@ import org.example.exception.NotFoundException;
 import org.example.trainee.TraineeRepository;
 import org.example.trainer.TrainerRepository;
 import org.example.shared.GymMapper;
-import org.example.trainee.Trainee;
-import org.example.trainer.Trainer;
+import org.example.trainee.TraineeEntity;
+import org.example.trainer.TrainerEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -43,36 +43,36 @@ public class TrainingService {
 
     public TrainingSummary create(CreateTrainingRequest request) {
         Objects.requireNonNull(request, "Request body cannot be null");
-        Trainee trainee = traineeRepository.getById(request.traineeId())
+        TraineeEntity trainee = traineeRepository.getById(request.traineeId())
                 .orElseThrow(() -> {
                     log.error("Trainee with ID {} not found", request.traineeId());
                     return new NotFoundException("Trainee with ID " + request.traineeId() + " not found");
                 });
 
-        Trainer trainer = trainerRepository.getById(request.trainerId())
+        TrainerEntity trainer = trainerRepository.getById(request.trainerId())
                 .orElseThrow(() -> {
                     log.error("Trainer with ID {} not found", request.trainerId());
                     return new NotFoundException("Trainer with ID " + request.trainerId() + " not found");
                 });
-        Training training = gymMapper.toTraining(request, trainee, trainer);
-        Training savedTraining = trainingRepository.create(training);
+        TrainingEntity training = gymMapper.toTraining(request, trainee, trainer);
+        TrainingEntity savedTraining = trainingRepository.create(training);
         log.info("Created training with ID: {}", savedTraining.getId());
         return gymMapper.toTrainingSummary(savedTraining, trainee, trainer);
     }
 
     public TrainingSummary getById(Long id) {
         Objects.requireNonNull(id, "ID cannot be null");
-        Training training = trainingRepository.getById(id)
+        TrainingEntity training = trainingRepository.getById(id)
                 .orElseThrow(() -> {
                     log.warn("Training with ID {} not found", id);
                     return new NotFoundException("Training with ID " + id + " not found");
                 });
-        Trainee trainee = traineeRepository.getById(training.getTraineeId())
+        TraineeEntity trainee = traineeRepository.getById(training.getTraineeId())
                 .orElseThrow(() -> {
                     log.error("Trainee for training {} not found", id);
                     return new NotFoundException("Trainee for training with ID " + id + " not found");
                 });
-        Trainer trainer = trainerRepository.getById(training.getTrainerId())
+        TrainerEntity trainer = trainerRepository.getById(training.getTrainerId())
                 .orElseThrow(() -> {
                     log.error("Trainer for training with ID {} not found", id);
                     return new NotFoundException("Trainer for training with ID " + id + " not found");

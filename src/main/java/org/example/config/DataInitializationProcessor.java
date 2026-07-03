@@ -10,9 +10,9 @@ import org.example.trainee.TraineeRepository;
 import org.example.trainer.TrainerRepository;
 import org.example.training.TrainingRepository;
 import org.example.shared.Identifiable;
-import org.example.trainee.Trainee;
-import org.example.trainer.Trainer;
-import org.example.training.Training;
+import org.example.trainee.TraineeEntity;
+import org.example.trainer.TrainerEntity;
+import org.example.training.TrainingEntity;
 import org.jspecify.annotations.Nullable;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,7 +20,6 @@ import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
-import java.nio.file.*;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -53,15 +52,15 @@ public class DataInitializationProcessor implements BeanPostProcessor {
     public @Nullable Object postProcessBeforeInitialization(Object bean, String beanName) throws BeansException {
         switch (bean) {
             case TraineeRepository traineeRepository -> {
-                Map<Long, Trainee> initialData = loadDataAndMapToStorage("trainees", Trainee[].class);
+                Map<Long, TraineeEntity> initialData = loadDataAndMapToStorage("trainees", TraineeEntity[].class);
                 traineeRepository.initStorage(initialData);
             }
             case TrainerRepository trainerRepository -> {
-                Map<Long, Trainer> initialData = loadDataAndMapToStorage("trainers", Trainer[].class);
+                Map<Long, TrainerEntity> initialData = loadDataAndMapToStorage("trainers", TrainerEntity[].class);
                 trainerRepository.initStorage(initialData);
             }
             case TrainingRepository trainingRepository -> {
-                Map<Long, Training> initialData = loadDataAndMapToStorage("trainings", Training[].class);
+                Map<Long, TrainingEntity> initialData = loadDataAndMapToStorage("trainings", TrainingEntity[].class);
                 trainingRepository.initStorage(initialData);
             }
             case UsernameGenerator usernameGenerator -> {
@@ -96,14 +95,14 @@ public class DataInitializationProcessor implements BeanPostProcessor {
     }
 
     private List<String> extractUsernames() {
-        Map<Long, Trainee> trainees = loadDataAndMapToStorage("trainees", Trainee[].class);
+        Map<Long, TraineeEntity> trainees = loadDataAndMapToStorage("trainees", TraineeEntity[].class);
         List<String> allUsernames = new ArrayList<>(trainees.values().stream()
-                .map(Trainee::getUsername)
+                .map(TraineeEntity::getUsername)
                 .filter(Objects::nonNull)
                 .toList());
-        Map<Long, Trainer> trainers = loadDataAndMapToStorage("trainers", Trainer[].class);
+        Map<Long, TrainerEntity> trainers = loadDataAndMapToStorage("trainers", TrainerEntity[].class);
         allUsernames.addAll(trainers.values().stream()
-                .map(Trainer::getUsername)
+                .map(TrainerEntity::getUsername)
                 .filter(Objects::nonNull)
                 .toList());
 

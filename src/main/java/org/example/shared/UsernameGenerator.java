@@ -12,7 +12,7 @@ public class UsernameGenerator {
     private final Map<String, AtomicInteger> usernameCount = new ConcurrentHashMap<>();
 
     public String generate(String firstName, String lastName){
-        String baseUsername = firstName + lastName;
+        String baseUsername = firstName + "." + lastName;
         int count = usernameCount.computeIfAbsent(baseUsername, v -> new AtomicInteger(0))
                 .incrementAndGet();
         if(count == 1){
@@ -25,10 +25,11 @@ public class UsernameGenerator {
         if (existingUsernames == null || existingUsernames.isEmpty()) {
             return;
         }
-        for (String username : existingUsernames) {
-            String baseUsername = username.replaceAll("\\d+$", "");
-            usernameCount.computeIfAbsent(baseUsername, k -> new AtomicInteger(0))
-                    .incrementAndGet();
-        }
+        existingUsernames.stream()
+                .map(username -> username.replaceAll("\\d+$", ""))
+                .forEach(baseUsername ->
+                        usernameCount.computeIfAbsent(baseUsername, k -> new AtomicInteger(0))
+                                .incrementAndGet()
+                );
     }
 }

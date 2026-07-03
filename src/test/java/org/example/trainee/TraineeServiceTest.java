@@ -1,8 +1,9 @@
 package org.example.trainee;
 
+import org.example.exception.NotFoundException;
+import org.example.shared.FullName;
 import org.example.shared.GymMapper;
-import org.example.shared.PasswordGenerator;
-import org.example.shared.UsernameGenerator;
+import org.example.shared.UserProfile;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -18,178 +19,133 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 public class TraineeServiceTest {
 
+    private static final Long TRAINEE_ID = 1L;
+    private static final String USERNAME = "John.Doe";
+    private static final String PASSWORD = "122333test";
+
     @Mock
     private TraineeRepository traineeRepository;
 
     @Mock
     private GymMapper gymMapper;
 
-    @Mock
-    private UsernameGenerator usernameGenerator;
-
-    @Mock
-    private PasswordGenerator passwordGenerator;
-
     @InjectMocks
     private TraineeService traineeService;
 
     @Test
     void create_CreateAndReturnTraineeResponse_RequestIsValid() {
-        CreateTraineeRequest request = mock(CreateTraineeRequest.class);
-        when(request.firstName()).thenReturn("John");
-        when(request.lastName()).thenReturn("Doe");
-        Trainee mappedTrainee = new Trainee();
-        mappedTrainee.setFirstName("John");
-        mappedTrainee.setLastName("Doe");
-        Trainee savedTrainee = new Trainee();
-        savedTrainee.setId(1L);
-        savedTrainee.setUsername("John.Doe");
-        savedTrainee.setPassword("122333test");
-        TraineeResponse expectedResponse = mock(TraineeResponse.class);
+        CreateTraineeRequest request = new CreateTraineeRequest(
+                new FullName("John", "Doe"), LocalDate.of(2007, 3, 25), "Home 21 Street"
+        );
+        TraineeEntity mappedTrainee = new TraineeEntity();
+        TraineeEntity savedTrainee = new TraineeEntity();
+        savedTrainee.setId(TRAINEE_ID);
+        TraineeSummary expectedResponse = new TraineeSummary(
+                TRAINEE_ID, new UserProfile(USERNAME),
+                LocalDate.of(2007, 3, 25), "Home 21 Street"
+        );
 
-        when(gymMapper.toTrainee(request)).thenReturn(mappedTrainee);
-        when(usernameGenerator.generate("John", "Doe")).thenReturn("John.Doe");
-        when(passwordGenerator.generate()).thenReturn("122333test");
+        when(gymMapper.toTraineeEntity(request)).thenReturn(mappedTrainee);
         when(traineeRepository.create(mappedTrainee)).thenReturn(savedTrainee);
-        when(gymMapper.toTraineeResponse(savedTrainee)).thenReturn(expectedResponse);
+        when(gymMapper.toTraineeSummary(savedTrainee)).thenReturn(expectedResponse);
 
-        TraineeResponse actualResponse = traineeService.create(request);
+        TraineeSummary actualResponse = traineeService.create(request);
 
-        assertNotNull(actualResponse);
         assertEquals(expectedResponse, actualResponse);
-        assertEquals("John.Doe", mappedTrainee.getUsername());
-        assertEquals("122333test", mappedTrainee.getPassword());
+        verify(gymMapper, times(1)).toTraineeEntity(request);
         verify(traineeRepository, times(1)).create(mappedTrainee);
-    }
-
-    @Test
-    void create_ThrowIllegalArgumentException_FirstNameIsBlank() {
-        CreateTraineeRequest request = new CreateTraineeRequest("", "Doe", LocalDate.now(), "123 Street");
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> traineeService.create(request));
-        assertEquals("First and last names are required for registration", exception.getMessage());
-        verify(traineeRepository, never()).create(any());
-    }
-
-    @Test
-    void create_ThrowIllegalArgumentException_FirstNameIsNull() {
-        CreateTraineeRequest request = new CreateTraineeRequest(null, "Doe", LocalDate.now(), "123 Street");
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> traineeService.create(request));
-        assertEquals("First and last names are required for registration", exception.getMessage());
-        verify(traineeRepository, never()).create(any());
-    }
-
-    @Test
-    void create_ThrowIllegalArgumentException_LastNameIsBlank() {
-        CreateTraineeRequest request = new CreateTraineeRequest("John", "", LocalDate.now(), "123 Street");
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> traineeService.create(request));
-        assertEquals("First and last names are required for registration", exception.getMessage());
-        verify(traineeRepository, never()).create(any());
-    }
-
-    @Test
-    void create_ThrowIllegalArgumentException_LastNameIsNull() {
-        CreateTraineeRequest request = new CreateTraineeRequest("John", null, LocalDate.now(), "123 Street");
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> traineeService.create(request));
-        assertEquals("First and last names are required for registration", exception.getMessage());
-        verify(traineeRepository, never()).create(any());
+        verify(gymMapper, times(1)).toTraineeSummary(savedTrainee);
     }
 
     @Test
     void update_UpdateAndReturnResponse_TraineeExists() {
-        UpdateTraineeRequest request = mock(UpdateTraineeRequest.class);
-        when(request.id()).thenReturn(1L);
-        Trainee existingTrainee = new Trainee();
+        UpdateTraineeRequest request = new UpdateTraineeRequest(
+                TRAINEE_ID, new FullName("John", "Doe"),
+                LocalDate.of(2007, 3, 25), "Home 21 Street", true
+        );
+        TraineeEntity existingTrainee = new TraineeEntity();
         existingTrainee.setId(1L);
-        existingTrainee.setUsername("John.Doe");
-        existingTrainee.setPassword("122333test");
-        Trainee mappedTrainee = new Trainee();
-        Trainee updatedTrainee = new Trainee();
-        updatedTrainee.setId(1L);
-        TraineeResponse expectedResponse = mock(TraineeResponse.class);
+        existingTrainee.setUsername(USERNAME);
+        existingTrainee.setPassword(PASSWORD);
+        TraineeEntity mappedTrainee = new TraineeEntity();
+        TraineeEntity updatedTrainee = new TraineeEntity();
+        updatedTrainee.setId(TRAINEE_ID);
+        TraineeSummary expectedResponse = new TraineeSummary(
+                TRAINEE_ID, new UserProfile(USERNAME),
+                LocalDate.of(2007, 3, 25), "Home 21 Street"
+        );
 
-        when(traineeRepository.getById(1L)).thenReturn(Optional.of(existingTrainee));
-        when(gymMapper.toTrainee(request)).thenReturn(mappedTrainee);
+        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.of(existingTrainee));
+        when(gymMapper.toTraineeEntity(request, USERNAME, PASSWORD))
+                .thenReturn(mappedTrainee);
         when(traineeRepository.update(mappedTrainee)).thenReturn(updatedTrainee);
-        when(gymMapper.toTraineeResponse(updatedTrainee)).thenReturn(expectedResponse);
+        when(gymMapper.toTraineeSummary(updatedTrainee)).thenReturn(expectedResponse);
 
-        TraineeResponse actualResponse = traineeService.update(request);
+        TraineeSummary actualResponse = traineeService.update(request);
 
         assertEquals(expectedResponse, actualResponse);
-        assertEquals("John.Doe", mappedTrainee.getUsername());
-        assertEquals("122333test", mappedTrainee.getPassword());
+        verify(traineeRepository, times(1)).getById(TRAINEE_ID);
+        verify(gymMapper, times(1)).toTraineeEntity(request, USERNAME, PASSWORD);
         verify(traineeRepository, times(1)).update(mappedTrainee);
+        verify(gymMapper, times(1)).toTraineeSummary(updatedTrainee);
     }
 
     @Test
-    void update_ThrowIllegalArgumentException_IdIsNull() {
-        UpdateTraineeRequest requestWithNullId = new UpdateTraineeRequest(null, "Jane", "Doe", LocalDate.now(), "123 Street", true);
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> traineeService.update(requestWithNullId)
-        );
-        assertEquals("Trainee ID is required for update", exception.getMessage());
-    }
+    void update_ThrowNotFoundException_TraineeDoesNotExist() {
+        UpdateTraineeRequest request = new UpdateTraineeRequest(
+                TRAINEE_ID, new FullName("John", "Doe"),
+                LocalDate.of(2007, 3, 25), "Home 21 Street", true);
 
-    @Test
-    void update_ThrowIllegalArgumentException_TraineeDoesNotExist() {
-        UpdateTraineeRequest request = mock(UpdateTraineeRequest.class);
-        when(request.id()).thenReturn(99L);
-        when(traineeRepository.getById(99L)).thenReturn(Optional.empty());
+        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.empty());
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> traineeService.update(request));
-        assertTrue(exception.getMessage().contains("not found"));
+        assertTrue(exception.getMessage().contains("Trainee not found"));
+        verify(traineeRepository, times(1)).getById(TRAINEE_ID);
         verify(traineeRepository, never()).update(any());
     }
 
     @Test
     void getById_ReturnResponse_TraineeExists() {
-        Long id = 1L;
-        Trainee trainee = new Trainee();
-        TraineeResponse expectedResponse = mock(TraineeResponse.class);
-        when(traineeRepository.getById(id)).thenReturn(Optional.of(trainee));
-        when(gymMapper.toTraineeResponse(trainee)).thenReturn(expectedResponse);
-        TraineeResponse actualResponse = traineeService.getById(id);
+        TraineeEntity trainee = new TraineeEntity();
+        TraineeSummary expectedResponse = new TraineeSummary(
+                TRAINEE_ID, new UserProfile(USERNAME),
+                LocalDate.of(2007, 3, 25), "Home 21 Street"
+        );
 
+        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
+        when(gymMapper.toTraineeSummary(trainee)).thenReturn(expectedResponse);
+
+        TraineeSummary actualResponse = traineeService.getById(TRAINEE_ID);
         assertEquals(expectedResponse, actualResponse);
-        verify(traineeRepository, times(1)).getById(id);
+        verify(traineeRepository, times(1)).getById(TRAINEE_ID);
+        verify(gymMapper, times(1)).toTraineeSummary(trainee);
     }
 
     @Test
-    void getById_ThrowIllegalArgumentException_TraineeDoesNotExist() {
-        Long id = 99L;
-        when(traineeRepository.getById(id)).thenReturn(Optional.empty());
-        assertThrows(IllegalArgumentException.class, () -> traineeService.getById(id));
+    void getById_ThrowNotFoundException_TraineeDoesNotExist() {
+        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.empty());
+
+        assertThrows(NotFoundException.class, () -> traineeService.getById(TRAINEE_ID));
+        verify(traineeRepository, times(1)).getById(TRAINEE_ID);
+    }
+
+    @Test
+    void getById_ThrowNotFoundException_TraineeInactive() {
+        TraineeEntity trainee = new TraineeEntity();
+        trainee.setActive(false);
+
+        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
+
+        assertThrows(NotFoundException.class, () -> traineeService.getById(TRAINEE_ID));
+        verify(traineeRepository, times(1)).getById(TRAINEE_ID);
     }
 
     @Test
     void deleteById_Delete_TraineeExists() {
-        Long id = 1L;
-        Trainee trainee = new Trainee();
-        when(traineeRepository.getById(id)).thenReturn(Optional.of(trainee));
-        traineeService.deleteById(id);
-        verify(traineeRepository, times(1)).deleteById(id);
-    }
-
-    @Test
-    void deleteById_ThrowIllegalArgumentException_TraineeDoesNotExist() {
-        Long id = 99L;
-        when(traineeRepository.getById(id)).thenReturn(Optional.empty());
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> traineeService.deleteById(id));
-        assertTrue(exception.getMessage().contains("not found"));
-        verify(traineeRepository, never()).deleteById(any());
-    }
-
-    @Test
-    void deleteById_ThrowIllegalArgumentException_IdIsNull() {
-        IllegalArgumentException exception = assertThrows(
-                IllegalArgumentException.class,
-                () -> traineeService.deleteById(null)
-        );
-        assertEquals("ID cannot be null", exception.getMessage());
+        TraineeEntity trainee = new TraineeEntity();
+        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
+        traineeService.deleteById(TRAINEE_ID);
+        verify(traineeRepository, times(1)).deleteById(TRAINEE_ID);
     }
 }

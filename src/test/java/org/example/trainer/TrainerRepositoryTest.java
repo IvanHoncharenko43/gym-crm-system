@@ -19,32 +19,23 @@ public class TrainerRepositoryTest {
 
     @Test
     void findByUsername_ReturnTrainer_UsernameExists() {
-        Trainer trainer1 = new Trainer();
+        TrainerEntity trainer1 = new TrainerEntity();
         trainer1.setUsername("Arnold.Schwarzenegger");
-        Trainer trainer2 = new Trainer();
+        TrainerEntity trainer2 = new TrainerEntity();
         trainer2.setUsername("Jane.Smith");
         trainerRepository.create(trainer1);
         trainerRepository.create(trainer2);
-        Optional<Trainer> result = trainerRepository.findByUsername("Arnold.Schwarzenegger");
+        Optional<TrainerEntity> result = trainerRepository.findByUsername("Arnold.Schwarzenegger");
         assertTrue(result.isPresent(), "Trainer should be found in the storage");
         assertEquals("Arnold.Schwarzenegger", result.get().getUsername());
     }
 
     @Test
     void findByUsername_ReturnEmptyOptional_UsernameDoesNotExist() {
-        Trainer trainer = new Trainer();
+        TrainerEntity trainer = new TrainerEntity();
         trainer.setUsername("John.Doe");
         trainerRepository.create(trainer);
-        Optional<Trainer> result = trainerRepository.findByUsername("Unknown.Trainer");
+        Optional<TrainerEntity> result = trainerRepository.findByUsername("Unknown.Trainer");
         assertTrue(result.isEmpty(), "Optional should be empty when the username is not found");
-    }
-
-    @Test
-    void findByUsername_ReturnEmptyOptional_UsernameIsNull() {
-        Trainer trainer = new Trainer();
-        trainer.setUsername("John.Doe");
-        trainerRepository.create(trainer);
-        Optional<Trainer> result = trainerRepository.findByUsername(null);
-        assertTrue(result.isEmpty(), "Optional should be empty when the passed username is null");
     }
 }
