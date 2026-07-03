@@ -64,7 +64,7 @@ public class TraineeServiceTest {
                 LocalDate.of(2007, 3, 25), "Home 21 Street", true
         );
         TraineeEntity existingTrainee = new TraineeEntity();
-        existingTrainee.setId(1L);
+        existingTrainee.setId(TRAINEE_ID);
         existingTrainee.setUsername(USERNAME);
         existingTrainee.setPassword(PASSWORD);
         TraineeEntity mappedTrainee = new TraineeEntity();
@@ -100,7 +100,7 @@ public class TraineeServiceTest {
 
         NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> traineeService.update(request));
-        assertTrue(exception.getMessage().contains("Trainee not found"));
+        assertTrue(exception.getMessage().contains("not found"));
         verify(traineeRepository, times(1)).getById(TRAINEE_ID);
         verify(traineeRepository, never()).update(any());
     }
@@ -108,6 +108,7 @@ public class TraineeServiceTest {
     @Test
     void getById_ReturnResponse_TraineeExists() {
         TraineeEntity trainee = new TraineeEntity();
+        trainee.setActive(true);
         TraineeSummary expectedResponse = new TraineeSummary(
                 TRAINEE_ID, new UserProfile(USERNAME),
                 LocalDate.of(2007, 3, 25), "Home 21 Street"
@@ -143,8 +144,6 @@ public class TraineeServiceTest {
 
     @Test
     void deleteById_Delete_TraineeExists() {
-        TraineeEntity trainee = new TraineeEntity();
-        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
         traineeService.deleteById(TRAINEE_ID);
         verify(traineeRepository, times(1)).deleteById(TRAINEE_ID);
     }

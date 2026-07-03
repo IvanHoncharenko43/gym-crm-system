@@ -1,79 +1,62 @@
 package org.example.shared;
 
-import org.example.trainee.TraineeEntity;
-import org.example.trainee.TraineeRepository;
-import org.example.trainer.TrainerEntity;
-import org.example.trainer.TrainerRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Optional;
+import java.util.Collections;
+import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class UsernameGeneratorTest {
-    @Mock
-    private TrainerRepository trainerRepository;
 
-    @Mock
-    private TraineeRepository traineeRepository;
-
-    @InjectMocks
     private UsernameGenerator usernameGenerator;
 
-    @Test
-    void generate_ReturnBaseUsername_NoCollisionsExist() {
-        String firstName = "John";
-        String lastName = "Doe";
-        String expectedUsername = "John.Doe";
-        when(trainerRepository.findByUsername(expectedUsername)).thenReturn(Optional.empty());
-        when(traineeRepository.findByUsername(expectedUsername)).thenReturn(Optional.empty());
-
-        String actualUsername = usernameGenerator.generate(firstName, lastName);
-        assertEquals(expectedUsername, actualUsername, "Should return base username when it is unique");
-        verify(trainerRepository, times(1)).findByUsername(expectedUsername);
-        verify(traineeRepository, times(1)).findByUsername(expectedUsername);
+    @BeforeEach
+    void setUp() {
+        usernameGenerator = new UsernameGenerator();
     }
 
     @Test
-    void generate_AppendSerialNumber1_BaseUsernameExistsInTrainees() {
-        String firstName = "John";
-        String lastName = "Doe";
-        String baseUsername = "John.Doe";
-        String expectedUsername = "John.Doe1";
-
-        when(trainerRepository.findByUsername(baseUsername)).thenReturn(Optional.empty());
-        when(traineeRepository.findByUsername(baseUsername)).thenReturn(Optional.of(new TraineeEntity()));
-        when(trainerRepository.findByUsername(expectedUsername)).thenReturn(Optional.empty());
-        when(traineeRepository.findByUsername(expectedUsername)).thenReturn(Optional.empty());
-
-        String actualUsername = usernameGenerator.generate(firstName, lastName);
-        assertEquals(expectedUsername, actualUsername, "Should append '1' if base username exists");
+    void generate_ReturnBaseUsername_WhenNoDuplicatesExist() {
+        String actualUsername = usernameGenerator.generate("John", "Doe");
+        assertEquals("John.Doe", actualUsername);
     }
 
     @Test
-    void generate_IncrementSerialNumber_MultipleCollisionsExist() {
-        String firstName = "John";
-        String lastName = "Doe";
-        String baseUsername = "John.Doe";
-        String collision1 = "John.Doe1";
-        String expectedUsername = "John.Doe2";
+    void generate_ReturnUsernameWithSuffix_WhenDuplicatesExist() {
+        usernameGenerator.generate("John", "Doe");
+        assertEquals("John.Doe1", usernameGenerator.generate("John", "Doe"));
+        assertEquals("John.Doe2", usernameGenerator.generate("John", "Doe"));
+        assertEquals("John.Doe3", usernameGenerator.generate("John", "Doe"));
+    }
 
-        when(trainerRepository.findByUsername(baseUsername)).thenReturn(Optional.of(new TrainerEntity()));
-        when(trainerRepository.findByUsername(collision1)).thenReturn(Optional.empty());
-        when(traineeRepository.findByUsername(collision1)).thenReturn(Optional.of(new TraineeEntity()));
-        when(trainerRepository.findByUsername(expectedUsername)).thenReturn(Optional.empty());
-        when(traineeRepository.findByUsername(expectedUsername)).thenReturn(Optional.empty());
+    @Test
+    void generate_ReturnIndependentUsernames_ForDifferentNames() {
+        String user1 = usernameGenerator.generate("John", "Doe");
+        String user2 = usernameGenerator.generate("Jane", "Smith");
+        String user1Duplicate = usernameGenerator.generate("John", "Doe");
+        assertEquals("John.Doe", user1);
+        assertEquals("Jane.Smith", user2);
+        assertEquals("John.Doe1", user1Duplicate);
+    }
 
-        String actualUsername = usernameGenerator.generate(firstName, lastName);
-        assertEquals(expectedUsername, actualUsername, "Should correctly iterate and append '2'");
-        verify(trainerRepository, times(1)).findByUsername(baseUsername);
-        verify(trainerRepository, times(1)).findByUsername(collision1);
-        verify(traineeRepository, times(1)).findByUsername(expectedUsername);
+    @Test
+    void initData_LoadExistingUsernamesAndContinueSequence() {
+        List<String> existingUsernames = List.of("John.Doe", "John.Doe1", "John.Doe2");
+        usernameGenerator.initData(existingUsernames);
+        String nextUsername = usernameGenerator.generate("John", "Doe");
+        assertEquals("John.Doe3", nextUsername);
+    }
+
+    @Test
+    void initData_DoNothing_WhenListIsNullOrEmpty() {
+        assertDoesNotThrow(() -> usernameGenerator.initData(null));
+        assertDoesNotThrow(() -> usernameGenerator.initData(Collections.emptyList()));
+        assertEquals("John.Doe", usernameGenerator.generate("John", "Doe"));
     }
 }

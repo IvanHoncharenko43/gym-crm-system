@@ -14,19 +14,31 @@ import org.example.training.TrainingEntity;
 import org.example.training.TrainingSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+@ExtendWith(MockitoExtension.class)
 public class GymMapperTest {
 
+    @Mock
+    private UsernameGenerator usernameGenerator;
+
+    @Mock
+    private PasswordGenerator passwordGenerator;
+
+    @InjectMocks
     private GymMapper gymMapper;
 
-    @BeforeEach
-    void setUp() {
-        gymMapper = new GymMapper();
-    }
+//    @BeforeEach
+//    void setUp() {
+//        gymMapper = new GymMapper();
+//    }
 
     @Test
     void toTrainee_MapCorrectly_FromCreateRequest() {

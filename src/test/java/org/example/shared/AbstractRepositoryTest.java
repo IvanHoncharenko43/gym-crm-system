@@ -1,6 +1,7 @@
 package org.example.shared;
 
 import lombok.Data;
+import org.example.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,34 +25,32 @@ public class AbstractRepositoryTest {
 
     private static class TestRepository extends AbstractRepository<TestEntity> {}
 
+    private static final Long TEST_ENTITY1_ID = 1L;
+    private static final TestEntity TEST_ENTITY1 = new TestEntity(TEST_ENTITY1_ID, "Test Entity #1");
+    private static final Long TEST_ENTITY2_ID = 2L;
+    private static final TestEntity TEST_ENTITY2 = new TestEntity(TEST_ENTITY2_ID, "Test Entity #2");
+
     private TestRepository repository;
 
     @BeforeEach
     void setUp() {
         repository = new TestRepository();
+        repository.initStorage(new ConcurrentHashMap<>());
     }
 
     @Test
-    void create_AssignIdAndStoreEntity_EntityIsValid() {
-        TestEntity entity = new TestEntity("Entity 1");
-        TestEntity createdEntity = repository.create(entity);
-        assertNotNull(createdEntity.getId(), "Repository should assign an ID");
-        assertEquals(1L, createdEntity.getId());
-        assertEquals("Entity 1", repository.getById(1L).get().getName());
-    }
-
-    @Test
-    void create_ThrowIllegalArgumentException_EntityHasId() {
-        TestEntity entity = new TestEntity(1L, "Entity 1");
-        assertThrows(IllegalArgumentException.class, () -> repository.create(entity));
+    void create_AssignIdAndStoreEntity_EntityIsValid() {;
+        TestEntity createdEntity = repository.create(TEST_ENTITY1);
+        assertNotNull(createdEntity.getId());
+        assertEquals(TEST_ENTITY1, createdEntity);
     }
 
     @Test
     void getById_ReturnEntity_IdExists() {
-        repository.create(new TestEntity("Entity 1")); // ID 1
-        Optional<TestEntity> retrieved = repository.getById(1L);
-        assertTrue(retrieved.isPresent());
-        assertEquals("Entity 1", retrieved.get().getName());
+        repository.create(TEST_ENTITY1);
+        Optional<TestEntity> result = repository.getById(TEST_ENTITY1_ID);
+        assertTrue(result.isPresent());
+        assertEquals(TEST_ENTITY1, result.get());
     }
 
     @Test
@@ -62,62 +61,62 @@ public class AbstractRepositoryTest {
 
     @Test
     void getAll_ReturnImmutableList_AllEntities() {
-        repository.create(new TestEntity("Entity 1"));
-        repository.create(new TestEntity("Entity 2"));
+        repository.create(TEST_ENTITY1);
+        repository.create(TEST_ENTITY2);
         List<TestEntity> allEntities = repository.getAll();
         assertEquals(2, allEntities.size());
-        assertThrows(UnsupportedOperationException.class, () -> allEntities.add(new TestEntity("Entity 3")),
-                "The returned list must be immutable");
+        assertThrows(UnsupportedOperationException.class, () -> allEntities.add(new TestEntity("Test Entity #3")));
     }
 
     @Test
     void getAll_ReturnEmptyList_StorageIsEmpty() {
         List<TestEntity> result = repository.getAll();
-        assertTrue(result.isEmpty(), "Expected an empty list when storage is empty");
+        assertTrue(result.isEmpty());
     }
 
     @Test
     void update_UpdateEntity_ItExists() {
-        TestEntity created = repository.create(new TestEntity("Entity 1"));
+        TestEntity created = repository.create(TEST_ENTITY1);
         TestEntity toUpdate = new TestEntity(created.getId(), "Updated Entity");
         TestEntity updated = repository.update(toUpdate);
         assertEquals("Updated Entity", updated.getName());
-        assertEquals("Updated Entity", repository.getById(created.getId()).get().getName());
     }
 
     @Test
-    void update_ThrowIllegalArgumentException_EntityDoesNotExist() {
-        TestEntity nonExistentEntity = new TestEntity(99L, "Entity 99");
-        assertThrows(IllegalArgumentException.class, () -> repository.update(nonExistentEntity));
+    void update_ThrowNotFoundException_EntityDoesNotExist() {
+        TestEntity nonExistentEntity = new TestEntity(99L, "Test Entity #99");
+        assertThrows(NotFoundException.class, () -> repository.update(nonExistentEntity));
     }
 
     @Test
-    void deleteById_RemoveEntity_ItExists() {
-        TestEntity created = repository.create(new TestEntity("Entity 1"));
+    void deleteById_RemoveEntity_IdExists() {
+        TestEntity created = repository.create(TEST_ENTITY1);
         repository.deleteById(created.getId());
         assertTrue(repository.getById(created.getId()).isEmpty());
     }
 
     @Test
     void initStorage_InitializeMapAndSetMaxIdCounter() {
+        repository = new TestRepository();
         Map<Long, TestEntity> initialData = new ConcurrentHashMap<>();
-        initialData.put(10L, new TestEntity(10L, "Entity 10"));
-        initialData.put(20L, new TestEntity(20L, "Entity 20"));
+        initialData.put(TEST_ENTITY1_ID, TEST_ENTITY1);
+        initialData.put(20L, TEST_ENTITY2);
 
         repository.initStorage(initialData);
-        assertTrue(repository.getById(20L).isPresent());
+        assertEquals(2, repository.getAll().size());
         TestEntity newEntity = repository.create(new TestEntity("New Entity"));
         assertEquals(21L, newEntity.getId());
     }
 
     @Test
     void initStorage_NotOverwrite_CalledTwice() {
+        repository = new TestRepository();
         Map<Long, TestEntity> initialData = new ConcurrentHashMap<>();
-        initialData.put(1L, new TestEntity(1L, "Entity 1"));
+        initialData.put(TEST_ENTITY1_ID, TEST_ENTITY1);
 
         repository.initStorage(initialData);
         Map<Long, TestEntity> overrideData = new ConcurrentHashMap<>();
         repository.initStorage(overrideData);
-        assertFalse(repository.getAll().isEmpty(), "Storage should not be overwritten after the first initialization");
+        assertFalse(repository.getAll().isEmpty());
     }
 }

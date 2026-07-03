@@ -4,6 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -15,6 +16,7 @@ public class TrainerRepositoryTest {
     @BeforeEach
     void setUp() {
         trainerRepository = new TrainerRepository();
+        trainerRepository.initStorage(new ConcurrentHashMap<>());
     }
 
     @Test

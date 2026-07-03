@@ -20,16 +20,15 @@ public class PasswordGeneratorTest {
     @Test
     void generate_ReturnStringOfExactLength10() {
         String password = passwordGenerator.generate();
-        assertNotNull(password, "Generated password should not be null");
-        assertEquals(10, password.length(), "Generated password must be exactly 10 characters long");
+        assertNotNull(password);
+        assertEquals(10, password.length());
     }
 
     @Test
     void generate_ContainOnlyAllowedCharacters() {
         String allowedCharactersRegex = "^[A-Za-z0-9]+$";
         String password = passwordGenerator.generate();
-        assertTrue(password.matches(allowedCharactersRegex),
-                "Password should only contain alphanumeric characters, but was: " + password);
+        assertTrue(password.matches(allowedCharactersRegex));
     }
 
     @Test
@@ -39,7 +38,6 @@ public class PasswordGeneratorTest {
         for (int i = 0; i < numberOfPasswordsToGenerate; i++) {
             generatedPasswords.add(passwordGenerator.generate());
         }
-        assertEquals(numberOfPasswordsToGenerate, generatedPasswords.size(),
-                "The generator should produce highly unique random passwords");
+        assertEquals(numberOfPasswordsToGenerate, generatedPasswords.size());
     }
 }

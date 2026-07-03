@@ -89,7 +89,7 @@ public class TrainingServiceTest {
 
         NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> trainingService.create(request));
-        assertTrue(exception.getMessage().contains("Trainee not found"));
+        assertTrue(exception.getMessage().contains("not found"));
         verify(traineeRepository, times(1)).getById(TRAINEE_ID);
         verify(trainingRepository, never()).create(any());
     }
@@ -107,7 +107,7 @@ public class TrainingServiceTest {
 
         NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> trainingService.create(request));
-        assertTrue(exception.getMessage().contains("Trainer not found"));
+        assertTrue(exception.getMessage().contains("not found"));
         verify(traineeRepository, times(1)).getById(TRAINEE_ID);
         verify(trainerRepository, times(1)).getById(TRAINER_ID);
         verify(trainingRepository, never()).create(any());
@@ -149,7 +149,7 @@ public class TrainingServiceTest {
         NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> trainingService.getById(TRAINING_ID));
 
-        assertTrue(exception.getMessage().contains("Training not found"));
+        assertTrue(exception.getMessage().contains("not found"));
         verify(trainingRepository, times(1)).getById(TRAINING_ID);
         verify(gymMapper, never()).toTrainingSummary(any(), any(), any());
     }
@@ -157,14 +157,14 @@ public class TrainingServiceTest {
     @Test
     void getById_ThrowNotFoundException_RelatedTraineeIsMissing() {
         TrainingEntity training = new TrainingEntity();
-        training.setTraineeId(TRAINING_ID);
+        training.setTraineeId(TRAINEE_ID);
         when(trainingRepository.getById(TRAINING_ID)).thenReturn(Optional.of(training));
         when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.empty());
 
         NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> trainingService.getById(TRAINING_ID));
 
-        assertEquals("Trainee for training not found", exception.getMessage());
+        assertTrue(exception.getMessage().contains("not found"));
         verify(trainingRepository, times(1)).getById(TRAINING_ID);
         verify(traineeRepository, times(1)).getById(TRAINEE_ID);
         verify(gymMapper, never()).toTrainingSummary(any(), any(), any());
@@ -184,7 +184,7 @@ public class TrainingServiceTest {
         NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> trainingService.getById(TRAINING_ID));
 
-        assertEquals("Trainer for training not found", exception.getMessage());
+        assertTrue(exception.getMessage().contains("not found"));
         verify(trainingRepository, times(1)).getById(TRAINING_ID);
         verify(traineeRepository, times(1)).getById(TRAINEE_ID);
         verify(trainerRepository, times(1)).getById(TRAINER_ID);

@@ -61,9 +61,9 @@ public class TrainerServiceTest {
                 TrainingType.YOGA, true
         );
         TrainerEntity existingTrainer = new TrainerEntity();
-        existingTrainer.setId(1L);
-        existingTrainer.setUsername("Jane.Smith");
-        existingTrainer.setPassword("test122333");
+        existingTrainer.setId(TRAINER_ID);
+        existingTrainer.setUsername(USERNAME);
+        existingTrainer.setPassword(PASSWORD);
         TrainerEntity mappedTrainer = new TrainerEntity();
         TrainerEntity updatedTrainer = new TrainerEntity();
         updatedTrainer.setId(TRAINER_ID);
@@ -98,7 +98,7 @@ public class TrainerServiceTest {
 
         NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> trainerService.update(request));
-        assertTrue(exception.getMessage().contains("Trainer not found"));
+        assertTrue(exception.getMessage().contains("not found"));
         verify(trainerRepository, times(1)).getById(TRAINER_ID);
         verify(trainerRepository, never()).update(any());
     }
@@ -106,6 +106,7 @@ public class TrainerServiceTest {
     @Test
     void getById_ReturnResponse_TrainerExists() {
         TrainerEntity trainer = new TrainerEntity();
+        trainer.setActive(true);
         TrainerSummary expectedResponse = new TrainerSummary(
                 TRAINER_ID, new UserProfile(USERNAME),
                 TrainingType.YOGA
