@@ -1,11 +1,12 @@
 package org.example.trainee;
 
 
+import org.example.shared.FullName;
+
 import java.time.LocalDate;
 
 public record CreateTraineeRequest(
-        String firstName,
-        String lastName,
+        FullName fullName,
         LocalDate dateOfBirth,
         String address
 ) {

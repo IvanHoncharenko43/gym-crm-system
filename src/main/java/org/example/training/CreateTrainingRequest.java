@@ -4,10 +4,10 @@ package org.example.training;
 import java.time.LocalDate;
 
 public record CreateTrainingRequest(
-        String trainerUsername,
-        String traineeUsername,
+        Long trainerId,
+        Long traineeId,
         String trainingName,
         LocalDate trainingDate,
-        int duration
+        int durationMinutes
 ) {
 }

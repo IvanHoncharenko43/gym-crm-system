@@ -16,5 +16,5 @@ public class Training implements Identifiable {
     private String trainingName;
     private TrainingType trainingType;
     private LocalDate trainingDate;
-    private int duration;
+    private int durationMinutes;
 }

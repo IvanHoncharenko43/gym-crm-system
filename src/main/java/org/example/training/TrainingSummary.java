@@ -6,13 +6,13 @@ import org.example.trainer.TrainerSummary;
 
 import java.time.LocalDate;
 
-public record TrainingResponse(
+public record TrainingSummary(
         Long id,
         TrainerSummary trainer,
         TraineeSummary trainee,
         String trainingName,
         TrainingType trainingType,
         LocalDate trainingDate,
-        int duration
+        int durationMinutes
 ) {
 }

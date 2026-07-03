@@ -1,12 +1,12 @@
 package org.example.trainee;
 
+import org.example.shared.UserProfile;
+
 import java.time.LocalDate;
 
 public record TraineeSummary(
         Long id,
-        String firstName,
-        String lastName,
-        String username,
+        UserProfile profile,
         LocalDate dateOfBirth,
         String address
 ) {

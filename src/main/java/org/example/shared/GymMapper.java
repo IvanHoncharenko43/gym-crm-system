@@ -4,132 +4,131 @@ import org.example.trainee.*;
 import org.example.trainer.*;
 import org.example.training.CreateTrainingRequest;
 import org.example.training.Training;
-import org.example.training.TrainingResponse;
+import org.example.training.TrainingSummary;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+
+import java.util.Objects;
 
 @Component
 public class GymMapper {
 
-    public Trainee toTrainee(CreateTraineeRequest request) {
-        java.util.Objects.requireNonNull(request, "Create request cannot be null");
+    private UsernameGenerator usernameGenerator;
+    private PasswordGenerator passwordGenerator;
+
+    @Autowired
+    public void setUsernameGenerator(UsernameGenerator usernameGenerator) {
+        this.usernameGenerator = usernameGenerator;
+    }
+
+    @Autowired
+    public void setPasswordGenerator(PasswordGenerator passwordGenerator){
+        this.passwordGenerator = passwordGenerator;
+    }
+
+    public Trainee toTraineeEntity(CreateTraineeRequest request) {
+        Objects.requireNonNull(request, "Create request cannot be null");
         Trainee trainee = new Trainee();
-        trainee.setFirstName(request.firstName());
-        trainee.setLastName(request.lastName());
+        String firstName = request.fullName().firstName();
+        String lastName = request.fullName().lastName();
+        trainee.setFirstName(firstName);
+        trainee.setLastName(lastName);
+        trainee.setUsername(usernameGenerator.generate(firstName, lastName));
+        trainee.setPassword(passwordGenerator.generate());
         trainee.setDateOfBirth(request.dateOfBirth());
         trainee.setAddress(request.address());
         return trainee;
     }
 
-    public Trainee toTrainee(UpdateTraineeRequest request) {
-        java.util.Objects.requireNonNull(request, "Update request cannot be null");
+    public Trainee toTraineeEntity(UpdateTraineeRequest request, String username, String password) {
+        Objects.requireNonNull(request, "Update request cannot be null");
         Trainee trainee = new Trainee();
         trainee.setId(request.id());
-        trainee.setFirstName(request.firstName());
-        trainee.setLastName(request.lastName());
+        trainee.setFirstName(request.fullName().firstName());
+        trainee.setLastName(request.fullName().lastName());
+        trainee.setUsername(username);
+        trainee.setPassword(password);
         trainee.setDateOfBirth(request.dateOfBirth());
         trainee.setAddress(request.address());
         trainee.setActive(request.isActive());
         return trainee;
     }
 
-    public TraineeResponse toTraineeResponse(Trainee trainee) {
-        java.util.Objects.requireNonNull(trainee, "Trainee entity cannot be null");
-        return new TraineeResponse(
+    public TraineeSummary toTraineeSummary(Trainee trainee) {
+        Objects.requireNonNull(trainee, "Trainee entity cannot be null");
+        return new TraineeSummary(
                 trainee.getId(),
                 new UserProfile(
-                        trainee.getFirstName(),
-                        trainee.getLastName(),
-                        trainee.getUsername(),
-                        trainee.getPassword(),
-                        trainee.isActive()
+                        trainee.getUsername()
                 ),
                 trainee.getDateOfBirth(),
                 trainee.getAddress()
         );
     }
 
-    public TraineeSummary toTraineeSummary(Trainee trainee) {
-        java.util.Objects.requireNonNull(trainee, "Trainee entity cannot be null");
-        return new TraineeSummary(
-                trainee.getId(),
-                trainee.getFirstName(),
-                trainee.getLastName(),
-                trainee.getUsername(),
-                trainee.getDateOfBirth(),
-                trainee.getAddress()
-        );
-    }
-
-    public Trainer toTrainer(CreateTrainerRequest request) {
-        java.util.Objects.requireNonNull(request, "Create request cannot be null");
+    public Trainer toTrainerEntity(CreateTrainerRequest request) {
+        Objects.requireNonNull(request, "Create request cannot be null");
         Trainer trainer = new Trainer();
-        trainer.setFirstName(request.firstName());
-        trainer.setLastName(request.lastName());
+        String firstName = request.fullName().firstName();
+        String lastName = request.fullName().lastName();
+        trainer.setFirstName(firstName);
+        trainer.setLastName(lastName);
+        trainer.setUsername(usernameGenerator.generate(firstName, lastName));
+        trainer.setPassword(passwordGenerator.generate());
         trainer.setSpecialization(request.specialization());
         return trainer;
     }
 
-    public Trainer toTrainer(UpdateTrainerRequest request) {
-        java.util.Objects.requireNonNull(request, "Update request cannot be null");
+    public Trainer toTrainerEntity(UpdateTrainerRequest request, String username, String password) {
+        Objects.requireNonNull(request, "Update request cannot be null");
         Trainer trainer = new Trainer();
         trainer.setId(request.id());
-        trainer.setFirstName(request.firstName());
-        trainer.setLastName(request.lastName());
+        trainer.setFirstName(request.fullName().firstName());
+        trainer.setLastName(request.fullName().lastName());
+        trainer.setUsername(username);
+        trainer.setPassword(password);
         trainer.setSpecialization(request.specialization());
         trainer.setActive(request.isActive());
         return trainer;
     }
 
-    public TrainerResponse toTrainerResponse(Trainer trainer) {
-        java.util.Objects.requireNonNull(trainer, "Trainer entity cannot be null");
-        return new TrainerResponse(
+    public TrainerSummary toTrainerSummary(Trainer trainer) {
+        Objects.requireNonNull(trainer, "Trainer entity cannot be null");
+        return new TrainerSummary(
                 trainer.getId(),
                 new UserProfile(
-                        trainer.getFirstName(),
-                        trainer.getLastName(),
-                        trainer.getUsername(),
-                        trainer.getPassword(),
-                        trainer.isActive()
+                        trainer.getUsername()
                 ),
                 trainer.getSpecialization()
         );
     }
 
-    public TrainerSummary toTrainerSummary(Trainer trainer) {
-        java.util.Objects.requireNonNull(trainer, "Trainer entity cannot be null");
-        return new TrainerSummary(
-                trainer.getId(),
-                trainer.getFirstName(),
-                trainer.getLastName(),
-                trainer.getUsername(),
-                trainer.getSpecialization()
-        );
-    }
-
     public Training toTraining(CreateTrainingRequest request, Trainee trainee, Trainer trainer) {
-        java.util.Objects.requireNonNull(request, "Create request cannot be null");
+        Objects.requireNonNull(request, "Create request cannot be null");
+        Objects.requireNonNull(trainee, "Trainee entity cannot be null");
+        Objects.requireNonNull(trainer, "Trainer entity cannot be null");
         Training training = new Training();
         training.setTraineeId(trainee.getId());
         training.setTrainerId(trainer.getId());
         training.setTrainingName(request.trainingName());
         training.setTrainingType(trainer.getSpecialization());
         training.setTrainingDate(request.trainingDate());
-        training.setDuration(request.duration());
+        training.setDurationMinutes(request.durationMinutes());
         return training;
     }
 
-    public TrainingResponse toTrainingResponse(Training training, Trainee trainee, Trainer trainer) {
-        java.util.Objects.requireNonNull(training, "Training entity cannot be null");
-        java.util.Objects.requireNonNull(trainee, "Trainee entity cannot be null");
-        java.util.Objects.requireNonNull(trainer, "Trainer entity cannot be null");
-        return new TrainingResponse(
+    public TrainingSummary toTrainingSummary(Training training, Trainee trainee, Trainer trainer) {
+        Objects.requireNonNull(training, "Training entity cannot be null");
+        Objects.requireNonNull(trainee, "Trainee entity cannot be null");
+        Objects.requireNonNull(trainer, "Trainer entity cannot be null");
+        return new TrainingSummary(
                 training.getId(),
                 toTrainerSummary(trainer),
                 toTraineeSummary(trainee),
                 training.getTrainingName(),
                 training.getTrainingType(),
                 training.getTrainingDate(),
-                training.getDuration()
+                training.getDurationMinutes()
         );
     }
 }

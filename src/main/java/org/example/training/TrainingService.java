@@ -1,6 +1,7 @@
 package org.example.training;
 
 import lombok.extern.slf4j.Slf4j;
+import org.example.exception.NotFoundException;
 import org.example.trainee.TraineeRepository;
 import org.example.trainer.TrainerRepository;
 import org.example.shared.GymMapper;
@@ -40,37 +41,43 @@ public class TrainingService {
         this.trainerRepository = trainerRepository;
     }
 
-    public TrainingResponse create(CreateTrainingRequest request) {
+    public TrainingSummary create(CreateTrainingRequest request) {
         Objects.requireNonNull(request, "Request body cannot be null");
-        Trainee trainee = traineeRepository.findByUsername(request.traineeUsername())
+        Trainee trainee = traineeRepository.getById(request.traineeId())
                 .orElseThrow(() -> {
-                    log.error("Trainee with username {} not found", request.traineeUsername());
-                    return new IllegalArgumentException("Trainee not found");
+                    log.error("Trainee with ID {} not found", request.traineeId());
+                    return new NotFoundException("Trainee with ID " + request.traineeId() + " not found");
                 });
 
-        Trainer trainer = trainerRepository.findByUsername(request.trainerUsername())
+        Trainer trainer = trainerRepository.getById(request.trainerId())
                 .orElseThrow(() -> {
-                    log.error("Trainer with username {} not found", request.trainerUsername());
-                    return new IllegalArgumentException("Trainer not found");
+                    log.error("Trainer with ID {} not found", request.trainerId());
+                    return new NotFoundException("Trainer with ID " + request.trainerId() + " not found");
                 });
         Training training = gymMapper.toTraining(request, trainee, trainer);
         Training savedTraining = trainingRepository.create(training);
         log.info("Created training with ID: {}", savedTraining.getId());
-        return gymMapper.toTrainingResponse(savedTraining, trainee, trainer);
+        return gymMapper.toTrainingSummary(savedTraining, trainee, trainer);
     }
 
-    public TrainingResponse getById(Long id) {
+    public TrainingSummary getById(Long id) {
         Objects.requireNonNull(id, "ID cannot be null");
         Training training = trainingRepository.getById(id)
                 .orElseThrow(() -> {
                     log.warn("Training with ID {} not found", id);
-                    return new IllegalArgumentException("Training with ID " + id + " not found");
+                    return new NotFoundException("Training with ID " + id + " not found");
                 });
         Trainee trainee = traineeRepository.getById(training.getTraineeId())
-                .orElseThrow(() -> new IllegalStateException("Trainee for training not found"));
+                .orElseThrow(() -> {
+                    log.error("Trainee for training {} not found", id);
+                    return new NotFoundException("Trainee for training with ID " + id + " not found");
+                });
         Trainer trainer = trainerRepository.getById(training.getTrainerId())
-                .orElseThrow(() -> new IllegalStateException("Trainer for training not found"));
-        log.info("Selected training by ID");
-        return gymMapper.toTrainingResponse(training, trainee, trainer);
+                .orElseThrow(() -> {
+                    log.error("Trainer for training with ID {} not found", id);
+                    return new NotFoundException("Trainer for training with ID " + id + " not found");
+                });
+        log.info("Selected training by ID: {}", id);
+        return gymMapper.toTrainingSummary(training, trainee, trainer);
     }
 }

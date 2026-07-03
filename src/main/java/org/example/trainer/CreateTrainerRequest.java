@@ -1,11 +1,11 @@
 package org.example.trainer;
 
 
+import org.example.shared.FullName;
 import org.example.shared.TrainingType;
 
 public record CreateTrainerRequest(
-        String firstName,
-        String lastName,
+        FullName fullName,
         TrainingType specialization
 ) {
 }

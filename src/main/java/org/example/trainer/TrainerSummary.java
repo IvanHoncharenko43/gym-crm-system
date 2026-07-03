@@ -1,13 +1,11 @@
 package org.example.trainer;
 
-
 import org.example.shared.TrainingType;
+import org.example.shared.UserProfile;
 
 public record TrainerSummary(
         Long id,
-        String firstName,
-        String lastName,
-        String username,
+        UserProfile profile,
         TrainingType specialization
 ) {
 }
