@@ -12,7 +12,6 @@ import org.example.trainer.UpdateTrainerRequest;
 import org.example.training.CreateTrainingRequest;
 import org.example.training.TrainingEntity;
 import org.example.training.TrainingSummary;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -20,8 +19,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class GymMapperTest {
@@ -35,14 +34,12 @@ public class GymMapperTest {
     @InjectMocks
     private GymMapper gymMapper;
 
-//    @BeforeEach
-//    void setUp() {
-//        gymMapper = new GymMapper();
-//    }
-
     @Test
     void toTrainee_MapCorrectly_FromCreateRequest() {
         CreateTraineeRequest request = TestUtils.getCreateTraineeRequest();
+
+        when(usernameGenerator.generate(TestUtils.FIRST_NAME, TestUtils.LAST_NAME)).thenReturn(TestUtils.TRAINEE_USERNAME);
+        when(passwordGenerator.generate()).thenReturn(TestUtils.TRAINEE_PASSWORD);
 
         TraineeEntity trainee = gymMapper.toTraineeEntity(request);
         assertNotNull(trainee);
@@ -50,6 +47,10 @@ public class GymMapperTest {
         assertEquals(request.fullName().lastName(), trainee.getLastName());
         assertEquals(request.dateOfBirth(), trainee.getDateOfBirth());
         assertEquals(request.address(), trainee.getAddress());
+        assertTrue(trainee.isActive());
+
+        verify(usernameGenerator, times(1)).generate(TestUtils.FIRST_NAME, TestUtils.LAST_NAME);
+        verify(passwordGenerator, times(1)).generate();
     }
 
     @Test
@@ -84,23 +85,12 @@ public class GymMapperTest {
         assertEquals(trainee.getAddress(), response.address());
     }
 
-    //    @Test
-//    void toTrainee_ThrowNullPointerException_NullCreateRequest() {
-//        NullPointerException exception = assertThrows(NullPointerException.class,
-//                () -> gymMapper.toTrainee((CreateTraineeRequest) null));
-//        assertEquals("Create request cannot be null", exception.getMessage());
-//    }
-//
-//    @Test
-//    void toTraineeResponse_ThrowNullPointerException_NullTrainee() {
-//        NullPointerException exception = assertThrows(NullPointerException.class,
-//                () -> gymMapper.toTraineeResponse(null));
-//        assertEquals("Trainee entity cannot be null", exception.getMessage());
-//    }
-
     @Test
     void toTrainer_MapCorrectly_FromCreateRequest() {
         CreateTrainerRequest request = TestUtils.getCreateTrainerRequest();
+
+        when(usernameGenerator.generate(TestUtils.FIRST_NAME, TestUtils.LAST_NAME)).thenReturn(TestUtils.TRAINER_USERNAME);
+        when(passwordGenerator.generate()).thenReturn(TestUtils.TRAINER_PASSWORD);
 
         TrainerEntity trainer = gymMapper.toTrainerEntity(request);
 
@@ -108,6 +98,10 @@ public class GymMapperTest {
         assertEquals(request.fullName().firstName(), trainer.getFirstName());
         assertEquals(request.fullName().lastName(), trainer.getLastName());
         assertEquals(request.specialization(), trainer.getSpecialization());
+        assertTrue(trainer.isActive());
+
+        verify(usernameGenerator, times(1)).generate(TestUtils.FIRST_NAME, TestUtils.LAST_NAME);
+        verify(passwordGenerator, times(1)).generate();
     }
 
     @Test
@@ -180,18 +174,4 @@ public class GymMapperTest {
         assertEquals(trainee.getDateOfBirth(), response.trainee().dateOfBirth());
         assertEquals(trainee.getAddress(), response.trainee().address());
     }
-
-//    @Test
-//    void toTraining_ThrowNullPointerException_NullRequest() {
-//        NullPointerException exception = assertThrows(NullPointerException.class,
-//                () -> gymMapper.toTraining(null, new Trainee(), new Trainer()));
-//        assertEquals("Create request cannot be null", exception.getMessage());
-//    }
-//
-//    @Test
-//    void toTrainingResponse_ThrowNullPointerException_NullTraining() {
-//        NullPointerException exception = assertThrows(NullPointerException.class,
-//                () -> gymMapper.toTrainingResponse(null, new Trainee(), new Trainer()));
-//        assertEquals("Training entity cannot be null", exception.getMessage());
-//    }
 }

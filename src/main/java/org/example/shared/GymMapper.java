@@ -37,6 +37,7 @@ public class GymMapper {
         trainee.setPassword(passwordGenerator.generate());
         trainee.setDateOfBirth(request.dateOfBirth());
         trainee.setAddress(request.address());
+        trainee.setActive(true);
         return trainee;
     }
 
@@ -76,6 +77,7 @@ public class GymMapper {
         trainer.setUsername(usernameGenerator.generate(firstName, lastName));
         trainer.setPassword(passwordGenerator.generate());
         trainer.setSpecialization(request.specialization());
+        trainer.setActive(true);
         return trainer;
     }
 

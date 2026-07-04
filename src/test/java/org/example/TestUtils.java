@@ -24,6 +24,8 @@ public class TestUtils {
     public static final Long TRAINER_ID = 1L;
     public static final String TRAINER_USERNAME = "John.Doe1";
     public static final String TRAINER_PASSWORD = "test122333";
+    public static final String FIRST_NAME = "John";
+    public static final String LAST_NAME = "Doe";
 
     public static CreateTraineeRequest getCreateTraineeRequest(){
         return new CreateTraineeRequest(
