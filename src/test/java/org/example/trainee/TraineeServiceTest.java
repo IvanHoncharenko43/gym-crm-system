@@ -133,7 +133,9 @@ public class TraineeServiceTest {
     void getById_ThrowNotFoundException_TraineeDoesNotExist() {
         when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> traineeService.getById(TRAINEE_ID));
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> traineeService.getById(TRAINEE_ID));
+        assertTrue(exception.getMessage().contains("not found"));
         verify(traineeRepository, times(1)).getById(TRAINEE_ID);
     }
 
@@ -144,7 +146,9 @@ public class TraineeServiceTest {
 
         when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
 
-        assertThrows(NotFoundException.class, () -> traineeService.getById(TRAINEE_ID));
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> traineeService.getById(TRAINEE_ID));
+        assertTrue(exception.getMessage().contains("inactive"));
         verify(traineeRepository, times(1)).getById(TRAINEE_ID);
     }
 

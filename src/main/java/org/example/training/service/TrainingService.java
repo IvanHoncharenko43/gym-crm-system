@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.exception.NotFoundException;
 import org.example.trainee.repository.TraineeRepository;
 import org.example.trainer.repository.TrainerRepository;
+import org.example.user.repository.UserEntity;
 import org.example.utils.GymMapper;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainer.repository.TrainerEntity;
@@ -48,15 +49,17 @@ public class TrainingService {
     public TrainingSummary create(CreateTrainingRequest request) {
         Objects.requireNonNull(request, "Request body cannot be null");
         TraineeEntity trainee = traineeRepository.getById(request.traineeId())
+                .filter(UserEntity::isActive)
                 .orElseThrow(() -> {
-                    log.error("Trainee with ID {} not found", request.traineeId());
-                    return new NotFoundException("Trainee with ID " + request.traineeId() + " not found");
+                    log.error("Trainee with ID {} not found or is inactive", request.traineeId());
+                    return new NotFoundException("Trainee with ID " + request.traineeId() + " not found or is inactive");
                 });
 
         TrainerEntity trainer = trainerRepository.getById(request.trainerId())
+                .filter(UserEntity::isActive)
                 .orElseThrow(() -> {
-                    log.error("Trainer with ID {} not found", request.trainerId());
-                    return new NotFoundException("Trainer with ID " + request.trainerId() + " not found");
+                    log.error("Trainer with ID {} not found or is inactive", request.trainerId());
+                    return new NotFoundException("Trainer with ID " + request.trainerId() + " not found or is inactive");
                 });
         TrainingEntity training = gymMapper.toTraining(request, trainee, trainer);
         TrainingEntity savedTraining = trainingRepository.create(training);

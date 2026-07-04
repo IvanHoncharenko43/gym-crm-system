@@ -2,6 +2,7 @@ package org.example.training;
 
 import org.example.TestUtils;
 import org.example.exception.NotFoundException;
+import org.example.trainer.TrainerServiceTest;
 import org.example.utils.GymMapper;
 import org.example.training.enums.TrainingType;
 import org.example.trainee.repository.TraineeEntity;
@@ -48,13 +49,15 @@ public class TrainingServiceTest {
     private TrainingService trainingService;
 
     @Test
-    void create_CreateAndReturnTrainingResponse_AllEntitiesExist() {
+    void create_CreateAndReturnTrainingResponse_AllEntitiesValid() {
         CreateTrainingRequest request = new CreateTrainingRequest(
                 TRAINER_ID, TRAINEE_ID, "Cardio",
                 LocalDate.of(2026, 5, 12), 45
         );
         TraineeEntity trainee = new TraineeEntity();
+        trainee.setActive(true);
         TrainerEntity trainer = new TrainerEntity();
+        trainer.setActive(true);
         TrainingEntity mappedTraining = new TrainingEntity();
         TrainingEntity savedTraining = new TrainingEntity();
         savedTraining.setId(TRAINING_ID);
@@ -94,7 +97,25 @@ public class TrainingServiceTest {
 
         NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> trainingService.create(request));
-        assertTrue(exception.getMessage().contains("not found"));
+        assertTrue(exception.getMessage().contains("Trainee"));
+        verify(traineeRepository, times(1)).getById(TRAINEE_ID);
+        verify(trainingRepository, never()).create(any());
+    }
+
+    @Test
+    void create_ThrowNotFoundException_TraineeIsInactive() {
+        CreateTrainingRequest request = new CreateTrainingRequest(
+                TRAINER_ID, TRAINEE_ID, "Cardio",
+                LocalDate.of(2026, 5, 12), 45
+        );
+        TraineeEntity trainee = new TraineeEntity();
+        trainee.setActive(false);
+
+        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
+
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> trainingService.create(request));
+        assertTrue(exception.getMessage().contains("Trainee"));
         verify(traineeRepository, times(1)).getById(TRAINEE_ID);
         verify(trainingRepository, never()).create(any());
     }
@@ -106,13 +127,36 @@ public class TrainingServiceTest {
                 LocalDate.of(2026, 5, 12), 45
         );
         TraineeEntity trainee = new TraineeEntity();
+        trainee.setActive(true);
 
         when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
         when(trainerRepository.getById(TRAINER_ID)).thenReturn(Optional.empty());
 
         NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> trainingService.create(request));
-        assertTrue(exception.getMessage().contains("not found"));
+        assertTrue(exception.getMessage().contains("Trainer"));
+        verify(traineeRepository, times(1)).getById(TRAINEE_ID);
+        verify(trainerRepository, times(1)).getById(TRAINER_ID);
+        verify(trainingRepository, never()).create(any());
+    }
+
+    @Test
+    void create_ThrowNotFoundException_TrainerIsInactive() {
+        CreateTrainingRequest request = new CreateTrainingRequest(
+                TRAINER_ID, TRAINEE_ID, "Cardio",
+                LocalDate.of(2026, 5, 12), 45
+        );
+        TraineeEntity trainee = new TraineeEntity();
+        trainee.setActive(true);
+        TrainerEntity trainer = new TrainerEntity();
+        trainer.setActive(false);
+
+        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
+        when(trainerRepository.getById(TRAINER_ID)).thenReturn(Optional.of(trainer));
+
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> trainingService.create(request));
+        assertTrue(exception.getMessage().contains("Trainer"));
         verify(traineeRepository, times(1)).getById(TRAINEE_ID);
         verify(trainerRepository, times(1)).getById(TRAINER_ID);
         verify(trainingRepository, never()).create(any());
@@ -154,7 +198,7 @@ public class TrainingServiceTest {
         NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> trainingService.getById(TRAINING_ID));
 
-        assertTrue(exception.getMessage().contains("not found"));
+        assertTrue(exception.getMessage().contains("Training"));
         verify(trainingRepository, times(1)).getById(TRAINING_ID);
         verify(gymMapper, never()).toTrainingSummary(any(), any(), any());
     }
@@ -169,7 +213,7 @@ public class TrainingServiceTest {
         NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> trainingService.getById(TRAINING_ID));
 
-        assertTrue(exception.getMessage().contains("not found"));
+        assertTrue(exception.getMessage().contains("Trainee"));
         verify(trainingRepository, times(1)).getById(TRAINING_ID);
         verify(traineeRepository, times(1)).getById(TRAINEE_ID);
         verify(gymMapper, never()).toTrainingSummary(any(), any(), any());
@@ -189,7 +233,7 @@ public class TrainingServiceTest {
         NotFoundException exception = assertThrows(NotFoundException.class,
                 () -> trainingService.getById(TRAINING_ID));
 
-        assertTrue(exception.getMessage().contains("not found"));
+        assertTrue(exception.getMessage().contains("Trainer"));
         verify(trainingRepository, times(1)).getById(TRAINING_ID);
         verify(traineeRepository, times(1)).getById(TRAINEE_ID);
         verify(trainerRepository, times(1)).getById(TRAINER_ID);

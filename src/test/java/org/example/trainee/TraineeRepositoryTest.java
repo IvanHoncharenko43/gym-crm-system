@@ -31,7 +31,7 @@ public class TraineeRepositoryTest {
         traineeRepository.create(trainee2);
         Optional<TraineeEntity> result = traineeRepository.findByUsername("Jane.Smith");
         assertTrue(result.isPresent());
-        assertEquals("Jane.Smith", result.get().getUsername());
+        assertEquals(trainee2, result.get());
     }
 
     @Test

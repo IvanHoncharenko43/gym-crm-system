@@ -134,7 +134,9 @@ public class TrainerServiceTest {
     void getById_ThrowNotFoundException_TrainerDoesNotExist() {
         when(trainerRepository.getById(TRAINER_ID)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> trainerService.getById(TRAINER_ID));
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> trainerService.getById(TRAINER_ID));
+        assertTrue(exception.getMessage().contains("not found"));
         verify(trainerRepository, times(1)).getById(TRAINER_ID);
     }
 
@@ -145,7 +147,9 @@ public class TrainerServiceTest {
 
         when(trainerRepository.getById(TRAINER_ID)).thenReturn(Optional.of(trainer));
 
-        assertThrows(NotFoundException.class, () -> trainerService.getById(TRAINER_ID));
+        NotFoundException exception = assertThrows(NotFoundException.class,
+                () -> trainerService.getById(TRAINER_ID));
+        assertTrue(exception.getMessage().contains("inactive"));
         verify(trainerRepository, times(1)).getById(TRAINER_ID);
     }
 }

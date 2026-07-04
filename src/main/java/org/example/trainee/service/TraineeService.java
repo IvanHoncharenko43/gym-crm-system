@@ -58,8 +58,8 @@ public class TraineeService {
                 .filter(UserEntity::isActive)
                 .map(gymMapper::toTraineeSummary)
                 .orElseThrow(() -> {
-                    log.warn("Trainee with ID {} not found", id);
-                    return new NotFoundException("Trainee with ID " + id + " not found");
+                    log.warn("Trainee with ID {} not found or is inactive", id);
+                    return new NotFoundException("Trainee with ID " + id + " not found or is inactive");
                 });
     }
 
