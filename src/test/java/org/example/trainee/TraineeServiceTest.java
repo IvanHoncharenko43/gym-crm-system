@@ -1,9 +1,15 @@
 package org.example.trainee;
 
 import org.example.exception.NotFoundException;
-import org.example.shared.FullName;
-import org.example.shared.GymMapper;
-import org.example.shared.UserProfile;
+import org.example.user.dto.FullName;
+import org.example.utils.GymMapper;
+import org.example.user.dto.UserProfile;
+import org.example.trainee.dto.CreateTraineeRequest;
+import org.example.trainee.dto.TraineeSummary;
+import org.example.trainee.dto.UpdateTraineeRequest;
+import org.example.trainee.repository.TraineeEntity;
+import org.example.trainee.repository.TraineeRepository;
+import org.example.trainee.service.TraineeService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

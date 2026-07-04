@@ -1,18 +1,18 @@
 package org.example;
 
-import org.example.shared.FullName;
-import org.example.shared.TrainingType;
-import org.example.shared.UserProfile;
-import org.example.trainee.CreateTraineeRequest;
-import org.example.trainee.TraineeEntity;
-import org.example.trainee.TraineeSummary;
-import org.example.trainee.UpdateTraineeRequest;
-import org.example.trainer.CreateTrainerRequest;
-import org.example.trainer.TrainerEntity;
-import org.example.trainer.TrainerSummary;
-import org.example.trainer.UpdateTrainerRequest;
-import org.example.training.CreateTrainingRequest;
-import org.example.training.TrainingEntity;
+import org.example.user.dto.FullName;
+import org.example.training.enums.TrainingType;
+import org.example.user.dto.UserProfile;
+import org.example.trainee.dto.CreateTraineeRequest;
+import org.example.trainee.repository.TraineeEntity;
+import org.example.trainee.dto.TraineeSummary;
+import org.example.trainee.dto.UpdateTraineeRequest;
+import org.example.trainer.dto.CreateTrainerRequest;
+import org.example.trainer.repository.TrainerEntity;
+import org.example.trainer.dto.TrainerSummary;
+import org.example.trainer.dto.UpdateTrainerRequest;
+import org.example.training.dto.CreateTrainingRequest;
+import org.example.training.repository.TrainingEntity;
 
 import java.time.LocalDate;
 

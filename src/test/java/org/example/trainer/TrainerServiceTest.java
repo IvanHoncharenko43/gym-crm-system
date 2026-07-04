@@ -1,7 +1,16 @@
 package org.example.trainer;
 
 import org.example.exception.NotFoundException;
-import org.example.shared.*;
+import org.example.trainer.dto.CreateTrainerRequest;
+import org.example.trainer.dto.TrainerSummary;
+import org.example.trainer.dto.UpdateTrainerRequest;
+import org.example.trainer.repository.TrainerEntity;
+import org.example.trainer.repository.TrainerRepository;
+import org.example.trainer.service.TrainerService;
+import org.example.training.enums.TrainingType;
+import org.example.user.dto.FullName;
+import org.example.user.dto.UserProfile;
+import org.example.utils.GymMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

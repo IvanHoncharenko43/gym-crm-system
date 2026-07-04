@@ -1,5 +1,7 @@
 package org.example.trainer;
 
+import org.example.trainer.repository.TrainerEntity;
+import org.example.trainer.repository.TrainerRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

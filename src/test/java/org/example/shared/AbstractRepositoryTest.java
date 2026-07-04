@@ -1,6 +1,8 @@
 package org.example.shared;
 
 import lombok.Data;
+import org.example.core.repository.AbstractRepository;
+import org.example.core.repository.Identifiable;
 import org.example.exception.NotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
