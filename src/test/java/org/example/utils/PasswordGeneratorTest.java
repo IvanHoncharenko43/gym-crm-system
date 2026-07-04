@@ -1,6 +1,5 @@
-package org.example.shared;
+package org.example.utils;
 
-import org.example.utils.PasswordGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

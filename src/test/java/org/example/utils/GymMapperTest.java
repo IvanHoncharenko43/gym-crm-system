@@ -1,4 +1,4 @@
-package org.example.shared;
+package org.example.utils;
 
 import org.example.TestUtils;
 import org.example.trainee.dto.CreateTraineeRequest;
@@ -12,9 +12,6 @@ import org.example.trainer.dto.UpdateTrainerRequest;
 import org.example.training.dto.CreateTrainingRequest;
 import org.example.training.repository.TrainingEntity;
 import org.example.training.dto.TrainingSummary;
-import org.example.utils.GymMapper;
-import org.example.utils.PasswordGenerator;
-import org.example.utils.UsernameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

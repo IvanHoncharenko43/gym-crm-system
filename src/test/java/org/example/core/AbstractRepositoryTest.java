@@ -1,4 +1,4 @@
-package org.example.shared;
+package org.example.core;
 
 import lombok.Data;
 import org.example.core.repository.AbstractRepository;

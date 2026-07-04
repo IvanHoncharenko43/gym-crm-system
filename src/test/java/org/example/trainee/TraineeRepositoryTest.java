@@ -30,7 +30,7 @@ public class TraineeRepositoryTest {
         traineeRepository.create(trainee1);
         traineeRepository.create(trainee2);
         Optional<TraineeEntity> result = traineeRepository.findByUsername("Jane.Smith");
-        assertTrue(result.isPresent(), "Trainee should be found in the storage");
+        assertTrue(result.isPresent());
         assertEquals("Jane.Smith", result.get().getUsername());
     }
 
@@ -40,6 +40,6 @@ public class TraineeRepositoryTest {
         trainee.setUsername("John.Doe");
         traineeRepository.create(trainee);
         Optional<TraineeEntity> result = traineeRepository.findByUsername("Unknown.User");
-        assertTrue(result.isEmpty(), "Optional should be empty when username is not found");
+        assertTrue(result.isEmpty());
     }
 }
