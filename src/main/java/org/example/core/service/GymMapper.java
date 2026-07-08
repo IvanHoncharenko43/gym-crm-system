@@ -9,8 +9,10 @@ import org.example.trainer.dto.TrainerSummary;
 import org.example.trainer.dto.UpdateTrainerRequest;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.training.dto.CreateTrainingRequest;
+import org.example.training.dto.TrainingTypeSummary;
 import org.example.training.repository.TrainingEntity;
 import org.example.training.dto.TrainingSummary;
+import org.example.training.repository.TrainingTypeEntity;
 import org.example.user.dto.UserProfile;
 import org.example.utils.PasswordGenerator;
 import org.example.utils.UsernameGenerator;
@@ -81,7 +83,7 @@ public class GymMapper {
         );
     }
 
-    public TrainerEntity toTrainerEntity(CreateTrainerRequest request) {
+    public TrainerEntity toTrainerEntity(CreateTrainerRequest request, TrainingTypeEntity trainingType) {
         Objects.requireNonNull(request, "Create request cannot be null");
         TrainerEntity trainer = new TrainerEntity();
         String firstName = request.fullName().firstName();
@@ -90,12 +92,12 @@ public class GymMapper {
         trainer.getUser().setLastName(lastName);
         trainer.getUser().setUsername(usernameGenerator.generate(firstName, lastName));
         trainer.getUser().setPassword(passwordGenerator.generate());
-        trainer.setSpecialization(request.specialization());
+        trainer.setSpecialization(trainingType);
         trainer.getUser().setIsActive(true);
         return trainer;
     }
 
-    public TrainerEntity toTrainerEntity(UpdateTrainerRequest request, TrainerEntity trainer) {
+    public TrainerEntity toTrainerEntity(UpdateTrainerRequest request, TrainerEntity trainer, TrainingTypeEntity trainingType) {
         Objects.requireNonNull(request, "Update request cannot be null");
         Objects.requireNonNull(trainer, "Trainer entity cannot be null");
         String requestedFirstName = request.fullName().firstName();
@@ -109,7 +111,7 @@ public class GymMapper {
             usernameGenerator.removeUsername(trainer.getUser().getUsername());
             trainer.getUser().setUsername(usernameGenerator.generate(requestedFirstName, requestedLastName));
         }
-        trainer.setSpecialization(request.specialization());
+        trainer.setSpecialization(trainingType);
         return trainer;
     }
 
@@ -120,7 +122,7 @@ public class GymMapper {
                 new UserProfile(
                         trainer.getUser().getUsername()
                 ),
-                trainer.getSpecialization()
+                toTrainingTypeSummary(trainer.getSpecialization())
         );
     }
 
@@ -147,9 +149,16 @@ public class GymMapper {
                 toTrainerSummary(trainer),
                 toTraineeSummary(trainee),
                 training.getTrainingName(),
-                training.getTrainingType(),
+                toTrainingTypeSummary(trainer.getSpecialization()),
                 training.getTrainingDate(),
                 training.getDurationMinutes()
+        );
+    }
+
+    public TrainingTypeSummary toTrainingTypeSummary(TrainingTypeEntity trainingType){
+        return new TrainingTypeSummary(
+                trainingType.getId(),
+                trainingType.getTrainingTypeName()
         );
     }
 }

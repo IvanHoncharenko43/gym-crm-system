@@ -8,6 +8,8 @@ import org.example.exception.InvalidPasswordException;
 import org.example.exception.InvalidStatusTransitionException;
 import org.example.exception.NotFoundException;
 import org.example.trainer.dto.UnassignedTrainersRequest;
+import org.example.training.repository.TrainingTypeEntity;
+import org.example.training.repository.TrainingTypeRepository;
 import org.example.user.dto.Credentials;
 import org.example.core.service.GymMapper;
 import org.example.trainer.dto.TrainerSummary;
@@ -24,18 +26,27 @@ import java.util.Objects;
 @Service
 public class TrainerService {
     private final TrainerRepository trainerRepository;
+    private final TrainingTypeRepository trainingTypeRepository;
     private final GymMapper gymMapper;
     private final AuthenticationComponent authComponent;
 
-    public TrainerService(TrainerRepository trainerRepository, GymMapper gymMapper, AuthenticationComponent authComponent){
+    public TrainerService(TrainerRepository trainerRepository, TrainingTypeRepository trainingTypeRepository,
+                          GymMapper gymMapper, AuthenticationComponent authComponent){
         this.trainerRepository = trainerRepository;
+        this.trainingTypeRepository = trainingTypeRepository;
         this.gymMapper = gymMapper;
         this.authComponent = authComponent;
     }
 
     public TrainerSummary create(CreateTrainerRequest request) {
         Objects.requireNonNull(request, "Request body cannot be null");
-        TrainerEntity trainer = gymMapper.toTrainerEntity(request);
+        TrainingTypeEntity trainingType = trainingTypeRepository.findByName(request.specialization().trainingTypeName())
+                .orElseThrow(() -> {
+                    log.info("Training type {} not found", request.specialization().trainingTypeName());
+                    return new NotFoundException("Training type " + request.specialization().trainingTypeName() +
+                            " not found");
+                });
+        TrainerEntity trainer = gymMapper.toTrainerEntity(request, trainingType);
         TrainerEntity savedTrainer = trainerRepository.create(trainer);
         log.info("Created trainer profile with ID: {}", savedTrainer.getId());
         return gymMapper.toTrainerSummary(savedTrainer);
@@ -74,7 +85,13 @@ public class TrainerService {
                     log.error("Trainer with ID {} not found", request.id());
                     return new NotFoundException("Trainer with ID " + request.id() + " not found");
                 });
-        TrainerEntity trainer = gymMapper.toTrainerEntity(request, existingTrainer);
+        TrainingTypeEntity trainingType = trainingTypeRepository.findByName(request.specialization().trainingTypeName())
+                .orElseThrow(() -> {
+                    log.info("Training type {} not found", request.specialization().trainingTypeName());
+                    return new NotFoundException("Training type " + request.specialization().trainingTypeName() +
+                            " not found");
+                });
+        TrainerEntity trainer = gymMapper.toTrainerEntity(request, existingTrainer, trainingType);
         TrainerEntity updatedTrainer = trainerRepository.update(trainer);
         log.info("Updated trainer profile with ID: {}", updatedTrainer.getId());
         return gymMapper.toTrainerSummary(updatedTrainer);

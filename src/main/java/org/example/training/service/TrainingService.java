@@ -86,7 +86,7 @@ public class TrainingService {
         authComponent.authenticate(request.credentials());
         return trainingRepository.findTraineeTrainingsByCriteria(
                 request.credentials().username(), request.fromDate(), request.toDate(),
-                request.trainerName(), request.trainingType().name()).stream()
+                request.trainerName(), request.trainingType().trainingTypeName()).stream()
                 .map(training -> gymMapper.toTrainingSummary(training, training.getTrainee(), training.getTrainer()))
                 .toList();
     }

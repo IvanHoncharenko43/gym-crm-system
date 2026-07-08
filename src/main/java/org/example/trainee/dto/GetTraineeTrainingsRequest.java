@@ -1,6 +1,6 @@
 package org.example.trainee.dto;
 
-import org.example.training.enums.TrainingType;
+import org.example.training.dto.TrainingTypeSummary;
 import org.example.user.dto.Credentials;
 
 import java.time.LocalDate;
@@ -10,6 +10,6 @@ public record GetTraineeTrainingsRequest(
         LocalDate fromDate,
         LocalDate toDate,
         String trainerName,
-        TrainingType trainingType
+        TrainingTypeSummary trainingType
 ) {
 }

@@ -6,7 +6,6 @@ import lombok.NoArgsConstructor;
 import org.example.core.repository.Identifiable;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainer.repository.TrainerEntity;
-import org.example.training.enums.TrainingType;
 
 import java.time.LocalDate;
 

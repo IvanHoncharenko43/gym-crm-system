@@ -1,0 +1,30 @@
+package org.example.training.repository;
+
+import org.hibernate.SessionFactory;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public class TrainingTypeRepository {
+    private final SessionFactory sessionFactory;
+
+    public TrainingTypeRepository(SessionFactory sessionFactory){
+        this.sessionFactory = sessionFactory;
+    }
+
+    public Optional<TrainingTypeEntity> findByName(String typeName) {
+        String hql = "FROM TrainingTypeEntity t WHERE t.trainingTypeName = :typeName";
+        return sessionFactory.getCurrentSession()
+                .createQuery(hql, TrainingTypeEntity.class)
+                .setParameter("typeName", typeName)
+                .uniqueResultOptional();
+    }
+
+    // Метод, якщо знадобиться вивести список доступних типів на фронтенд
+    public List<TrainingTypeEntity> findAll() {
+        return sessionFactory.getCurrentSession()
+                .createQuery("FROM TrainingTypeEntity", TrainingTypeEntity.class)
+                .getResultList();
+    }
+}
