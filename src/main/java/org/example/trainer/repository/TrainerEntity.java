@@ -1,13 +1,38 @@
 package org.example.trainer.repository;
 
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import jakarta.persistence.*;
+import lombok.*;
 import org.example.core.repository.Identifiable;
-import org.example.training.enums.TrainingType;
+import org.example.trainee.repository.TraineeEntity;
+import org.example.training.repository.TrainingTypeEntity;
 import org.example.user.repository.UserEntity;
 
-@EqualsAndHashCode(callSuper = true)
+import java.util.HashSet;
+import java.util.Set;
+
+@NoArgsConstructor
 @Data
-public class TrainerEntity extends UserEntity implements Identifiable {
-    private TrainingType specialization;
+@Entity
+@Table(name = "trainers")
+public class TrainerEntity implements Identifiable {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    private TrainingTypeEntity specialization;
+
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    private UserEntity user;
+
+    @ToString.Exclude
+    @EqualsAndHashCode.Exclude
+    @ManyToMany(mappedBy = "trainers")
+    private Set<TraineeEntity> trainees = new HashSet<>();
+
+//    @OneToMany(mappedBy = "trainer", fetch = FetchType.LAZY)
+//    @ToString.Exclude
+//    private Set<Training> trainings = new HashSet<>();
 }
