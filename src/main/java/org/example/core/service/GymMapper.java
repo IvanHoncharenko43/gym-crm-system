@@ -1,4 +1,4 @@
-package org.example.utils;
+package org.example.core.service;
 
 import org.example.trainee.dto.CreateTraineeRequest;
 import org.example.trainee.dto.TraineeSummary;
@@ -12,6 +12,8 @@ import org.example.training.dto.CreateTrainingRequest;
 import org.example.training.repository.TrainingEntity;
 import org.example.training.dto.TrainingSummary;
 import org.example.user.dto.UserProfile;
+import org.example.utils.PasswordGenerator;
+import org.example.utils.UsernameGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -38,27 +40,32 @@ public class GymMapper {
         TraineeEntity trainee = new TraineeEntity();
         String firstName = request.fullName().firstName();
         String lastName = request.fullName().lastName();
-        trainee.setFirstName(firstName);
-        trainee.setLastName(lastName);
-        trainee.setUsername(usernameGenerator.generate(firstName, lastName));
-        trainee.setPassword(passwordGenerator.generate());
+        trainee.getUser().setFirstName(firstName);
+        trainee.getUser().setLastName(lastName);
+        trainee.getUser().setUsername(usernameGenerator.generate(firstName, lastName));
+        trainee.getUser().setPassword(passwordGenerator.generate());
         trainee.setDateOfBirth(request.dateOfBirth());
         trainee.setAddress(request.address());
-        trainee.setActive(true);
+        trainee.getUser().setIsActive(true);
         return trainee;
     }
 
-    public TraineeEntity toTraineeEntity(UpdateTraineeRequest request, String username, String password) {
+    public TraineeEntity toTraineeEntity(UpdateTraineeRequest request, TraineeEntity trainee) {
         Objects.requireNonNull(request, "Update request cannot be null");
-        TraineeEntity trainee = new TraineeEntity();
+        Objects.requireNonNull(trainee, "Trainee entity cannot be null");
+        String requestedFirstName = request.fullName().firstName();
+        String requestedLastName = request.fullName().lastName();
+
         trainee.setId(request.id());
-        trainee.setFirstName(request.fullName().firstName());
-        trainee.setLastName(request.fullName().lastName());
-        trainee.setUsername(username);
-        trainee.setPassword(password);
+        trainee.getUser().setFirstName(request.fullName().firstName());
+        trainee.getUser().setLastName(request.fullName().lastName());
+        if(!requestedFirstName.equals(trainee.getUser().getFirstName()) ||
+                !requestedLastName.equals(trainee.getUser().getLastName())){
+            usernameGenerator.removeUsername(trainee.getUser().getUsername());
+            trainee.getUser().setUsername(usernameGenerator.generate(requestedFirstName, requestedLastName));
+        }
         trainee.setDateOfBirth(request.dateOfBirth());
         trainee.setAddress(request.address());
-        trainee.setActive(request.isActive());
         return trainee;
     }
 
@@ -67,7 +74,7 @@ public class GymMapper {
         return new TraineeSummary(
                 trainee.getId(),
                 new UserProfile(
-                        trainee.getUsername()
+                        trainee.getUser().getUsername()
                 ),
                 trainee.getDateOfBirth(),
                 trainee.getAddress()
@@ -79,25 +86,30 @@ public class GymMapper {
         TrainerEntity trainer = new TrainerEntity();
         String firstName = request.fullName().firstName();
         String lastName = request.fullName().lastName();
-        trainer.setFirstName(firstName);
-        trainer.setLastName(lastName);
-        trainer.setUsername(usernameGenerator.generate(firstName, lastName));
-        trainer.setPassword(passwordGenerator.generate());
+        trainer.getUser().setFirstName(firstName);
+        trainer.getUser().setLastName(lastName);
+        trainer.getUser().setUsername(usernameGenerator.generate(firstName, lastName));
+        trainer.getUser().setPassword(passwordGenerator.generate());
         trainer.setSpecialization(request.specialization());
-        trainer.setActive(true);
+        trainer.getUser().setIsActive(true);
         return trainer;
     }
 
-    public TrainerEntity toTrainerEntity(UpdateTrainerRequest request, String username, String password) {
+    public TrainerEntity toTrainerEntity(UpdateTrainerRequest request, TrainerEntity trainer) {
         Objects.requireNonNull(request, "Update request cannot be null");
-        TrainerEntity trainer = new TrainerEntity();
+        Objects.requireNonNull(trainer, "Trainer entity cannot be null");
+        String requestedFirstName = request.fullName().firstName();
+        String requestedLastName = request.fullName().lastName();
+
         trainer.setId(request.id());
-        trainer.setFirstName(request.fullName().firstName());
-        trainer.setLastName(request.fullName().lastName());
-        trainer.setUsername(username);
-        trainer.setPassword(password);
+        trainer.getUser().setFirstName(request.fullName().firstName());
+        trainer.getUser().setLastName(request.fullName().lastName());
+        if(!requestedFirstName.equals(trainer.getUser().getFirstName()) ||
+                !requestedLastName.equals(trainer.getUser().getLastName())){
+            usernameGenerator.removeUsername(trainer.getUser().getUsername());
+            trainer.getUser().setUsername(usernameGenerator.generate(requestedFirstName, requestedLastName));
+        }
         trainer.setSpecialization(request.specialization());
-        trainer.setActive(request.isActive());
         return trainer;
     }
 
@@ -106,7 +118,7 @@ public class GymMapper {
         return new TrainerSummary(
                 trainer.getId(),
                 new UserProfile(
-                        trainer.getUsername()
+                        trainer.getUser().getUsername()
                 ),
                 trainer.getSpecialization()
         );
@@ -117,8 +129,8 @@ public class GymMapper {
         Objects.requireNonNull(trainee, "Trainee entity cannot be null");
         Objects.requireNonNull(trainer, "Trainer entity cannot be null");
         TrainingEntity training = new TrainingEntity();
-        training.setTraineeId(trainee.getId());
-        training.setTrainerId(trainer.getId());
+        training.setTrainee(trainee);
+        training.setTrainer(trainer);
         training.setTrainingName(request.trainingName());
         training.setTrainingType(trainer.getSpecialization());
         training.setTrainingDate(request.trainingDate());

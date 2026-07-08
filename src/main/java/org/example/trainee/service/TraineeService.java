@@ -12,7 +12,7 @@ import org.example.trainer.dto.TrainerSummary;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.trainer.repository.TrainerRepository;
 import org.example.user.dto.Credentials;
-import org.example.utils.GymMapper;
+import org.example.core.service.GymMapper;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainee.repository.TraineeRepository;
 import org.springframework.stereotype.Service;

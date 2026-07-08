@@ -9,7 +9,7 @@ import org.example.exception.InvalidStatusTransitionException;
 import org.example.exception.NotFoundException;
 import org.example.trainer.dto.UnassignedTrainersRequest;
 import org.example.user.dto.Credentials;
-import org.example.utils.GymMapper;
+import org.example.core.service.GymMapper;
 import org.example.trainer.dto.TrainerSummary;
 import org.example.trainer.dto.UpdateTrainerRequest;
 import org.example.trainer.dto.CreateTrainerRequest;
