@@ -7,6 +7,7 @@ import org.example.core.service.GymMapper;
 import org.example.trainee.dto.GetTraineeTrainingsRequest;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainee.repository.TraineeRepository;
+import org.example.trainer.dto.GetTrainerTrainingsRequest;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.trainer.repository.TrainerRepository;
 import org.example.training.dto.CreateTrainingRequest;
@@ -226,44 +227,6 @@ public class TrainingServiceTest {
         verify(gymMapper, never()).toTrainingSummary(any(), any(), any());
     }
 
-//    @Test
-//    void getById_ThrowEntityNotFoundException_RelatedTraineeIsMissing() {
-//        TrainingEntity training = new TrainingEntity();
-//        training.setTrainee(new TraineeEntity());
-//        training.getTrainee().setId(TRAINEE_ID);
-//        when(trainingRepository.getById(TRAINING_ID)).thenReturn(Optional.of(training));
-//        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.empty());
-//
-//        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-//                () -> trainingService.getById(TRAINING_ID));
-//
-//        assertTrue(exception.getMessage().contains("Trainee"));
-//        verify(trainingRepository, times(1)).getById(TRAINING_ID);
-//        verify(traineeRepository, times(1)).getById(TRAINEE_ID);
-//        verify(gymMapper, never()).toTrainingSummary(any(), any(), any());
-//    }
-//
-//    @Test
-//    void getById_ThrowEntityNotFoundException_RelatedTrainerIsMissing() {
-//        TrainingEntity training = new TrainingEntity();
-//        training.getTrainee().setId(TRAINEE_ID);
-//        training.getTrainer().setId(TRAINER_ID);
-//        TraineeEntity trainee = new TraineeEntity();
-//
-//        when(trainingRepository.getById(TRAINING_ID)).thenReturn(Optional.of(training));
-//        when(traineeRepository.getById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
-//        when(trainerRepository.getById(TRAINER_ID)).thenReturn(Optional.empty());
-//
-//        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-//                () -> trainingService.getById(TRAINING_ID));
-//
-//        assertTrue(exception.getMessage().contains("Trainer"));
-//        verify(trainingRepository, times(1)).getById(TRAINING_ID);
-//        verify(traineeRepository, times(1)).getById(TRAINEE_ID);
-//        verify(trainerRepository, times(1)).getById(TRAINER_ID);
-//        verify(gymMapper, never()).toTrainingSummary(any(), any(), any());
-//    }
-
     @Test
     void getTraineeTrainingList_ReturnTrainingsList_RequestIsValid(){
         GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
@@ -273,22 +236,22 @@ public class TrainingServiceTest {
                 "Doe",
                 TestUtils.getTrainingTypeSummary());
         TraineeEntity trainee1 = new TraineeEntity();
-        trainee1.setId(1L);
+        trainee1.setId(TRAINEE_ID);
         TrainerEntity trainer1 = new TrainerEntity();
-        trainer1.setId(1L);
+        trainer1.setId(TRAINER_ID);
         TrainerEntity trainer2 = new TrainerEntity();
-        trainer2.setId(2L);
+        trainer2.setId(TRAINER_ID+1);
         TrainingEntity training1 = new TrainingEntity();
-        trainee1.setId(1L);
+        training1.setId(TRAINING_ID);
         training1.setTrainee(trainee1);
         training1.setTrainer(trainer1);
         TrainingEntity training2 = new TrainingEntity();
-        training2.setId(2L);
+        training2.setId(TRAINING_ID+1);
         training2.setTrainee(trainee1);
         training2.setTrainer(trainer2);
         List<TrainingEntity> trainings = List.of(training1, training2);
         TrainingSummary trainingSummary1 = new TrainingSummary(
-                1L,
+                TRAINING_ID,
                 TestUtils.getTrainerSummary(TRAINER_ID),
                 TestUtils.getTraineeSummary(TRAINEE_ID),
                 "Cardio",
@@ -296,8 +259,8 @@ public class TrainingServiceTest {
                 LocalDate.of(2024, 5, 12), 45
         );
         TrainingSummary trainingSummary2 = new TrainingSummary(
-                2L,
-                TestUtils.getTrainerSummary(TRAINER_ID),
+                TRAINING_ID+1,
+                TestUtils.getTrainerSummary(TRAINER_ID+1),
                 TestUtils.getTraineeSummary(TRAINEE_ID),
                 "Cardio",
                 TestUtils.getTrainingTypeSummary(),
@@ -326,5 +289,66 @@ public class TrainingServiceTest {
                 request.trainingType().trainingTypeName());
         verify(gymMapper, times(1)).toTrainingSummary(training1, trainee1, trainer1);
         verify(gymMapper, times(1)).toTrainingSummary(training2, trainee1, trainer2);
+    }
+
+    @Test
+    void getTrainerTrainingList_ReturnTrainingsList_RequestIsValid(){
+        GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
+                TestUtils.getTrainerCredentials(),
+                LocalDate.of(2023, 12, 3),
+                LocalDate.of(2026, 5, 12),
+                "Doe");
+        TrainerEntity trainer1 = new TrainerEntity();
+        trainer1.setId(TRAINER_ID);
+        TraineeEntity trainee1 = new TraineeEntity();
+        trainee1.setId(TRAINEE_ID);
+        TraineeEntity trainee2 = new TraineeEntity();
+        trainee2.setId(TRAINEE_ID+1);
+        TrainingEntity training1 = new TrainingEntity();
+        training1.setId(TRAINING_ID);
+        training1.setTrainee(trainee1);
+        training1.setTrainer(trainer1);
+        TrainingEntity training2 = new TrainingEntity();
+        training2.setId(TRAINING_ID+1);
+        training2.setTrainee(trainee2);
+        training2.setTrainer(trainer1);
+        List<TrainingEntity> trainings = List.of(training1, training2);
+        TrainingSummary trainingSummary1 = new TrainingSummary(
+                TRAINING_ID,
+                TestUtils.getTrainerSummary(TRAINER_ID),
+                TestUtils.getTraineeSummary(TRAINEE_ID),
+                "Cardio",
+                TestUtils.getTrainingTypeSummary(),
+                LocalDate.of(2024, 5, 12), 45
+        );
+        TrainingSummary trainingSummary2 = new TrainingSummary(
+                TRAINING_ID+1,
+                TestUtils.getTrainerSummary(TRAINER_ID),
+                TestUtils.getTraineeSummary(TRAINEE_ID+1),
+                "Cardio",
+                TestUtils.getTrainingTypeSummary(),
+                LocalDate.of(2026, 5, 12), 45
+        );
+        List<TrainingSummary> mappedTrainings = List.of(trainingSummary1, trainingSummary2);
+
+        when(trainingRepository.findTrainerTrainingsByCriteria(
+                request.credentials().username(),
+                request.fromDate(),
+                request.toDate(),
+                request.traineeName()
+        )).thenReturn(trainings);
+        when(gymMapper.toTrainingSummary(training1, trainee1, trainer1)).thenReturn(trainingSummary1);
+        when(gymMapper.toTrainingSummary(training2, trainee2, trainer1)).thenReturn(trainingSummary2);
+
+        List<TrainingSummary> result = trainingService.getTrainerTrainingList(request);
+        assertEquals(mappedTrainings, result);
+        verify(authComponent, times(1)).authenticate(request.credentials());
+        verify(trainingRepository, times(1)).findTrainerTrainingsByCriteria(
+                request.credentials().username(),
+                request.fromDate(),
+                request.toDate(),
+                request.traineeName());
+        verify(gymMapper, times(1)).toTrainingSummary(training1, trainee1, trainer1);
+        verify(gymMapper, times(1)).toTrainingSummary(training2, trainee2, trainer1);
     }
 }

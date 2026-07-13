@@ -1,11 +1,15 @@
 package org.example.trainee;
 
+import org.example.TestUtils;
 import org.example.core.dto.ChangeActivityRequest;
 import org.example.core.dto.ChangePasswordRequest;
 import org.example.core.service.AuthenticationComponent;
 import org.example.exception.EntityNotFoundException;
 import org.example.exception.InvalidPasswordException;
 import org.example.exception.InvalidStatusTransitionException;
+import org.example.trainee.dto.UpdateTraineeTrainersRequest;
+import org.example.trainer.dto.TrainerSummary;
+import org.example.trainer.repository.TrainerEntity;
 import org.example.trainer.repository.TrainerRepository;
 import org.example.user.dto.UserCredentials;
 import org.example.user.dto.FullName;
@@ -26,8 +30,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
-import java.util.Collections;
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -285,5 +288,53 @@ public class TraineeServiceTest {
         assertTrue(exception.getMessage().contains("already assigned"));
         verify(authComponent, times(1)).authenticate(CREDENTIALS);
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
+    }
+
+    @Test
+    void updateTrainersList_UpdateList_RequestIsValid(){
+        TraineeEntity trainee = new TraineeEntity();
+        trainee.setUser(new UserEntity());
+        trainee.getUser().setIsActive(true);
+
+        TrainerEntity oldTrainer1 = new TrainerEntity();
+        oldTrainer1.setUser(new UserEntity());
+        oldTrainer1.getUser().setUsername("Old.Doe");
+        oldTrainer1.setTrainees(new HashSet<>(Set.of(trainee)));
+
+        TrainerEntity oldTrainer2 = new TrainerEntity();
+        oldTrainer2.setUser(new UserEntity());
+        oldTrainer2.getUser().setUsername("Old.Smith");
+        oldTrainer2.setTrainees(new HashSet<>(Set.of(trainee)));
+
+        trainee.setTrainers(new HashSet<>(Set.of(oldTrainer1, oldTrainer2)));
+        List<String> newTrainersUsernames = List.of("New.Doe", "New.Smith");
+        TrainerEntity newTrainer1 = new TrainerEntity();
+        newTrainer1.setUser(new UserEntity());
+        newTrainer1.getUser().setUsername("New.Doe");
+        newTrainer1.setTrainees(new HashSet<>());
+
+        TrainerEntity newTrainer2 = new TrainerEntity();
+        newTrainer2.setUser(new UserEntity());
+        newTrainer2.getUser().setUsername("New.Smith");
+        newTrainer2.setTrainees(new HashSet<>());
+        List<TrainerEntity> newTrainers = List.of(newTrainer1, newTrainer2);
+        List<TrainerSummary> newTrainersSummary = List.of(TestUtils.getTrainerSummary(1L), TestUtils.getTrainerSummary(2L));
+
+        UpdateTraineeTrainersRequest request = new UpdateTraineeTrainersRequest(
+                TestUtils.getTraineeCredentials(), newTrainersUsernames
+        );
+
+        when(traineeRepository.findByUsername(USERNAME)).thenReturn(Optional.of(trainee));
+        when(trainerRepository.findByUsernames(newTrainersUsernames)).thenReturn(newTrainers);
+        when(gymMapper.toTrainerSummary(newTrainer1)).thenReturn(newTrainersSummary.get(0));
+        when(gymMapper.toTrainerSummary(newTrainer2)).thenReturn(newTrainersSummary.get(1));
+
+        List<TrainerSummary> result = traineeService.updateTrainersList(request);
+        assertEquals(2, result.size());
+        assertEquals(newTrainersSummary, result);
+        verify(traineeRepository, times(1)).findByUsername(USERNAME);
+        verify(trainerRepository, times(1)).findByUsernames(newTrainersUsernames);
+        verify(gymMapper, times(1)).toTrainerSummary(newTrainer1);
+        verify(gymMapper, times(1)).toTrainerSummary(newTrainer2);
     }
 }

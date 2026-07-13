@@ -131,22 +131,17 @@ public class TraineeService {
         authComponent.authenticate(request.credentials());
         TraineeEntity trainee = traineeRepository.findByUsername(request.credentials().username())
                 .orElseThrow(() -> {
-                    log.error("Trainee with username not found");
+                    log.error("Trainee with username {} not found", request.credentials().username());
                     return new EntityNotFoundException("Trainee with username not found");
                 });
-        List<TrainerEntity> newTrainersList = trainerRepository.findByUsernames(request.trainerUsernames());
-        Set<TrainerEntity> newTrainers = new HashSet<>(newTrainersList);
-        for (TrainerEntity oldTrainer : trainee.getTrainers()) {
-            if (!newTrainers.contains(oldTrainer)) {
-                oldTrainer.getTrainees().remove(trainee);
-            }
-        }
-        for (TrainerEntity newTrainer : newTrainers) {
-            newTrainer.getTrainees().add(trainee);
-        }
-        trainee.setTrainers(newTrainers);
+        Set<TrainerEntity> newTrainers = new HashSet<>(trainerRepository.findByUsernames(request.trainerUsernames()));
+        trainee.getTrainers().stream()
+                .filter(oldTrainer -> !newTrainers.contains(oldTrainer))
+                .forEach(oldTrainer -> oldTrainer.getTrainees().remove(trainee));
+        newTrainers.forEach(newTrainer -> newTrainer.getTrainees().add(trainee));
+        trainee.getTrainers().addAll(newTrainers);
         traineeRepository.update(trainee);
-        return newTrainersList.stream()
+        return newTrainers.stream()
                 .map(gymMapper::toTrainerSummary)
                 .toList();
     }
