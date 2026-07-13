@@ -20,11 +20,11 @@ public class TrainerEntity implements Identifiable {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "specialization_id", nullable = false)
     private TrainingTypeEntity specialization;
 
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
-    @JoinColumn(name = "user_id", referencedColumnName = "id", nullable = false)
+    @JoinColumn(name = "user_id", nullable = false, unique = true)
     private UserEntity user;
 
     @ToString.Exclude

@@ -17,8 +17,8 @@ public class TraineeRepository extends AbstractRepository<TraineeEntity> {
 
     public Optional<TraineeEntity> findByUsername(String username){
         log.info("Started getting trainee by username");
-        String query = "FROM TraineeEntity t JOIN FETCH t.user WHERE t.user.username = :username";
-        return getSession().createQuery(query, TraineeEntity.class)
+        String hql = "FROM TraineeEntity t JOIN FETCH t.user WHERE t.user.username = :username";
+        return getSession().createQuery(hql, TraineeEntity.class)
                 .setParameter("username", username)
                 .uniqueResultOptional();
     }

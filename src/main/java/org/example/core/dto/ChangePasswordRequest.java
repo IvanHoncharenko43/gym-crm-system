@@ -1,9 +1,9 @@
 package org.example.core.dto;
 
-import org.example.user.dto.Credentials;
+import org.example.user.dto.UserCredentials;
 
 public record ChangePasswordRequest(
-        Credentials credentials,
+        UserCredentials credentials,
         String newPassword
 ) {
 }

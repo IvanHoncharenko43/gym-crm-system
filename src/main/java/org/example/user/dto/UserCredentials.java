@@ -1,6 +1,6 @@
 package org.example.user.dto;
 
-public record Credentials(
+public record UserCredentials(
         String username,
         String password
 ) {

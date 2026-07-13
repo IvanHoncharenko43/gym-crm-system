@@ -1,11 +1,11 @@
 package org.example.trainee.dto;
 
-import org.example.user.dto.Credentials;
+import org.example.user.dto.UserCredentials;
 
 import java.util.List;
 
 public record UpdateTraineeTrainersRequest(
-        Credentials credentials,
+        UserCredentials credentials,
         List<String> trainerUsernames
 ){
 }

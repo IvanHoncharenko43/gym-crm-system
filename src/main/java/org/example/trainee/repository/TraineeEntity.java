@@ -35,7 +35,7 @@ public class TraineeEntity implements Identifiable {
     @EqualsAndHashCode.Exclude
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
-            name = "trainee_trainer",
+            name = "trainees_trainers",
             joinColumns = @JoinColumn(name = "trainee_id"),
             inverseJoinColumns = @JoinColumn(name = "trainer_id")
     )
@@ -43,6 +43,6 @@ public class TraineeEntity implements Identifiable {
 
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
-    @OneToMany(mappedBy = "trainee", fetch = FetchType.LAZY, cascade = CascadeType.REMOVE, orphanRemoval = true)
+    @OneToMany(mappedBy = "trainee", fetch = FetchType.LAZY, orphanRemoval = true)
     private Set<TrainingEntity> trainings = new HashSet<>();
 }

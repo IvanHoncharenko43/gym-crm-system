@@ -18,8 +18,8 @@ public class TrainerRepository extends AbstractRepository<TrainerEntity> {
 
     public Optional<TrainerEntity> findByUsername(String username){
         log.info("Started getting trainer by username");
-        String query = "FROM TrainerEntity t JOIN FETCH t.user WHERE t.user.username = :username";
-        return getSession().createQuery(query, TrainerEntity.class)
+        String hql = "FROM TrainerEntity t JOIN FETCH t.user WHERE t.user.username = :username";
+        return getSession().createQuery(hql, TrainerEntity.class)
                 .setParameter("username", username)
                 .uniqueResultOptional();
     }
@@ -28,26 +28,21 @@ public class TrainerRepository extends AbstractRepository<TrainerEntity> {
         if (usernames == null || usernames.isEmpty()) {
             return List.of();
         }
-
         String hql = "SELECT tr FROM TrainerEntity tr " +
                 "JOIN FETCH tr.user " +
                 "JOIN FETCH tr.specialization " +
                 "WHERE tr.user.username IN :usernames";
-
         return getSession().createQuery(hql, TrainerEntity.class)
                 .setParameter("usernames", usernames)
                 .getResultList();
     }
 
     public List<TrainerEntity> findUnassignedTrainersByTraineeUsername(String traineeUsername) {
-        // Шукаємо всіх тренерів, для яких НЕ ІСНУЄ запису в колекції trainees з таким username
-        String hql = "SELECT tr FROM TrainerEntity tr " +
-                "JOIN FETCH tr.user " + // Уникаємо N+1 для юзера тренера
-                "JOIN FETCH tr.specialization " + // Уникаємо N+1 для спеціалізації
-                "WHERE NOT EXISTS (" +
-                "    SELECT 1 FROM tr.trainees t WHERE t.user.username = :username" +
-                ")";
-
+        String hql = """ 
+                SELECT tr FROM TrainerEntity tr 
+                JOIN FETCH tr.user
+                JOIN FETCH tr.specialization
+                WHERE NOT EXISTS (SELECT 1 FROM tr.trainees t WHERE t.user.username = :username)""";
         return getSession().createQuery(hql, TrainerEntity.class)
                 .setParameter("username", traineeUsername)
                 .getResultList();

@@ -3,7 +3,7 @@ package org.example.core.repository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.exception.NotFoundException;
+import org.example.exception.EntityNotFoundException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 
@@ -28,26 +28,24 @@ public abstract class AbstractRepository<T extends Identifiable> {
 
     public List<T> getAll(){
         return getSession()
-                .createQuery("from " + entityClass.getSimpleName(), entityClass)
+                .createQuery("FROM " + entityClass.getSimpleName(), entityClass)
                 .getResultList();
     }
 
     public T update(T entity){
         Objects.requireNonNull(entity, "Entity cannot be null");
         Long id = entity.getId();
-        if (getSession().find(entityClass, id) == null) {
-            log.error("Entity with ID {} does not exist", id);
-            throw new NotFoundException("Entity with Id " + id + " does not exist");
-        }
         getSession().merge(entity);
         log.info("Updated entity with ID: {}", id);
         return entity;
     }
 
     public void deleteById(Long id){
-        T reference = getSession().getReference(entityClass, id);
-        getSession().remove(reference);
-        log.info("Deleted entity with ID: {}", id);
+        T entity = getSession().find(entityClass, id);
+        if(entity != null) {
+            getSession().remove(entity);
+            log.info("Deleted entity with ID: {}", id);
+        }
     }
 
     protected Session getSession(){

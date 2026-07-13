@@ -3,17 +3,23 @@ package org.example.core;
 import lombok.Data;
 import org.example.core.repository.AbstractRepository;
 import org.example.core.repository.Identifiable;
-import org.example.exception.NotFoundException;
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.query.Query;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 public class AbstractRepositoryTest {
 
     @Data
@@ -21,104 +27,89 @@ public class AbstractRepositoryTest {
         private Long id;
         private String name;
 
-        public TestEntity(String name) { this.name = name; }
         public TestEntity(Long id, String name) { this.id = id; this.name = name; }
     }
 
-    private static class TestRepository extends AbstractRepository<TestEntity> {}
+    private static class TestRepository extends AbstractRepository<TestEntity> {
+        public TestRepository(SessionFactory sessionFactory) {
+            super(sessionFactory, TestEntity.class);
+        }
+    }
 
     private static final Long TEST_ENTITY1_ID = 1L;
     private static final TestEntity TEST_ENTITY1 = new TestEntity(TEST_ENTITY1_ID, "Test Entity #1");
     private static final Long TEST_ENTITY2_ID = 2L;
     private static final TestEntity TEST_ENTITY2 = new TestEntity(TEST_ENTITY2_ID, "Test Entity #2");
 
+    @Mock
+    private SessionFactory sessionFactory;
+
+    @Mock
+    private Session session;
+
+    @Mock
+    private Query<TestEntity> query;
+
+    @InjectMocks
     private TestRepository repository;
 
     @BeforeEach
     void setUp() {
-        repository = new TestRepository();
-        repository.initStorage(new ConcurrentHashMap<>());
+        when(sessionFactory.getCurrentSession()).thenReturn(session);
     }
 
     @Test
-    void create_AssignIdAndStoreEntity_EntityIsValid() {;
+    void create_PersistEntity_EntityIsValid() {
         TestEntity createdEntity = repository.create(TEST_ENTITY1);
-        assertNotNull(createdEntity.getId());
+        verify(session, times(1)).persist(TEST_ENTITY1);
         assertEquals(TEST_ENTITY1, createdEntity);
     }
 
     @Test
     void getById_ReturnEntity_IdExists() {
-        repository.create(TEST_ENTITY1);
+        when(session.find(TestEntity.class, TEST_ENTITY1_ID)).thenReturn(TEST_ENTITY1);
+
         Optional<TestEntity> result = repository.getById(TEST_ENTITY1_ID);
+
         assertTrue(result.isPresent());
         assertEquals(TEST_ENTITY1, result.get());
+        verify(session, times(1)).find(TestEntity.class, TEST_ENTITY1_ID);
     }
 
     @Test
     void getById_ReturnEmpty_IdDoesNotExist() {
+        when(session.find(TestEntity.class, 99L)).thenReturn(null);
+
         Optional<TestEntity> retrieved = repository.getById(99L);
         assertTrue(retrieved.isEmpty());
+        verify(session, times(1)).find(TestEntity.class, 99L);
     }
 
     @Test
-    void getAll_ReturnImmutableList_AllEntities() {
-        repository.create(TEST_ENTITY1);
-        repository.create(TEST_ENTITY2);
+    void getAll_ShouldReturnList_WithAllEntities() {
+        when(session.createQuery("FROM TestEntity", TestEntity.class)).thenReturn(query);
+        when(query.getResultList()).thenReturn(List.of(TEST_ENTITY1, TEST_ENTITY2));
+
         List<TestEntity> allEntities = repository.getAll();
         assertEquals(2, allEntities.size());
-        assertThrows(UnsupportedOperationException.class, () -> allEntities.add(new TestEntity("Test Entity #3")));
+        assertTrue(allEntities.contains(TEST_ENTITY1));
+        assertTrue(allEntities.contains(TEST_ENTITY2));
     }
 
     @Test
-    void getAll_ReturnEmptyList_StorageIsEmpty() {
-        List<TestEntity> result = repository.getAll();
-        assertTrue(result.isEmpty());
-    }
+    void update_MergeEntity_EntityExists() {
+        when(session.merge(TEST_ENTITY1)).thenReturn(TEST_ENTITY1);
 
-    @Test
-    void update_UpdateEntity_ItExists() {
-        TestEntity created = repository.create(TEST_ENTITY1);
-        TestEntity toUpdate = new TestEntity(created.getId(), "Updated Entity");
-        TestEntity updated = repository.update(toUpdate);
-        assertEquals("Updated Entity", updated.getName());
-    }
-
-    @Test
-    void update_ThrowNotFoundException_EntityDoesNotExist() {
-        TestEntity nonExistentEntity = new TestEntity(99L, "Test Entity #99");
-        assertThrows(NotFoundException.class, () -> repository.update(nonExistentEntity));
+        TestEntity result = repository.update(TEST_ENTITY1);
+        assertEquals(TEST_ENTITY1, result);
+        verify(session, times(1)).merge(TEST_ENTITY1);
     }
 
     @Test
     void deleteById_RemoveEntity_IdExists() {
-        TestEntity created = repository.create(TEST_ENTITY1);
-        repository.deleteById(created.getId());
-        assertTrue(repository.getById(created.getId()).isEmpty());
-    }
+        when(session.find(TestEntity.class, TEST_ENTITY1_ID)).thenReturn(TEST_ENTITY1);
 
-    @Test
-    void initStorage_InitializeMapAndSetMaxIdCounter() {
-        repository = new TestRepository();
-        Map<Long, TestEntity> initialData = new ConcurrentHashMap<>();
-        initialData.put(TEST_ENTITY1_ID, TEST_ENTITY1);
-        initialData.put(20L, TEST_ENTITY2);
-
-        repository.initStorage(initialData);
-        assertEquals(2, repository.getAll().size());
-        TestEntity newEntity = repository.create(new TestEntity("New Entity"));
-        assertEquals(21L, newEntity.getId());
-    }
-
-    @Test
-    void initStorage_NotOverwrite_CalledTwice() {
-        repository = new TestRepository();
-        Map<Long, TestEntity> initialData = new ConcurrentHashMap<>();
-        initialData.put(TEST_ENTITY1_ID, TEST_ENTITY1);
-
-        repository.initStorage(initialData);
-        Map<Long, TestEntity> overrideData = new ConcurrentHashMap<>();
-        repository.initStorage(overrideData);
-        assertFalse(repository.getAll().isEmpty());
+        repository.deleteById(TEST_ENTITY1_ID);
+        verify(session, times(1)).remove(TEST_ENTITY1);
     }
 }

@@ -1,12 +1,12 @@
 package org.example.trainee.dto;
 
 import org.example.training.dto.TrainingTypeSummary;
-import org.example.user.dto.Credentials;
+import org.example.user.dto.UserCredentials;
 
 import java.time.LocalDate;
 
 public record GetTraineeTrainingsRequest(
-        Credentials credentials,
+        UserCredentials credentials,
         LocalDate fromDate,
         LocalDate toDate,
         String trainerName,

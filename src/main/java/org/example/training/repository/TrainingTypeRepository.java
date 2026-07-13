@@ -21,10 +21,9 @@ public class TrainingTypeRepository {
                 .uniqueResultOptional();
     }
 
-    // Метод, якщо знадобиться вивести список доступних типів на фронтенд
-    public List<TrainingTypeEntity> findAll() {
-        return sessionFactory.getCurrentSession()
-                .createQuery("FROM TrainingTypeEntity", TrainingTypeEntity.class)
-                .getResultList();
-    }
+//    public List<TrainingTypeEntity> findAll() {
+//        return sessionFactory.getCurrentSession()
+//                .createQuery("FROM TrainingTypeEntity", TrainingTypeEntity.class)
+//                .getResultList();
+//    }
 }

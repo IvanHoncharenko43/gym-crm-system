@@ -3,6 +3,7 @@ package org.example.user.repository;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.core.repository.Identifiable;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainer.repository.TrainerEntity;
 
@@ -10,7 +11,7 @@ import org.example.trainer.repository.TrainerEntity;
 @Data
 @Entity
 @Table(name = "users")
-public class UserEntity {
+public class UserEntity implements Identifiable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
