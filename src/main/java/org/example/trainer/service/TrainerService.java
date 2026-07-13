@@ -1,5 +1,6 @@
 package org.example.trainer.service;
 
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.core.service.AuthenticationComponent;
 import org.example.core.dto.ChangeActivityRequest;
@@ -43,6 +44,7 @@ public class TrainerService {
         this.authComponent = authComponent;
     }
 
+    @Transactional
     public TrainerSummary create(CreateTrainerRequest request) {
         Objects.requireNonNull(request, "Request body cannot be null");
         TrainingTypeEntity trainingType = trainingTypeRepository.findByName(request.specialization().trainingTypeName())
@@ -59,6 +61,7 @@ public class TrainerService {
         return gymMapper.toTrainerSummary(savedTrainer);
     }
 
+    @Transactional
     public TrainerSummary getByUsername(UserCredentials credentials){
         Objects.requireNonNull(credentials, "Credentials cannot be null");
         authComponent.authenticate(credentials);
@@ -73,6 +76,7 @@ public class TrainerService {
                 });
     }
 
+    @Transactional
     public TrainerSummary update(UpdateTrainerRequest request) {
         Objects.requireNonNull(request, "Request body cannot be null");
         authComponent.authenticate(request.credentials());
@@ -93,6 +97,7 @@ public class TrainerService {
         return gymMapper.toTrainerSummary(updatedTrainer);
     }
 
+    @Transactional
     public void changePassword(ChangePasswordRequest request){
         Objects.requireNonNull(request, "Request body cannot be null");
         authComponent.authenticate(request.credentials());
@@ -109,6 +114,7 @@ public class TrainerService {
         trainerRepository.update(trainer);
     }
 
+    @Transactional
     public void changeActivity(ChangeActivityRequest request){
         Objects.requireNonNull(request, "Request body cannot be null");
         authComponent.authenticate(request.credentials());
@@ -126,6 +132,7 @@ public class TrainerService {
         log.info("Activity status changed for a trainer");
     }
 
+    @Transactional
     public List<TrainerSummary> getUnassignedTrainersByTraineeList(UnassignedTrainersRequest request){
         Objects.requireNonNull(request, "Request body cannot be null");
         authComponent.authenticate(request.credentials());

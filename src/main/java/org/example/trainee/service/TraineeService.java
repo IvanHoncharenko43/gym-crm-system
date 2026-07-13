@@ -1,5 +1,6 @@
 package org.example.trainee.service;
 
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.core.service.AuthenticationComponent;
 import org.example.core.dto.ChangeActivityRequest;
@@ -41,6 +42,7 @@ public class TraineeService {
         this.authComponent = authComponent;
     }
 
+    @Transactional
     public TraineeSummary create(CreateTraineeRequest request) {
         Objects.requireNonNull(request, "Request body cannot be null");
         String baseName = request.fullName().firstName() + "." + request.fullName().lastName();
@@ -51,6 +53,7 @@ public class TraineeService {
         return gymMapper.toTraineeSummary(savedTrainee);
     }
 
+    @Transactional
     public TraineeSummary getByUsername(UserCredentials credentials){
         Objects.requireNonNull(credentials, "Credentials cannot be null");
         authComponent.authenticate(credentials);
@@ -65,6 +68,7 @@ public class TraineeService {
                 });
     }
 
+    @Transactional
     public TraineeSummary update(UpdateTraineeRequest request) {
         Objects.requireNonNull(request, "Request body cannot be null");
         authComponent.authenticate(request.credentials());
@@ -79,12 +83,14 @@ public class TraineeService {
         return gymMapper.toTraineeSummary(updatedTrainee);
     }
 
+    @Transactional
     public void deleteByUsername(UserCredentials credentials){
         authComponent.authenticate(credentials);
         traineeRepository.deleteByUsername(credentials.username());
         log.info("Deleted trainee profile by username");
     }
 
+    @Transactional
     public void changePassword(ChangePasswordRequest request){
         Objects.requireNonNull(request, "Request body cannot be null");
         authComponent.authenticate(request.credentials());
@@ -97,10 +103,11 @@ public class TraineeService {
         if(request.newPassword().length() < 10){
             throw new InvalidPasswordException("Password should be at least 10 characters");
         }
-        trainee.getUser().setPassword(request.credentials().password());
+        trainee.getUser().setPassword(request.newPassword());
         traineeRepository.update(trainee);
     }
 
+    @Transactional
     public void changeActivity(ChangeActivityRequest request){
         Objects.requireNonNull(request, "Request body cannot be null");
         authComponent.authenticate(request.credentials());
@@ -118,6 +125,7 @@ public class TraineeService {
         log.info("Activity status changed for a trainee");
     }
 
+    @Transactional
     public List<TrainerSummary> updateTrainersList(UpdateTraineeTrainersRequest request){
         Objects.requireNonNull(request, "Request body cannot be null");
         authComponent.authenticate(request.credentials());

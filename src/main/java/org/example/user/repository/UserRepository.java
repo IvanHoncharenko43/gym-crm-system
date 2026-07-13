@@ -11,8 +11,8 @@ import java.util.Optional;
 @Slf4j
 @Repository
 public class UserRepository extends AbstractRepository<UserEntity> {
-    public UserRepository(SessionFactory sessionFactory, Class<UserEntity> entityClass) {
-        super(sessionFactory, entityClass);
+    public UserRepository(SessionFactory sessionFactory) {
+        super(sessionFactory, UserEntity.class);
     }
 
     public Optional<UserEntity> findByUsername(String username){

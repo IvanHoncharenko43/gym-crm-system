@@ -24,7 +24,7 @@ public class TrainingEntity implements Identifiable {
     @Column(name = "training_date", nullable = false)
     private LocalDate trainingDate;
 
-    @Column(name = "training_duration_minutes", nullable = false)
+    @Column(name = "duration_minutes", nullable = false)
     private Integer durationMinutes;
 
     @ManyToOne(fetch = FetchType.LAZY)

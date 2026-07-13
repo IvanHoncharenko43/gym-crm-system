@@ -1,5 +1,6 @@
 package org.example;
 
+import io.github.cdimascio.dotenv.Dotenv;
 import lombok.extern.slf4j.Slf4j;
 import org.example.config.AppConfig;
 import org.example.core.dto.ChangeActivityRequest;
@@ -24,6 +25,8 @@ import org.example.training.dto.TrainingSummary;
 import org.example.user.dto.UserCredentials;
 import org.example.user.dto.FullName;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -33,6 +36,10 @@ public class App
 {
     public static void main( String[] args )
     {
+        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+        dotenv.entries().forEach(entry -> {
+            System.setProperty(entry.getKey(), entry.getValue());
+        });
         try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(AppConfig.class)) {
             TraineeService traineeService = context.getBean(TraineeService.class);
             TrainerService trainerService = context.getBean(TrainerService.class);
@@ -41,32 +48,42 @@ public class App
             TrainerRepository trainerRepository = context.getBean(TrainerRepository.class);
             TrainingTypeRepository trainingTypeRepository = context.getBean(TrainingTypeRepository.class);
 
+            PlatformTransactionManager txManager = context.getBean(PlatformTransactionManager.class);
+            TransactionTemplate transactionTemplate = new TransactionTemplate(txManager);
+            transactionTemplate.setReadOnly(true);
+
             log.info("---- START ----");
 
-            log.info("--- 1. Testing CREATE (No Auth Required) ---");
+            log.info("--- 1. Testing CREATE ---");
             CreateTraineeRequest traineeCreateRequest = new CreateTraineeRequest(
                     new FullName("John", "Doe"), LocalDate.of(1995, 5, 15), "Home 21 Street");
             TraineeSummary createdTrainee = traineeService.create(traineeCreateRequest);
             String traineeUsername = createdTrainee.profile().username();
-            String traineePassword = traineeRepository.findByUsername(traineeUsername)
-                    .orElseThrow(() -> new RuntimeException("Trainee not found after creation"))
-                    .getUser()
-                    .getPassword();
+
+            String traineePassword = transactionTemplate.execute(status ->
+                    traineeRepository.findByUsername(traineeUsername)
+                            .orElseThrow(() -> new RuntimeException("Trainee not found after creation"))
+                            .getUser()
+                            .getPassword());
 
             UserCredentials traineeCredentials = new UserCredentials(traineeUsername, traineePassword);
             log.info("Created Trainee: {}, Fetched Password from DB: {}", traineeUsername, traineePassword);
 
-            TrainingTypeEntity trainingType = trainingTypeRepository.findByName("YOGA").get();
+
+            TrainingTypeEntity trainingType = transactionTemplate.execute(status ->
+                    trainingTypeRepository.findByName("YOGA").get());
             TrainingTypeSummary trainingTypeSummary = new TrainingTypeSummary(
                     trainingType.getId(), trainingType.getTrainingTypeName());
             CreateTrainerRequest trainerCreateRequest = new CreateTrainerRequest(
                     new FullName("Jane", "Smith"), trainingTypeSummary);
             TrainerSummary createdTrainer = trainerService.create(trainerCreateRequest);
             String trainerUsername = createdTrainer.profile().username();
-            String trainerPassword = trainerRepository.findByUsername(trainerUsername)
-                    .orElseThrow(() -> new RuntimeException("Trainer not found after creation"))
-                    .getUser()
-                    .getPassword();
+
+            String trainerPassword = transactionTemplate.execute(status ->
+                    trainerRepository.findByUsername(trainerUsername)
+                            .orElseThrow(() -> new RuntimeException("Trainer not found after creation"))
+                            .getUser()
+                            .getPassword());
 
             UserCredentials trainerCredentials = new UserCredentials(trainerUsername, trainerPassword);
             log.info("Created Trainer: {}, Fetched Password from DB: {}", trainerUsername, trainerPassword);
@@ -79,7 +96,7 @@ public class App
                 log.error("Expected Authentication Exception occurred: {}", e.getMessage());
             }
 
-            log.info("--- 3. Testing SELECT BY USERNAME (With Auth) ---");
+            log.info("--- 3. Testing SELECT BY USERNAME ---");
             TraineeSummary fetchedTrainee = traineeService.getByUsername(traineeCredentials);
             log.info("Fetched Trainee Address: {}", fetchedTrainee.address());
 
@@ -87,11 +104,13 @@ public class App
             String newPassword = "newSecurePassword123";
             traineeService.changePassword(new ChangePasswordRequest(traineeCredentials, newPassword));
             traineeCredentials = new UserCredentials(traineeUsername, newPassword);
-            log.info("Trainee password changed successfully.");
+            log.info("Trainee password changed successfully");
 
             log.info("--- 5. Testing CHANGE ACTIVITY STATUS ---");
             traineeService.changeActivity(new ChangeActivityRequest(traineeCredentials, false));
-            log.info("Trainee activity status set to false (Deactivated).");
+            log.info("Trainee activity status set to false");
+            traineeService.changeActivity(new ChangeActivityRequest(traineeCredentials, true));
+            log.info("Trainee activity status set to true");
 
             log.info("--- 6. Testing UPDATE PROFILE ---");
             UpdateTraineeRequest traineeUpdateRequest = new UpdateTraineeRequest(
@@ -105,14 +124,14 @@ public class App
             List<TrainerSummary> unassignedTrainers = trainerService.getUnassignedTrainersByTraineeList(
                     new UnassignedTrainersRequest(trainerCredentials, "John.Doe")
             );
-            log.info("Found {} unassigned trainers.", unassignedTrainers.size());
+            log.info("Found {} unassigned trainers", unassignedTrainers.size());
 
             log.info("--- 8. Testing ADD TRAINING ---");
             CreateTrainingRequest trainingCreateRequest = new CreateTrainingRequest(
-                    traineeCredentials, createdTrainee.id(), createdTrainer.id(), "Morning Yoga", LocalDate.now(), 60
+                    traineeCredentials, createdTrainer.id(), createdTrainee.id(), "Morning Yoga", LocalDate.now(), 60
             );
             trainingService.create(trainingCreateRequest);
-            log.info("Successfully created training session.");
+            log.info("Successfully created training session");
 
             log.info("--- 9. Testing GET TRAININGS BY CRITERIA ---");
             GetTraineeTrainingsRequest criteriaRequest = new GetTraineeTrainingsRequest(
@@ -120,11 +139,11 @@ public class App
                     LocalDate.now().plusDays(1), trainerUsername, trainingTypeSummary
             );
             List<TrainingSummary> trainings = trainingService.getTraineeTrainingList(criteriaRequest);
-            log.info("Found {} trainings matching the criteria.", trainings.size());
+            log.info("Found {} trainings matching the criteria", trainings.size());
 
             log.info("--- 10. Testing DELETE BY USERNAME ---");
             traineeService.deleteByUsername(traineeCredentials);
-            log.info("Trainee {} successfully deleted.", traineeUsername);
+            log.info("Trainee {} successfully deleted", traineeUsername);
 
             log.info("---- FINISH ----");
         } catch (Exception e) {

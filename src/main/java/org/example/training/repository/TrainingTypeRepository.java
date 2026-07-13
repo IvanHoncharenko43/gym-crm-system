@@ -20,10 +20,4 @@ public class TrainingTypeRepository {
                 .setParameter("typeName", typeName)
                 .uniqueResultOptional();
     }
-
-//    public List<TrainingTypeEntity> findAll() {
-//        return sessionFactory.getCurrentSession()
-//                .createQuery("FROM TrainingTypeEntity", TrainingTypeEntity.class)
-//                .getResultList();
-//    }
 }

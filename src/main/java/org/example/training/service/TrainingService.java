@@ -1,5 +1,6 @@
 package org.example.training.service;
 
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.core.service.AuthenticationComponent;
 import org.example.trainee.dto.GetTraineeTrainingsRequest;
@@ -40,6 +41,7 @@ public class TrainingService {
         this.authComponent = authComponent;
     }
 
+    @Transactional
     public TrainingSummary create(CreateTrainingRequest request) {
         Objects.requireNonNull(request, "Request body cannot be null");
         authComponent.authenticate(request.credentials());
@@ -62,6 +64,7 @@ public class TrainingService {
         return gymMapper.toTrainingSummary(savedTraining, trainee, trainer);
     }
 
+    @Transactional
     public TrainingSummary getById(GetTrainingRequest request) {
         Objects.requireNonNull(request, "Request body cannot be null");
         authComponent.authenticate(request.credentials());
@@ -76,6 +79,7 @@ public class TrainingService {
         return gymMapper.toTrainingSummary(training, trainee, trainer);
     }
 
+    @Transactional
     public List<TrainingSummary> getTraineeTrainingList(GetTraineeTrainingsRequest request){
         Objects.requireNonNull(request, "Request body cannot be null");
         authComponent.authenticate(request.credentials());
@@ -86,6 +90,7 @@ public class TrainingService {
                 .toList();
     }
 
+    @Transactional
     public List<TrainingSummary> getTrainerTrainingList(GetTrainerTrainingsRequest request){
         Objects.requireNonNull(request, "Request body cannot be null");
         authComponent.authenticate(request.credentials());

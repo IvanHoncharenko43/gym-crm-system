@@ -31,8 +31,4 @@ public class TrainerEntity implements Identifiable {
     @EqualsAndHashCode.Exclude
     @ManyToMany(mappedBy = "trainers")
     private Set<TraineeEntity> trainees = new HashSet<>();
-
-//    @OneToMany(mappedBy = "trainer", fetch = FetchType.LAZY)
-//    @ToString.Exclude
-//    private Set<Training> trainings = new HashSet<>();
 }

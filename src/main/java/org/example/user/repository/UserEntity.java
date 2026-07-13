@@ -4,8 +4,6 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.example.core.repository.Identifiable;
-import org.example.trainee.repository.TraineeEntity;
-import org.example.trainer.repository.TrainerEntity;
 
 @NoArgsConstructor
 @Data

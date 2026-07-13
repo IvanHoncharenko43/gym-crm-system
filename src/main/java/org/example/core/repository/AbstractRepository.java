@@ -3,7 +3,6 @@ package org.example.core.repository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.exception.EntityNotFoundException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 
