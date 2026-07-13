@@ -1,4 +1,4 @@
-package org.example.utils;
+package org.example.core;
 
 import org.example.TestUtils;
 import org.example.core.service.GymMapper;
@@ -14,6 +14,8 @@ import org.example.training.dto.CreateTrainingRequest;
 import org.example.training.repository.TrainingEntity;
 import org.example.training.dto.TrainingSummary;
 import org.example.training.repository.TrainingTypeEntity;
+import org.example.utils.PasswordGenerator;
+import org.example.utils.UsernameGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
