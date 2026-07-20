@@ -1,14 +1,14 @@
 package org.example.trainer.dto;
 
 
-import org.example.training.dto.TrainingTypeSummary;
+import org.example.training.dto.TrainingType;
 import org.example.user.dto.UserCredentials;
 import org.example.user.dto.FullName;
 
 public record UpdateTrainerRequest(
-        UserCredentials credentials,
         Long id,
+        UserCredentials credentials,
         FullName fullName,
-        TrainingTypeSummary specialization
+        TrainingType specialization
 ) {
 }

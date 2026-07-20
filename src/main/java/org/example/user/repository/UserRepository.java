@@ -1,7 +1,7 @@
 package org.example.user.repository;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.core.repository.AbstractRepository;
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
 
@@ -10,9 +10,12 @@ import java.util.Optional;
 
 @Slf4j
 @Repository
-public class UserRepository extends AbstractRepository<UserEntity> {
+public class UserRepository {
+
+    private final SessionFactory sessionFactory;
+
     public UserRepository(SessionFactory sessionFactory) {
-        super(sessionFactory, UserEntity.class);
+        this.sessionFactory = sessionFactory;
     }
 
     public Optional<UserEntity> findByUsername(String username){
@@ -28,5 +31,9 @@ public class UserRepository extends AbstractRepository<UserEntity> {
         return getSession().createQuery(hql, String.class)
                 .setParameter("baseName", baseName + "%")
                 .getResultList();
+    }
+
+    private Session getSession(){
+        return sessionFactory.getCurrentSession();
     }
 }

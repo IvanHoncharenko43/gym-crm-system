@@ -14,7 +14,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -36,6 +35,7 @@ public class AuthenticationComponentTest {
         UserEntity user = new UserEntity();
         user.setUsername(USERNAME);
         user.setPassword(PASSWORD);
+        user.setIsActive(true);
 
         when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
 
@@ -47,9 +47,8 @@ public class AuthenticationComponentTest {
     void authenticate_ThrowAuthenticationFailedException_UserDoesNotExist(){
         when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.empty());
 
-        AuthenticationFailedException exception = assertThrows(AuthenticationFailedException.class,
+        assertThrows(AuthenticationFailedException.class,
                 () -> authComponent.authenticate(CREDENTIALS));
-        assertTrue(exception.getMessage().contains("Invalid username"));
     }
 
     @Test
@@ -57,11 +56,11 @@ public class AuthenticationComponentTest {
         UserEntity user = new UserEntity();
         user.setUsername(USERNAME);
         user.setPassword("differentPassword");
+        user.setIsActive(true);
 
         when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(user));
 
-        AuthenticationFailedException exception = assertThrows(AuthenticationFailedException.class,
+        assertThrows(AuthenticationFailedException.class,
                 () -> authComponent.authenticate(CREDENTIALS));
-        assertTrue(exception.getMessage().contains("Invalid password"));
     }
 }

@@ -17,9 +17,7 @@ import org.example.trainer.repository.TrainerRepository;
 import org.example.trainer.service.TrainerService;
 import org.example.trainer.dto.TrainerSummary;
 import org.example.training.dto.CreateTrainingRequest;
-import org.example.training.dto.TrainingTypeSummary;
-import org.example.training.repository.TrainingTypeEntity;
-import org.example.training.repository.TrainingTypeRepository;
+import org.example.training.dto.TrainingType;
 import org.example.training.service.TrainingService;
 import org.example.training.dto.TrainingSummary;
 import org.example.user.dto.UserCredentials;
@@ -46,7 +44,6 @@ public class App
             TrainingService trainingService = context.getBean(TrainingService.class);
             TraineeRepository traineeRepository = context.getBean(TraineeRepository.class);
             TrainerRepository trainerRepository = context.getBean(TrainerRepository.class);
-            TrainingTypeRepository trainingTypeRepository = context.getBean(TrainingTypeRepository.class);
 
             PlatformTransactionManager txManager = context.getBean(PlatformTransactionManager.class);
             TransactionTemplate transactionTemplate = new TransactionTemplate(txManager);
@@ -69,13 +66,8 @@ public class App
             UserCredentials traineeCredentials = new UserCredentials(traineeUsername, traineePassword);
             log.info("Created Trainee: {}, Fetched Password from DB: {}", traineeUsername, traineePassword);
 
-
-            TrainingTypeEntity trainingType = transactionTemplate.execute(status ->
-                    trainingTypeRepository.findByName("YOGA").get());
-            TrainingTypeSummary trainingTypeSummary = new TrainingTypeSummary(
-                    trainingType.getId(), trainingType.getTrainingTypeName());
             CreateTrainerRequest trainerCreateRequest = new CreateTrainerRequest(
-                    new FullName("Jane", "Smith"), trainingTypeSummary);
+                    new FullName("Jane", "Smith"), TrainingType.YOGA);
             TrainerSummary createdTrainer = trainerService.create(trainerCreateRequest);
             String trainerUsername = createdTrainer.profile().username();
 
@@ -107,14 +99,14 @@ public class App
             log.info("Trainee password changed successfully");
 
             log.info("--- 5. Testing CHANGE ACTIVITY STATUS ---");
-            traineeService.changeActivity(new ChangeActivityRequest(traineeCredentials, false));
+            traineeService.changeActivity(new ChangeActivityRequest(traineeCredentials));
             log.info("Trainee activity status set to false");
-            traineeService.changeActivity(new ChangeActivityRequest(traineeCredentials, true));
+            traineeService.changeActivity(new ChangeActivityRequest(traineeCredentials));
             log.info("Trainee activity status set to true");
 
             log.info("--- 6. Testing UPDATE PROFILE ---");
             UpdateTraineeRequest traineeUpdateRequest = new UpdateTraineeRequest(
-                    traineeCredentials, createdTrainee.id(),
+                    createdTrainee.id(), traineeCredentials,
                     new FullName("John", "Doe"), LocalDate.of(1995, 5, 15), "Updated Address 99"
             );
             TraineeSummary updatedTrainee = traineeService.update(traineeUpdateRequest);
@@ -136,7 +128,7 @@ public class App
             log.info("--- 9. Testing GET TRAININGS BY CRITERIA ---");
             GetTraineeTrainingsRequest criteriaRequest = new GetTraineeTrainingsRequest(
                     traineeCredentials, LocalDate.now().minusDays(1),
-                    LocalDate.now().plusDays(1), trainerUsername, trainingTypeSummary
+                    LocalDate.now().plusDays(1), trainerUsername, TrainingType.YOGA
             );
             List<TrainingSummary> trainings = trainingService.getTraineeTrainingList(criteriaRequest);
             log.info("Found {} trainings matching the criteria", trainings.size());

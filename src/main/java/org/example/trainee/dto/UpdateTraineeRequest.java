@@ -6,8 +6,8 @@ import org.example.user.dto.FullName;
 import java.time.LocalDate;
 
 public record UpdateTraineeRequest(
-        UserCredentials credentials,
         Long id,
+        UserCredentials credentials,
         FullName fullName,
         LocalDate dateOfBirth,
         String address

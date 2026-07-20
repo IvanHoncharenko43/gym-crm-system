@@ -13,7 +13,7 @@ import org.example.trainer.dto.UpdateTrainerRequest;
 import org.example.training.dto.CreateTrainingRequest;
 import org.example.training.repository.TrainingEntity;
 import org.example.training.dto.TrainingSummary;
-import org.example.training.repository.TrainingTypeEntity;
+import org.example.core.repository.TrainingTypeEntity;
 import org.example.utils.PasswordGenerator;
 import org.example.utils.UsernameGenerator;
 import org.junit.jupiter.api.Test;
@@ -106,8 +106,7 @@ public class GymMapperTest {
         assertTrue(trainer.getUser().getIsActive());
 
         assertNotNull(trainer.getSpecialization());
-        assertEquals(request.specialization().id(), trainer.getSpecialization().getId());
-        assertEquals(request.specialization().trainingTypeName(), trainer.getSpecialization().getTrainingTypeName());
+        assertEquals(request.specialization(), trainer.getSpecialization().getTrainingTypeName());
 
         verify(usernameGenerator, times(1))
                 .generate(TestUtils.FIRST_NAME, TestUtils.LAST_NAME, TestUtils.getExistingUsernamesSet());
@@ -128,8 +127,7 @@ public class GymMapperTest {
         assertEquals(request.fullName().lastName(), trainer.getUser().getLastName());
 
         assertNotNull(trainer.getSpecialization());
-        assertEquals(request.specialization().id(), trainer.getSpecialization().getId());
-        assertEquals(request.specialization().trainingTypeName(), trainer.getSpecialization().getTrainingTypeName());
+        assertEquals(request.specialization(), trainer.getSpecialization().getTrainingTypeName());
     }
 
     @Test
@@ -143,8 +141,7 @@ public class GymMapperTest {
         assertEquals(trainer.getUser().getUsername(), response.profile().username());
 
         assertNotNull(response.specialization());
-        assertEquals(trainer.getSpecialization().getId(), response.specialization().id());
-        assertEquals(trainer.getSpecialization().getTrainingTypeName(), response.specialization().trainingTypeName());
+        assertEquals(trainer.getSpecialization().getTrainingTypeName(), response.specialization());
     }
 
     @Test
@@ -180,16 +177,14 @@ public class GymMapperTest {
         assertEquals(training.getDurationMinutes(), response.durationMinutes());
 
         assertNotNull(response.trainingType());
-        assertEquals(training.getTrainingType().getId(), response.trainingType().id());
-        assertEquals(training.getTrainingType().getTrainingTypeName(), response.trainingType().trainingTypeName());
+        assertEquals(training.getTrainingType().getTrainingTypeName(), response.trainingType());
 
         assertNotNull(response.trainer());
         assertEquals(trainer.getId(), response.id());
         assertEquals(trainer.getUser().getUsername(), response.trainer().profile().username());
 
         assertNotNull(response.trainer().specialization());
-        assertEquals(trainer.getSpecialization().getId(), response.trainer().specialization().id());
-        assertEquals(trainer.getSpecialization().getTrainingTypeName(), response.trainer().specialization().trainingTypeName());
+        assertEquals(trainer.getSpecialization().getTrainingTypeName(), response.trainer().specialization());
 
         assertNotNull(response.trainee());
         assertEquals(trainee.getId(), response.id());

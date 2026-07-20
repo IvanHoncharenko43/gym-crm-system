@@ -4,7 +4,6 @@ package org.example.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.core.env.Environment;
 import org.springframework.orm.jpa.hibernate.HibernateTransactionManager;
 import org.springframework.orm.jpa.hibernate.LocalSessionFactoryBean;
 import org.springframework.jdbc.datasource.DriverManagerDataSource;
@@ -19,10 +18,12 @@ import java.util.Properties;
 @PropertySource("classpath:application.properties")
 public class HibernateConfig {
 
-    private final Environment env;
+    private final DatabaseProperties databaseProperties;
+    private final HibernateProperties hibernateProperties;
 
-    public HibernateConfig(Environment env) {
-        this.env = env;
+    public HibernateConfig(DatabaseProperties databaseProperties, HibernateProperties hibernateProperties) {
+        this.databaseProperties = databaseProperties;
+        this.hibernateProperties = hibernateProperties;
     }
 
     @Bean
@@ -37,20 +38,20 @@ public class HibernateConfig {
     @Bean
     public DataSource dataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setDriverClassName(env.getRequiredProperty("db.driver"));
-        dataSource.setUrl(env.getRequiredProperty("db.url"));
-        dataSource.setUsername(env.getRequiredProperty("db.username"));
-        dataSource.setPassword(env.getRequiredProperty("db.password"));
+        dataSource.setDriverClassName(databaseProperties.driver());
+        dataSource.setUrl(databaseProperties.url());
+        dataSource.setUsername(databaseProperties.username());
+        dataSource.setPassword(databaseProperties.password());
         return dataSource;
     }
 
     private Properties hibernateProperties() {
         Properties properties = new Properties();
-        properties.put("hibernate.dialect", env.getRequiredProperty("hibernate.dialect"));
-        properties.put("hibernate.show_sql", env.getRequiredProperty("hibernate.show_sql"));
-        properties.put("hibernate.format_sql", env.getRequiredProperty("hibernate.format_sql"));
-        properties.put("hibernate.generate_statistics", env.getRequiredProperty("hibernate.generate_statistics"));
-        properties.put("hibernate.hbm2ddl.auto", env.getRequiredProperty("hibernate.hbm2ddl.auto"));
+        properties.put("hibernate.dialect", hibernateProperties.dialect());
+        properties.put("hibernate.show_sql", hibernateProperties.showSql());
+        properties.put("hibernate.format_sql", hibernateProperties.formatSql());
+        properties.put("hibernate.generate_statistics", hibernateProperties.generateStatistics());
+        properties.put("hibernate.hbm2ddl.auto", hibernateProperties.hbm2ddlAuto());
         return properties;
     }
 

@@ -12,11 +12,9 @@ public class UsernameGenerator {
             return baseUsername;
         }
         int suffix = 1;
-        String newUsername;
-        do {
-            newUsername = baseUsername + suffix;
+        while (existingUsernames.contains(baseUsername + suffix)){
             suffix++;
-        } while (existingUsernames.contains(newUsername));
-        return newUsername;
+        }
+        return baseUsername + suffix;
     }
 }

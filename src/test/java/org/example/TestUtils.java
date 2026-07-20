@@ -1,7 +1,7 @@
 package org.example;
 
-import org.example.training.dto.TrainingTypeSummary;
-import org.example.training.repository.TrainingTypeEntity;
+import org.example.training.dto.TrainingType;
+import org.example.core.repository.TrainingTypeEntity;
 import org.example.user.dto.UserCredentials;
 import org.example.user.dto.FullName;
 import org.example.user.dto.UserProfile;
@@ -31,8 +31,6 @@ public class TestUtils {
     public static final String TRAINER_PASSWORD = "test122333";
     public static final String FIRST_NAME = "John";
     public static final String LAST_NAME = "Doe";
-    public static final Long TRAINING_TYPE_ID = 1L;
-    public static final String TRAINING_TYPE_NAME = "Yoga";
 
     public static CreateTraineeRequest getCreateTraineeRequest(){
         return new CreateTraineeRequest(
@@ -42,7 +40,7 @@ public class TestUtils {
 
     public static CreateTrainerRequest getCreateTrainerRequest(){
         return new CreateTrainerRequest(
-                new FullName("John", "Doe"), getTrainingTypeSummary()
+                new FullName("John", "Doe"), TrainingType.YOGA
         );
     }
 
@@ -55,29 +53,15 @@ public class TestUtils {
 
     public static UpdateTraineeRequest getUpdateTraineeRequest(){
         return new UpdateTraineeRequest(
-                getTraineeCredentials(), TRAINEE_ID, new FullName("John", "Doe"),
-                LocalDate.of(2007, 3, 25), "Home 21 Street"
-        );
-    }
-
-    public static UpdateTraineeRequest getUpdateTraineeRequest(Long id){
-        return new UpdateTraineeRequest(
-                getTraineeCredentials(), TRAINEE_ID, new FullName("John", "Doe"),
+                TRAINEE_ID, getTraineeCredentials(), new FullName("John", "Doe"),
                 LocalDate.of(2007, 3, 25), "Home 21 Street"
         );
     }
 
     public static UpdateTrainerRequest getUpdateTrainerRequest(){
         return new UpdateTrainerRequest(
-                getTrainerCredentials(), TRAINER_ID,
-                new FullName("John", "Doe"), getTrainingTypeSummary()
-        );
-    }
-
-    public static UpdateTrainerRequest getUpdateTrainerRequest(Long id){
-        return new UpdateTrainerRequest(
-                getTrainerCredentials(), TRAINER_ID,
-                new FullName("John", "Doe"), getTrainingTypeSummary()
+                TRAINER_ID, getTrainerCredentials(),
+                new FullName("John", "Doe"), TrainingType.YOGA
         );
     }
 
@@ -124,7 +108,7 @@ public class TestUtils {
     public static TrainingTypeEntity getTrainingType(){
         TrainingTypeEntity trainingType = new TrainingTypeEntity();
         trainingType.setId(1L);
-        trainingType.setTrainingTypeName(TRAINING_TYPE_NAME);
+        trainingType.setTrainingTypeName(TrainingType.YOGA);
         return trainingType;
     }
 
@@ -135,29 +119,10 @@ public class TestUtils {
         );
     }
 
-    public static TraineeSummary getTraineeSummary(Long id, String username){
-        return new TraineeSummary(
-                id, new UserProfile(username),
-                LocalDate.of(2007, 3, 25), "Home 21 Street"
-        );
-    }
-
     public static TrainerSummary getTrainerSummary(Long id){
         return new TrainerSummary(
                 id, new UserProfile(TRAINER_USERNAME),
-                getTrainingTypeSummary()
-        );
-    }
-    public static TrainerSummary getTrainerSummary(Long id, String username){
-        return new TrainerSummary(
-                id, new UserProfile(username),
-                getTrainingTypeSummary()
-        );
-    }
-
-    public static TrainingTypeSummary getTrainingTypeSummary(){
-        return new TrainingTypeSummary(
-                TRAINING_TYPE_ID, TRAINING_TYPE_NAME
+                TrainingType.YOGA
         );
     }
 

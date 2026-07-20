@@ -10,7 +10,7 @@ public record TrainingSummary(
         TrainerSummary trainer,
         TraineeSummary trainee,
         String trainingName,
-        TrainingTypeSummary trainingType,
+        TrainingType trainingType,
         LocalDate trainingDate,
         int durationMinutes
 ) {

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
@@ -31,12 +32,32 @@ public class TraineeRepositoryTest {
     @Mock
     private Query<TraineeEntity> query;
 
+    @Spy
     @InjectMocks
     private TraineeRepository traineeRepository;
 
     @BeforeEach
     void setUp() {
         when(sessionFactory.getCurrentSession()).thenReturn(session);
+    }
+
+    @Test
+    void save_PersistEntity_EntityDoesNotHaveId() {
+        TraineeEntity trainee = new TraineeEntity();
+        TraineeEntity createdEntity = traineeRepository.save(trainee);
+        verify(session, times(1)).persist(trainee);
+        assertEquals(trainee, createdEntity);
+    }
+
+    @Test
+    void save_MergeEntity_EntityHasId() {
+        TraineeEntity trainee = new TraineeEntity();
+        trainee.setId(1L);
+        when(session.merge(trainee)).thenReturn(trainee);
+
+        TraineeEntity result = traineeRepository.save(trainee);
+        assertEquals(trainee, result);
+        verify(session, times(1)).merge(trainee);
     }
 
     @Test
@@ -60,21 +81,50 @@ public class TraineeRepositoryTest {
     }
 
     @Test
+    void findById_ReturnEntity_IdExists() {
+        TraineeEntity trainee = new TraineeEntity();
+        Long id = 1L;
+        trainee.setId(id);
+        String hql = "FROM TraineeEntity t JOIN FETCH t.user WHERE t.id = :id";
+
+        when(session.createQuery(hql, TraineeEntity.class)).thenReturn(query);
+        when(query.setParameter("id", id)).thenReturn(query);
+        when(query.uniqueResultOptional()).thenReturn(Optional.of(trainee));
+
+        Optional<TraineeEntity> result = traineeRepository.findById(id);
+
+        assertTrue(result.isPresent());
+        assertEquals(trainee, result.get());
+        verify(session, times(1)).createQuery(hql, TraineeEntity.class);
+        verify(query, times(1)).setParameter("id", id);
+        verify(query, times(1)).uniqueResultOptional();
+    }
+
+    @Test
+    void findById_ReturnEmpty_IdDoesNotExist() {
+        String hql = "FROM TraineeEntity t JOIN FETCH t.user WHERE t.id = :id";
+        when(session.createQuery(hql, TraineeEntity.class)).thenReturn(query);
+        when(query.setParameter("id", 99L)).thenReturn(query);
+        when(query.uniqueResultOptional()).thenReturn(Optional.empty());
+
+        Optional<TraineeEntity> result = traineeRepository.findById(99L);
+        assertTrue(result.isEmpty());
+        verify(session, times(1)).createQuery(hql, TraineeEntity.class);
+        verify(query, times(1)).setParameter("id", 99L);
+        verify(query, times(1)).uniqueResultOptional();
+    }
+
+    @Test
     void deleteByUsername_RemoveTrainee_UsernameExists(){
         String username = "John.Doe";
-        String hql = "FROM TraineeEntity t JOIN FETCH t.user WHERE t.user.username = :username";
         TraineeEntity trainee = new TraineeEntity();
         trainee.setUser(new UserEntity());
         trainee.getUser().setUsername(username);
 
-        when(session.createQuery(hql, TraineeEntity.class)).thenReturn(query);
-        when(query.setParameter("username", username)).thenReturn(query);
-        when(query.uniqueResultOptional()).thenReturn(Optional.of(trainee));
+        doReturn(Optional.of(trainee)).when(traineeRepository).findByUsername(username);
 
         traineeRepository.deleteByUsername(username);
-        verify(session, times(1)).createQuery(hql, TraineeEntity.class);
-        verify(query, times(1)).setParameter("username", username);
-        verify(query, times(1)).uniqueResultOptional();
+        verify(traineeRepository, times(1)).findByUsername(username);
         verify(session, times(1)).remove(trainee);
     }
 }

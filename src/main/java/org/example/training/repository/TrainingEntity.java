@@ -1,19 +1,29 @@
 package org.example.training.repository;
 
-import jakarta.persistence.*;
-import lombok.Data;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Column;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.core.repository.Identifiable;
+import lombok.Setter;
+import org.example.core.repository.TrainingTypeEntity;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainer.repository.TrainerEntity;
 
 import java.time.LocalDate;
+import java.util.Objects;
 
 @NoArgsConstructor
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "trainings")
-public class TrainingEntity implements Identifiable {
+public class TrainingEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -27,15 +37,30 @@ public class TrainingEntity implements Identifiable {
     @Column(name = "duration_minutes", nullable = false)
     private Integer durationMinutes;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "trainer_id", nullable = false)
     private TrainerEntity trainer;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "trainee_id", nullable = false)
     private TraineeEntity trainee;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "training_type_id", nullable = false)
     private TrainingTypeEntity trainingType;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof TrainingEntity that)) return false;
+        return trainingName != null && trainingName.equals(that.getTrainingName()) &&
+                trainingDate != null && trainingDate.equals(that.getTrainingDate()) &&
+                trainee != null && trainee.equals(that.getTrainee()) &&
+                trainer != null && trainer.equals(that.getTrainer());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(trainingName, trainingDate, trainee, trainer);
+    }
 }

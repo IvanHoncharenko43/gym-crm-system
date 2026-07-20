@@ -1,24 +1,36 @@
 package org.example.trainee.repository;
 
-import jakarta.persistence.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Column;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.OneToMany;
 import lombok.NoArgsConstructor;
-import lombok.ToString;
-import org.example.core.repository.Identifiable;
+import lombok.Getter;
+import lombok.Setter;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.training.repository.TrainingEntity;
 import org.example.user.repository.UserEntity;
 
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 @NoArgsConstructor
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "trainees")
-public class TraineeEntity implements Identifiable {
+public class TraineeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -27,12 +39,10 @@ public class TraineeEntity implements Identifiable {
     private LocalDate dateOfBirth;
     private String address;
 
-    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private UserEntity user;
 
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
             name = "trainees_trainers",
@@ -41,8 +51,18 @@ public class TraineeEntity implements Identifiable {
     )
     private Set<TrainerEntity> trainers = new HashSet<>();
 
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
-    @OneToMany(mappedBy = "trainee", fetch = FetchType.LAZY, orphanRemoval = true)
+    @OneToMany(mappedBy = "trainee", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<TrainingEntity> trainings = new HashSet<>();
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof TraineeEntity that)) return false;
+        return user != null && user.equals(that.getUser());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(user);
+    }
 }

@@ -1,26 +1,50 @@
 package org.example.trainer.repository;
 
 import lombok.extern.slf4j.Slf4j;
-import org.example.core.repository.AbstractRepository;
+import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 @Slf4j
 @Repository
-public class TrainerRepository extends AbstractRepository<TrainerEntity> {
+public class TrainerRepository {
+
+    private final SessionFactory sessionFactory;
 
     public TrainerRepository(SessionFactory sessionFactory){
-        super(sessionFactory, TrainerEntity.class);
+        this.sessionFactory = sessionFactory;
+    }
+
+    public TrainerEntity save(TrainerEntity trainer){
+        Objects.requireNonNull(trainer, "Trainer cannot be null");
+        if (trainer.getId() == null) {
+            getSession().persist(trainer);
+            log.info("Created trainer with ID: {}", trainer.getId());
+            return trainer;
+        } else {
+            TrainerEntity updatedTrainer = getSession().merge(trainer);
+            log.info("Updated entity with ID: {}", updatedTrainer.getId());
+            return updatedTrainer;
+        }
     }
 
     public Optional<TrainerEntity> findByUsername(String username){
         log.info("Started getting trainer by username");
-        String hql = "FROM TrainerEntity t JOIN FETCH t.user WHERE t.user.username = :username";
+        String hql = "FROM TrainerEntity t JOIN FETCH t.user JOIN FETCH t.specialization WHERE t.user.username = :username";
         return getSession().createQuery(hql, TrainerEntity.class)
                 .setParameter("username", username)
+                .uniqueResultOptional();
+    }
+
+    public Optional<TrainerEntity> findById(Long id){
+        log.info("Started finding trainer by ID {}", id);
+        String hql = "FROM TrainerEntity t JOIN FETCH t.user JOIN FETCH t.specialization WHERE t.id = :id";
+        return getSession().createQuery(hql, TrainerEntity.class)
+                .setParameter("id", id)
                 .uniqueResultOptional();
     }
 
@@ -48,10 +72,7 @@ public class TrainerRepository extends AbstractRepository<TrainerEntity> {
                 .getResultList();
     }
 
-    public void deleteByUsername(String username){
-        findByUsername(username).ifPresent(trainer -> {
-            getSession().remove(trainer);
-            log.info("Trainer delete by username");
-        });
+    private Session getSession(){
+        return sessionFactory.getCurrentSession();
     }
 }

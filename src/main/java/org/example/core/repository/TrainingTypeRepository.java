@@ -1,5 +1,6 @@
-package org.example.training.repository;
+package org.example.core.repository;
 
+import org.example.training.dto.TrainingType;
 import org.hibernate.SessionFactory;
 import org.springframework.stereotype.Repository;
 
@@ -13,7 +14,7 @@ public class TrainingTypeRepository {
         this.sessionFactory = sessionFactory;
     }
 
-    public Optional<TrainingTypeEntity> findByName(String typeName) {
+    public Optional<TrainingTypeEntity> findByName(TrainingType typeName) {
         String hql = "FROM TrainingTypeEntity t WHERE t.trainingTypeName = :typeName";
         return sessionFactory.getCurrentSession()
                 .createQuery(hql, TrainingTypeEntity.class)

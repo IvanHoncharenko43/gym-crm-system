@@ -6,7 +6,7 @@ import org.example.core.dto.ChangePasswordRequest;
 import org.example.core.service.AuthenticationComponent;
 import org.example.exception.EntityNotFoundException;
 import org.example.exception.InvalidPasswordException;
-import org.example.exception.InvalidStatusTransitionException;
+import org.example.exception.InvalidRequestDataException;
 import org.example.trainer.dto.CreateTrainerRequest;
 import org.example.trainer.dto.TrainerSummary;
 import org.example.trainer.dto.UnassignedTrainersRequest;
@@ -14,8 +14,9 @@ import org.example.trainer.dto.UpdateTrainerRequest;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.trainer.repository.TrainerRepository;
 import org.example.trainer.service.TrainerService;
-import org.example.training.repository.TrainingTypeEntity;
-import org.example.training.repository.TrainingTypeRepository;
+import org.example.training.dto.TrainingType;
+import org.example.core.repository.TrainingTypeEntity;
+import org.example.core.repository.TrainingTypeRepository;
 import org.example.user.dto.UserCredentials;
 import org.example.user.dto.FullName;
 import org.example.user.dto.UserProfile;
@@ -27,6 +28,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.Collections;
 import java.util.List;
@@ -56,7 +59,10 @@ public class TrainerServiceTest {
     private GymMapper gymMapper;
 
     @Mock
-    private AuthenticationComponent authComponent;
+    private AuthenticationComponent authenticator;
+
+    @Mock
+    private TransactionTemplate transactionTemplate;
 
     @InjectMocks
     private TrainerService trainerService;
@@ -64,126 +70,136 @@ public class TrainerServiceTest {
     @Test
     void create_CreateAndReturnTrainerResponse_RequestIsValid() {
         CreateTrainerRequest request = new CreateTrainerRequest(
-                new FullName("John", "Doe"), TestUtils.getTrainingTypeSummary()
+                new FullName("John", "Doe"), TrainingType.YOGA
         );
         TrainingTypeEntity trainingType = new TrainingTypeEntity();
         TrainerEntity trainer = new TrainerEntity();
         trainer.setId(TRAINER_ID);
         TrainerSummary expectedResponse = new TrainerSummary(
                 TRAINER_ID, new UserProfile(USERNAME),
-                TestUtils.getTrainingTypeSummary()
+                TrainingType.YOGA
         );
+        when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
+            TransactionCallback<?> callback = invocation.getArgument(0);
+            return callback.doInTransaction(null);
+        });
 
-        when(trainingTypeRepository.findByName(request.specialization().trainingTypeName()))
+        when(trainingTypeRepository.findByName(request.specialization()))
                 .thenReturn(Optional.of(trainingType));
         when(userRepository.findUsernamesByBaseName(anyString())).thenReturn(Collections.emptyList());
         when(gymMapper.toTrainerEntity(eq(request), eq(trainingType), anySet())).thenReturn(trainer);
-        when(trainerRepository.create(trainer)).thenReturn(trainer);
+        when(trainerRepository.save(trainer)).thenReturn(trainer);
         when(gymMapper.toTrainerSummary(trainer)).thenReturn(expectedResponse);
 
         TrainerSummary actualResponse = trainerService.create(request);
 
         assertEquals(expectedResponse, actualResponse);
         verify(trainingTypeRepository, times(1)).findByName(
-                request.specialization().trainingTypeName()
+                request.specialization()
         );
+        verify(transactionTemplate, times(1)).execute(any());
         verify(userRepository, times(1)).findUsernamesByBaseName(anyString());
         verify(gymMapper, times(1)).toTrainerEntity(eq(request), eq(trainingType), anySet());
-        verify(trainerRepository, times(1)).create(trainer);
+        verify(trainerRepository, times(1)).save(trainer);
         verify(gymMapper, times(1)).toTrainerSummary(trainer);
     }
 
     @Test
-    void create_ThrowEntityNotFoundException_TrainingTypeDoesNotExist() {
+    void create_ThrowInvalidRequestDataException_TrainingTypeDoesNotExist() {
         CreateTrainerRequest request = new CreateTrainerRequest(
-                new FullName("John", "Doe"), TestUtils.getTrainingTypeSummary()
+                new FullName("John", "Doe"), TrainingType.YOGA
         );
 
-        when(trainingTypeRepository.findByName(request.specialization().trainingTypeName()))
+        when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
+            TransactionCallback<?> callback = invocation.getArgument(0);
+            return callback.doInTransaction(null);
+        });
+        when(trainingTypeRepository.findByName(request.specialization()))
                 .thenReturn(Optional.empty());
 
-        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+        InvalidRequestDataException exception = assertThrows(InvalidRequestDataException.class,
                 () -> trainerService.create(request));
         assertTrue(exception.getMessage().contains("not found"));
+        verify(transactionTemplate, times(1)).execute(any());
         verify(trainingTypeRepository, times(1)).findByName(
-                request.specialization().trainingTypeName()
+                request.specialization()
         );
-        verify(trainerRepository, never()).create(any());
+        verify(trainerRepository, never()).save(any());
     }
 
     @Test
     void update_UpdateAndReturnResponse_TrainerExists() {
         UpdateTrainerRequest request = new UpdateTrainerRequest(
-                CREDENTIALS, TRAINER_ID, new FullName("John", "Doe"),
-                TestUtils.getTrainingTypeSummary()
+                TRAINER_ID, CREDENTIALS, new FullName("John", "Doe"),
+                TrainingType.YOGA
         );
         TrainerEntity trainer = new TrainerEntity();
         trainer.setId(TRAINER_ID);
         TrainingTypeEntity trainingType = new TrainingTypeEntity();
         TrainerSummary expectedResponse = new TrainerSummary(
                 TRAINER_ID, new UserProfile(USERNAME),
-                TestUtils.getTrainingTypeSummary()
+                TrainingType.YOGA
         );
 
-        when(trainerRepository.getById(TRAINER_ID)).thenReturn(Optional.of(trainer));
-        when(trainingTypeRepository.findByName(request.specialization().trainingTypeName()))
+        when(trainerRepository.findById(TRAINER_ID)).thenReturn(Optional.of(trainer));
+        when(trainingTypeRepository.findByName(request.specialization()))
                 .thenReturn(Optional.of(trainingType));
         when(gymMapper.toTrainerEntity(request, trainer, trainingType))
                 .thenReturn(trainer);
-        when(trainerRepository.update(trainer)).thenReturn(trainer);
+        when(trainerRepository.save(trainer)).thenReturn(trainer);
         when(gymMapper.toTrainerSummary(trainer)).thenReturn(expectedResponse);
 
         TrainerSummary actualResponse = trainerService.update(request);
 
         assertEquals(expectedResponse, actualResponse);
-        verify(authComponent, times(1)).authenticate(CREDENTIALS);
-        verify(trainerRepository, times(1)).getById(TRAINER_ID);
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
+        verify(trainerRepository, times(1)).findById(TRAINER_ID);
         verify(trainingTypeRepository, times(1)).findByName(
-                request.specialization().trainingTypeName()
+                request.specialization()
         );
         verify(gymMapper, times(1)).toTrainerEntity(request, trainer, trainingType);
-        verify(trainerRepository, times(1)).update(trainer);
+        verify(trainerRepository, times(1)).save(trainer);
         verify(gymMapper, times(1)).toTrainerSummary(trainer);
     }
 
     @Test
     void update_ThrowEntityNotFoundException_TrainerDoesNotExist() {
         UpdateTrainerRequest request = new UpdateTrainerRequest(
-                CREDENTIALS, TRAINER_ID, new FullName("John", "Doe"),
-                TestUtils.getTrainingTypeSummary()
+                TRAINER_ID, CREDENTIALS, new FullName("John", "Doe"),
+                TrainingType.YOGA
         );
 
-        when(trainerRepository.getById(TRAINER_ID)).thenReturn(Optional.empty());
+        when(trainerRepository.findById(TRAINER_ID)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> trainerService.update(request));
         assertTrue(exception.getMessage().contains("not found"));
-        verify(authComponent, times(1)).authenticate(CREDENTIALS);
-        verify(trainerRepository, times(1)).getById(TRAINER_ID);
-        verify(trainerRepository, never()).update(any());
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
+        verify(trainerRepository, times(1)).findById(TRAINER_ID);
+        verify(trainerRepository, never()).save(any());
     }
 
     @Test
-    void update_ThrowEntityNotFoundException_TrainingTypeDoesNotExist() {
+    void update_ThrowInvalidRequestDataException_TrainingTypeDoesNotExist() {
         UpdateTrainerRequest request = new UpdateTrainerRequest(
-                CREDENTIALS, TRAINER_ID, new FullName("John", "Doe"),
-                TestUtils.getTrainingTypeSummary()
+                TRAINER_ID, CREDENTIALS, new FullName("John", "Doe"),
+                TrainingType.YOGA
         );
         TrainerEntity trainer = new TrainerEntity();
 
-        when(trainerRepository.getById(TRAINER_ID)).thenReturn(Optional.of(trainer));
-        when(trainingTypeRepository.findByName(request.specialization().trainingTypeName()))
+        when(trainerRepository.findById(TRAINER_ID)).thenReturn(Optional.of(trainer));
+        when(trainingTypeRepository.findByName(request.specialization()))
                 .thenReturn(Optional.empty());
 
-        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+        InvalidRequestDataException exception = assertThrows(InvalidRequestDataException.class,
                 () -> trainerService.update(request));
         assertTrue(exception.getMessage().contains("not found"));
-        verify(authComponent, times(1)).authenticate(CREDENTIALS);
-        verify(trainerRepository, times(1)).getById(TRAINER_ID);
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
+        verify(trainerRepository, times(1)).findById(TRAINER_ID);
         verify(trainingTypeRepository, times(1)).findByName(
-                request.specialization().trainingTypeName()
+                request.specialization()
         );
-        verify(trainerRepository, never()).update(any());
+        verify(trainerRepository, never()).save(any());
     }
 
     @Test
@@ -193,7 +209,7 @@ public class TrainerServiceTest {
         trainer.getUser().setIsActive(true);
         TrainerSummary expectedResponse = new TrainerSummary(
                 TRAINER_ID, new UserProfile(USERNAME),
-                TestUtils.getTrainingTypeSummary()
+                TrainingType.YOGA
         );
 
         when(trainerRepository.findByUsername(USERNAME)).thenReturn(Optional.of(trainer));
@@ -201,7 +217,7 @@ public class TrainerServiceTest {
 
         TrainerSummary actualResponse = trainerService.getByUsername(CREDENTIALS);
         assertEquals(expectedResponse, actualResponse);
-        verify(authComponent, times(1)).authenticate(CREDENTIALS);
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(trainerRepository, times(1)).findByUsername(USERNAME);
         verify(gymMapper, times(1)).toTrainerSummary(trainer);
     }
@@ -213,7 +229,7 @@ public class TrainerServiceTest {
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> trainerService.getByUsername(CREDENTIALS));
         assertTrue(exception.getMessage().contains("not found"));
-        verify(authComponent, times(1)).authenticate(CREDENTIALS);
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(trainerRepository, times(1)).findByUsername(USERNAME);
     }
 
@@ -228,7 +244,7 @@ public class TrainerServiceTest {
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> trainerService.getByUsername(CREDENTIALS));
         assertTrue(exception.getMessage().contains("inactive"));
-        verify(authComponent, times(1)).authenticate(CREDENTIALS);
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(trainerRepository, times(1)).findByUsername(USERNAME);
     }
 
@@ -242,13 +258,13 @@ public class TrainerServiceTest {
         existingTrainer.getUser().setIsActive(true);
 
         when(trainerRepository.findByUsername(USERNAME)).thenReturn(Optional.of(existingTrainer));
-        when(trainerRepository.update(existingTrainer)).thenReturn(existingTrainer);
+        when(trainerRepository.save(existingTrainer)).thenReturn(existingTrainer);
 
         trainerService.changePassword(request);
 
-        verify(authComponent, times(1)).authenticate(CREDENTIALS);
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(trainerRepository, times(1)).findByUsername(USERNAME);
-        verify(trainerRepository, times(1)).update(existingTrainer);
+        verify(trainerRepository, times(1)).save(existingTrainer);
     }
 
     @Test
@@ -259,8 +275,8 @@ public class TrainerServiceTest {
         when(trainerRepository.findByUsername(USERNAME)).thenReturn(Optional.empty());
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> trainerService.changePassword(request));
-        assertTrue(exception.getMessage().contains("username not found"));
-        verify(authComponent, times(1)).authenticate(CREDENTIALS);
+        assertTrue(exception.getMessage().contains("not found"));
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(trainerRepository, times(1)).findByUsername(USERNAME);
     }
 
@@ -276,7 +292,7 @@ public class TrainerServiceTest {
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> trainerService.changePassword(request));
         assertTrue(exception.getMessage().contains("inactive"));
-        verify(authComponent, times(1)).authenticate(CREDENTIALS);
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(trainerRepository, times(1)).findByUsername(USERNAME);
     }
 
@@ -293,13 +309,13 @@ public class TrainerServiceTest {
         InvalidPasswordException exception = assertThrows(InvalidPasswordException.class,
                 () -> trainerService.changePassword(request));
         assertTrue(exception.getMessage().contains("Password should be"));
-        verify(authComponent, times(1)).authenticate(CREDENTIALS);
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(trainerRepository, times(1)).findByUsername(USERNAME);
     }
 
     @Test
     void changeActivity_ChangeToInactive_RequestIsValid(){
-        ChangeActivityRequest request = new ChangeActivityRequest(CREDENTIALS, false);
+        ChangeActivityRequest request = new ChangeActivityRequest(CREDENTIALS);
         TrainerEntity existingTrainer = new TrainerEntity();
         existingTrainer.setUser(new UserEntity());
         existingTrainer.getUser().setIsActive(true);
@@ -307,36 +323,20 @@ public class TrainerServiceTest {
         when(trainerRepository.findByUsername(USERNAME)).thenReturn(Optional.of(existingTrainer));
 
         trainerService.changeActivity(request);
-        verify(authComponent, times(1)).authenticate(CREDENTIALS);
-        verify(trainerRepository, times(1)).update(existingTrainer);
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
+        verify(trainerRepository, times(1)).save(existingTrainer);
     }
 
     @Test
     void changeActivity_ThrowEntityNotFoundException_TrainerDoesNotExist(){
-        ChangeActivityRequest request = new ChangeActivityRequest(CREDENTIALS, false);
+        ChangeActivityRequest request = new ChangeActivityRequest(CREDENTIALS);
 
         when(trainerRepository.findByUsername(USERNAME)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> trainerService.changeActivity(request));
-        assertTrue(exception.getMessage().contains("username not found"));
-        verify(authComponent, times(1)).authenticate(CREDENTIALS);
-        verify(trainerRepository, times(1)).findByUsername(USERNAME);
-    }
-
-    @Test
-    void changeActivity_ThrowInvalidStatusTransitionException_StatusAlreadySet(){
-        ChangeActivityRequest request = new ChangeActivityRequest(CREDENTIALS, true);
-        TrainerEntity existingTrainer = new TrainerEntity();
-        existingTrainer.setUser(new UserEntity());
-        existingTrainer.getUser().setIsActive(true);
-
-        when(trainerRepository.findByUsername(USERNAME)).thenReturn(Optional.of(existingTrainer));
-
-        InvalidStatusTransitionException exception = assertThrows(InvalidStatusTransitionException.class,
-                () -> trainerService.changeActivity(request));
-        assertTrue(exception.getMessage().contains("already assigned"));
-        verify(authComponent, times(1)).authenticate(CREDENTIALS);
+        assertTrue(exception.getMessage().contains("not found"));
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(trainerRepository, times(1)).findByUsername(USERNAME);
     }
 
@@ -363,7 +363,7 @@ public class TrainerServiceTest {
 
         List<TrainerSummary> result = trainerService.getUnassignedTrainersByTraineeList(request);
         assertEquals(mappedTrainers, result);
-        verify(authComponent, times(1)).authenticate(CREDENTIALS);
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(trainerRepository, times(1))
                 .findUnassignedTrainersByTraineeUsername(traineeUsername);
         verify(gymMapper, times(1)).toTrainerSummary(trainer1);

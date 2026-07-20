@@ -42,9 +42,28 @@ public class TrainerRepositoryTest {
     }
 
     @Test
+    void save_PersistEntity_EntityDoesNotHaveId() {
+        TrainerEntity trainer = new TrainerEntity();
+        TrainerEntity createdEntity = trainerRepository.save(trainer);
+        verify(session, times(1)).persist(trainer);
+        assertEquals(trainer, createdEntity);
+    }
+
+    @Test
+    void save_MergeEntity_EntityHasId() {
+        TrainerEntity trainer = new TrainerEntity();
+        trainer.setId(1L);
+        when(session.merge(trainer)).thenReturn(trainer);
+
+        TrainerEntity result = trainerRepository.save(trainer);
+        assertEquals(trainer, result);
+        verify(session, times(1)).merge(trainer);
+    }
+
+    @Test
     void findByUsername_ReturnTrainer_UsernameExists() {
         String username = "John.Doe";
-        String hql = "FROM TrainerEntity t JOIN FETCH t.user WHERE t.user.username = :username";
+        String hql = "FROM TrainerEntity t JOIN FETCH t.user JOIN FETCH t.specialization WHERE t.user.username = :username";
         TrainerEntity trainer = new TrainerEntity();
         trainer.setUser(new UserEntity());
         trainer.getUser().setUsername(username);
@@ -58,6 +77,41 @@ public class TrainerRepositoryTest {
         assertEquals(trainer, result.get());
         verify(session, times(1)).createQuery(hql, TrainerEntity.class);
         verify(query, times(1)).setParameter("username", username);
+        verify(query, times(1)).uniqueResultOptional();
+    }
+
+    @Test
+    void getById_ReturnEntity_IdExists() {
+        TrainerEntity trainer = new TrainerEntity();
+        Long id = 1L;
+        trainer.setId(id);
+        String hql = "FROM TrainerEntity t JOIN FETCH t.user JOIN FETCH t.specialization WHERE t.id = :id";
+
+        when(session.createQuery(hql, TrainerEntity.class)).thenReturn(query);
+        when(query.setParameter("id", id)).thenReturn(query);
+        when(query.uniqueResultOptional()).thenReturn(Optional.of(trainer));
+
+        Optional<TrainerEntity> result = trainerRepository.findById(id);
+
+        assertTrue(result.isPresent());
+        assertEquals(trainer, result.get());
+        verify(session, times(1)).createQuery(hql, TrainerEntity.class);
+        verify(query, times(1)).setParameter("id", id);
+        verify(query, times(1)).uniqueResultOptional();
+    }
+
+    @Test
+    void getById_ReturnEmpty_IdDoesNotExist() {
+        String hql = "FROM TrainerEntity t JOIN FETCH t.user JOIN FETCH t.specialization WHERE t.id = :id";
+
+        when(session.createQuery(hql, TrainerEntity.class)).thenReturn(query);
+        when(query.setParameter("id", 99L)).thenReturn(query);
+        when(query.uniqueResultOptional()).thenReturn(Optional.empty());
+
+        Optional<TrainerEntity> result = trainerRepository.findById(99L);
+        assertTrue(result.isEmpty());
+        verify(session, times(1)).createQuery(hql, TrainerEntity.class);
+        verify(query, times(1)).setParameter("id", 99L);
         verify(query, times(1)).uniqueResultOptional();
     }
 
@@ -105,24 +159,5 @@ public class TrainerRepositoryTest {
         verify(session, times(1)).createQuery(hql, TrainerEntity.class);
         verify(query, times(1)).setParameter("username", traineeUsername);
         verify(query, times(1)).getResultList();
-    }
-
-    @Test
-    void deleteByUsername_RemoveTrainer_UsernameExists(){
-        String username = "John.Doe";
-        String hql = "FROM TrainerEntity t JOIN FETCH t.user WHERE t.user.username = :username";
-        TrainerEntity trainer = new TrainerEntity();
-        trainer.setUser(new UserEntity());
-        trainer.getUser().setUsername(username);
-
-        when(session.createQuery(hql, TrainerEntity.class)).thenReturn(query);
-        when(query.setParameter("username", username)).thenReturn(query);
-        when(query.uniqueResultOptional()).thenReturn(Optional.of(trainer));
-
-        trainerRepository.deleteByUsername(username);
-        verify(session, times(1)).createQuery(hql, TrainerEntity.class);
-        verify(query, times(1)).setParameter("username", username);
-        verify(query, times(1)).uniqueResultOptional();
-        verify(session, times(1)).remove(trainer);
     }
 }

@@ -1,15 +1,23 @@
 package org.example.user.repository;
 
-import jakarta.persistence.*;
-import lombok.Data;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+import jakarta.persistence.Id;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Column;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.example.core.repository.Identifiable;
+import lombok.Setter;
+
+import java.util.Objects;
 
 @NoArgsConstructor
-@Data
+@Getter
+@Setter
 @Entity
 @Table(name = "users")
-public class UserEntity implements Identifiable {
+public class UserEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,4 +36,16 @@ public class UserEntity implements Identifiable {
 
     @Column(name = "is_active", nullable = false)
     private Boolean isActive;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof UserEntity that)) return false;
+        return username != null && username.equals(that.getUsername());
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(username);
+    }
 }
