@@ -27,21 +27,21 @@ public class TrainingRepository {
         this.sessionFactory = sessionFactory;
     }
 
-    public TrainingEntity save(TrainingEntity training){
+    public TrainingEntity save(TrainingEntity training) {
         Objects.requireNonNull(training, "Training cannot be null");
-        if (training.getId() == null) {
+        Optional<TrainingEntity> existingTraining = findById(training.getId());
+        if (existingTraining.isEmpty()) {
             getSession().persist(training);
             log.info("Created training with ID: {}", training.getId());
             return training;
-        } else {
-            TrainingEntity updatedTraining = getSession().merge(training);
-            log.info("Updated trainee with ID: {}", updatedTraining.getId());
-            return updatedTraining;
         }
+        TrainingEntity updatedTraining = getSession().merge(training);
+        log.info("Updated training with ID: {}", updatedTraining.getId());
+        return updatedTraining;
     }
 
     public Optional<TrainingEntity> findById(Long id){
-        log.info("Started finding trainer by ID {}", id);
+        log.info("Started finding training by ID {}", id);
         String hql = "FROM TrainingEntity t JOIN FETCH t.trainee JOIN FETCH t.trainee.user JOIN FETCH t.trainer JOIN FETCH t.trainer.user WHERE t.id = :id";
         return getSession().createQuery(hql, TrainingEntity.class)
                 .setParameter("id", id)

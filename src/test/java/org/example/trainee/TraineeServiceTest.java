@@ -27,8 +27,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.transaction.support.TransactionCallback;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -58,9 +56,6 @@ public class TraineeServiceTest {
     @Mock
     private AuthenticationComponent authenticator;
 
-    @Mock
-    private TransactionTemplate transactionTemplate;
-
     @InjectMocks
     private TraineeService traineeService;
 
@@ -75,11 +70,8 @@ public class TraineeServiceTest {
                 TRAINEE_ID, new UserProfile(USERNAME),
                 LocalDate.of(2007, 3, 25), "Home 21 Street"
         );
-        when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
-            TransactionCallback<?> callback = invocation.getArgument(0);
-            return callback.doInTransaction(null);
-        });
-        when(userRepository.findUsernamesByBaseName(anyString())).thenReturn(Collections.emptyList());
+
+        when(userRepository.findUsernamesByBaseNameForUpdate(anyString())).thenReturn(Collections.emptyList());
         when(gymMapper.toTraineeEntity(eq(request), anySet())).thenReturn(trainee);
         when(traineeRepository.save(trainee)).thenReturn(trainee);
         when(gymMapper.toTraineeSummary(trainee)).thenReturn(expectedResponse);
@@ -87,8 +79,7 @@ public class TraineeServiceTest {
         TraineeSummary actualResponse = traineeService.create(request);
 
         assertEquals(expectedResponse, actualResponse);
-        verify(transactionTemplate, times(1)).execute(any());
-        verify(userRepository, times(1)).findUsernamesByBaseName(anyString());
+        verify(userRepository, times(1)).findUsernamesByBaseNameForUpdate(anyString());
         verify(gymMapper, times(1)).toTraineeEntity(eq(request), anySet());
         verify(traineeRepository, times(1)).save(trainee);
         verify(gymMapper, times(1)).toTraineeSummary(trainee);
@@ -267,6 +258,7 @@ public class TraineeServiceTest {
 
         traineeService.changeActivity(request);
         verify(authenticator, times(1)).authenticate(CREDENTIALS);
+        verify(traineeRepository, times(1)).findByUsername(USERNAME);
         verify(traineeRepository, times(1)).save(existingTrainee);
     }
 

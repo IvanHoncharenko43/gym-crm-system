@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -33,6 +34,7 @@ public class TrainerRepositoryTest {
     @Mock
     private Query<TrainerEntity> query;
 
+    @Spy
     @InjectMocks
     private TrainerRepository trainerRepository;
 
@@ -44,19 +46,27 @@ public class TrainerRepositoryTest {
     @Test
     void save_PersistEntity_EntityDoesNotHaveId() {
         TrainerEntity trainer = new TrainerEntity();
+
+        doReturn(Optional.empty()).when(trainerRepository).findById(null);
+
         TrainerEntity createdEntity = trainerRepository.save(trainer);
+        verify(trainerRepository, times(1)).findById(null);
         verify(session, times(1)).persist(trainer);
         assertEquals(trainer, createdEntity);
     }
 
     @Test
     void save_MergeEntity_EntityHasId() {
+        Long id = 1L;
         TrainerEntity trainer = new TrainerEntity();
-        trainer.setId(1L);
+        trainer.setId(id);
+
+        doReturn(Optional.of(trainer)).when(trainerRepository).findById(id);
         when(session.merge(trainer)).thenReturn(trainer);
 
         TrainerEntity result = trainerRepository.save(trainer);
         assertEquals(trainer, result);
+        verify(trainerRepository, times(1)).findById(id);
         verify(session, times(1)).merge(trainer);
     }
 

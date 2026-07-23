@@ -44,19 +44,27 @@ public class TraineeRepositoryTest {
     @Test
     void save_PersistEntity_EntityDoesNotHaveId() {
         TraineeEntity trainee = new TraineeEntity();
+
+        doReturn(Optional.empty()).when(traineeRepository).findById(null);
+
         TraineeEntity createdEntity = traineeRepository.save(trainee);
+        verify(traineeRepository, times(1)).findById(null);
         verify(session, times(1)).persist(trainee);
         assertEquals(trainee, createdEntity);
     }
 
     @Test
     void save_MergeEntity_EntityHasId() {
+        Long id = 1L;
         TraineeEntity trainee = new TraineeEntity();
-        trainee.setId(1L);
+        trainee.setId(id);
+
+        doReturn(Optional.of(trainee)).when(traineeRepository).findById(id);
         when(session.merge(trainee)).thenReturn(trainee);
 
         TraineeEntity result = traineeRepository.save(trainee);
         assertEquals(trainee, result);
+        verify(traineeRepository, times(1)).findById(id);
         verify(session, times(1)).merge(trainee);
     }
 

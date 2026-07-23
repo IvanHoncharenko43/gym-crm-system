@@ -28,8 +28,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.transaction.support.TransactionCallback;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.Collections;
 import java.util.List;
@@ -61,9 +59,6 @@ public class TrainerServiceTest {
     @Mock
     private AuthenticationComponent authenticator;
 
-    @Mock
-    private TransactionTemplate transactionTemplate;
-
     @InjectMocks
     private TrainerService trainerService;
 
@@ -79,14 +74,10 @@ public class TrainerServiceTest {
                 TRAINER_ID, new UserProfile(USERNAME),
                 TrainingType.YOGA
         );
-        when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
-            TransactionCallback<?> callback = invocation.getArgument(0);
-            return callback.doInTransaction(null);
-        });
 
         when(trainingTypeRepository.findByName(request.specialization()))
                 .thenReturn(Optional.of(trainingType));
-        when(userRepository.findUsernamesByBaseName(anyString())).thenReturn(Collections.emptyList());
+        when(userRepository.findUsernamesByBaseNameForUpdate(anyString())).thenReturn(Collections.emptyList());
         when(gymMapper.toTrainerEntity(eq(request), eq(trainingType), anySet())).thenReturn(trainer);
         when(trainerRepository.save(trainer)).thenReturn(trainer);
         when(gymMapper.toTrainerSummary(trainer)).thenReturn(expectedResponse);
@@ -97,8 +88,7 @@ public class TrainerServiceTest {
         verify(trainingTypeRepository, times(1)).findByName(
                 request.specialization()
         );
-        verify(transactionTemplate, times(1)).execute(any());
-        verify(userRepository, times(1)).findUsernamesByBaseName(anyString());
+        verify(userRepository, times(1)).findUsernamesByBaseNameForUpdate(anyString());
         verify(gymMapper, times(1)).toTrainerEntity(eq(request), eq(trainingType), anySet());
         verify(trainerRepository, times(1)).save(trainer);
         verify(gymMapper, times(1)).toTrainerSummary(trainer);
@@ -110,17 +100,12 @@ public class TrainerServiceTest {
                 new FullName("John", "Doe"), TrainingType.YOGA
         );
 
-        when(transactionTemplate.execute(any())).thenAnswer(invocation -> {
-            TransactionCallback<?> callback = invocation.getArgument(0);
-            return callback.doInTransaction(null);
-        });
         when(trainingTypeRepository.findByName(request.specialization()))
                 .thenReturn(Optional.empty());
 
         InvalidRequestDataException exception = assertThrows(InvalidRequestDataException.class,
                 () -> trainerService.create(request));
         assertTrue(exception.getMessage().contains("not found"));
-        verify(transactionTemplate, times(1)).execute(any());
         verify(trainingTypeRepository, times(1)).findByName(
                 request.specialization()
         );
@@ -324,6 +309,7 @@ public class TrainerServiceTest {
 
         trainerService.changeActivity(request);
         verify(authenticator, times(1)).authenticate(CREDENTIALS);
+        verify(trainerRepository, times(1)).findByUsername(USERNAME);
         verify(trainerRepository, times(1)).save(existingTrainer);
     }
 

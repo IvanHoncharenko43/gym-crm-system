@@ -56,11 +56,13 @@ public class TrainingEntity {
         return trainingName != null && trainingName.equals(that.getTrainingName()) &&
                 trainingDate != null && trainingDate.equals(that.getTrainingDate()) &&
                 trainee != null && trainee.equals(that.getTrainee()) &&
-                trainer != null && trainer.equals(that.getTrainer());
+                trainer != null && trainer.equals(that.getTrainer()) &&
+                durationMinutes != null && durationMinutes.equals(that.getDurationMinutes()) &&
+                trainingType != null && trainingType.equals(that.getTrainingType());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(trainingName, trainingDate, trainee, trainer);
+        return Objects.hash(trainingName, trainingDate, trainee, trainer, durationMinutes, trainingType);
     }
 }

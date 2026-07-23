@@ -7,7 +7,10 @@ import org.example.core.dto.ChangeActivityRequest;
 import org.example.core.dto.ChangePasswordRequest;
 import org.example.exception.InvalidPasswordException;
 import org.example.exception.EntityNotFoundException;
-import org.example.trainee.dto.*;
+import org.example.trainee.dto.TraineeSummary;
+import org.example.trainee.dto.UpdateTraineeRequest;
+import org.example.trainee.dto.CreateTraineeRequest;
+import org.example.trainee.dto.UpdateTraineeTrainersRequest;
 import org.example.trainer.dto.TrainerSummary;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.trainer.repository.TrainerRepository;
@@ -17,14 +20,11 @@ import org.example.trainee.repository.TraineeEntity;
 import org.example.trainee.repository.TraineeRepository;
 import org.example.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
 
 @Slf4j
 @Service
@@ -34,35 +34,25 @@ public class TraineeService {
     private final UserRepository userRepository;
     private final GymMapper gymMapper;
     private final AuthenticationComponent authenticator;
-    private final TransactionTemplate transactionTemplate;
-    private final ConcurrentHashMap<String, ReentrantLock> baseNameLocks = new ConcurrentHashMap<>();
 
     public TraineeService(TraineeRepository traineeRepository, TrainerRepository trainerRepository, UserRepository userRepository,
-                          GymMapper gymMapper, AuthenticationComponent authenticator, TransactionTemplate transactionTemplate){
+                          GymMapper gymMapper, AuthenticationComponent authenticator){
         this.traineeRepository = traineeRepository;
         this.trainerRepository = trainerRepository;
         this.userRepository = userRepository;
         this.gymMapper = gymMapper;
         this.authenticator = authenticator;
-        this.transactionTemplate = transactionTemplate;
     }
 
+    @Transactional
     public TraineeSummary create(CreateTraineeRequest request) {
         Objects.requireNonNull(request, "Request body cannot be null");
         String baseName = request.fullName().firstName() + "." + request.fullName().lastName();
-        ReentrantLock lock = baseNameLocks.computeIfAbsent(baseName, l -> new ReentrantLock());
-        lock.lock();
-        try {
-            return transactionTemplate.execute(status -> {
-                Set<String> existingUsernames = new HashSet<>(userRepository.findUsernamesByBaseName(baseName));
-                TraineeEntity trainee = gymMapper.toTraineeEntity(request, existingUsernames);
-                TraineeEntity savedTrainee = traineeRepository.save(trainee);
-                log.info("Created trainee profile with ID: {}", savedTrainee.getId());
-                return gymMapper.toTraineeSummary(savedTrainee);
-            });
-        } finally {
-            lock.unlock();
-        }
+        Set<String> existingUsernames = new HashSet<>(userRepository.findUsernamesByBaseNameForUpdate(baseName));
+        TraineeEntity trainee = gymMapper.toTraineeEntity(request, existingUsernames);
+        TraineeEntity savedTrainee = traineeRepository.save(trainee);
+        log.info("Created trainee profile with ID: {}", savedTrainee.getId());
+        return gymMapper.toTraineeSummary(savedTrainee);
     }
 
     @Transactional(readOnly = true)
@@ -76,7 +66,8 @@ public class TraineeService {
                 .map(gymMapper::toTraineeSummary)
                 .orElseThrow(() -> {
                     String message = "Trainee not found or is inactive";
-                    return createEntityNotFoundException(message);
+                    log.warn(message);
+                    return new EntityNotFoundException(message);
                 });
     }
 
@@ -87,7 +78,8 @@ public class TraineeService {
         TraineeEntity existingTrainee = traineeRepository.findById(request.id())
                 .orElseThrow(() -> {
                     String message = String.format("Trainee with ID %s not found", request.id());
-                    return createEntityNotFoundException(message);
+                    log.warn(message);
+                    return new EntityNotFoundException(message);
                 });
         TraineeEntity trainee = gymMapper.toTraineeEntity(request, existingTrainee);
         TraineeEntity updatedTrainee = traineeRepository.save(trainee);
@@ -110,7 +102,8 @@ public class TraineeService {
                 .filter(t -> t.getUser().getIsActive())
                 .orElseThrow(() -> {
                     String message = "Trainee not found or is inactive";
-                    return createEntityNotFoundException(message);
+                    log.warn(message);
+                    return new EntityNotFoundException(message);
                 });
         if(request.newPassword().length() < 10){
             throw new InvalidPasswordException("Password should be at least 10 characters");
@@ -126,7 +119,8 @@ public class TraineeService {
         TraineeEntity trainee = traineeRepository.findByUsername(request.credentials().username())
                 .orElseThrow(() -> {
                     String message = "Trainee not found";
-                    return createEntityNotFoundException(message);
+                    log.warn(message);
+                    return new EntityNotFoundException(message);
                 });
         trainee.getUser().setIsActive(!trainee.getUser().getIsActive());
         traineeRepository.save(trainee);
@@ -140,7 +134,8 @@ public class TraineeService {
         TraineeEntity trainee = traineeRepository.findByUsername(request.credentials().username())
                 .orElseThrow(() -> {
                     String message = "Trainee not found";
-                    return createEntityNotFoundException(message);
+                    log.warn(message);
+                    return new EntityNotFoundException(message);
                 });
         Set<TrainerEntity> newTrainers = new HashSet<>(trainerRepository.findByUsernames(request.trainerUsernames()));
         trainee.getTrainers().stream()
@@ -152,10 +147,5 @@ public class TraineeService {
         return newTrainers.stream()
                 .map(gymMapper::toTrainerSummary)
                 .toList();
-    }
-
-    private EntityNotFoundException createEntityNotFoundException(String message){
-        log.warn(message);
-        return new EntityNotFoundException(message);
     }
 }

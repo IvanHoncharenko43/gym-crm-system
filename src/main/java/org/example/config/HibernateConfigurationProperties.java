@@ -4,7 +4,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-public record HibernateProperties(
+public record HibernateConfigurationProperties(
         @Value("${hibernate.dialect}") String dialect,
         @Value("${hibernate.show_sql}") String showSql,
         @Value("${hibernate.format_sql}") String formatSql,

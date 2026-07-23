@@ -1,5 +1,6 @@
 package org.example.user;
 
+import jakarta.persistence.LockModeType;
 import org.example.user.repository.UserEntity;
 import org.example.user.repository.UserRepository;
 import org.hibernate.Session;
@@ -69,13 +70,15 @@ public class UserRepositoryTest {
 
         when(session.createQuery(hql, String.class)).thenReturn(queryString);
         when(queryString.setParameter("baseName", baseName + "%")).thenReturn(queryString);
+        when(queryString.setLockMode(LockModeType.PESSIMISTIC_WRITE)).thenReturn(queryString);
         when(queryString.getResultList()).thenReturn(usernames);
 
-        List<String> result = userRepository.findUsernamesByBaseName(baseName);
+        List<String> result = userRepository.findUsernamesByBaseNameForUpdate(baseName);
         assertEquals(3, result.size());
         assertEquals(usernames, result);
         verify(session, times(1)).createQuery(hql, String.class);
         verify(queryString, times(1)).setParameter("baseName", baseName + "%");
+        verify(queryString, times(1)).setLockMode(LockModeType.PESSIMISTIC_WRITE);
         verify(queryString, times(1)).getResultList();
     }
 

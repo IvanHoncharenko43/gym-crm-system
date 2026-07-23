@@ -1,5 +1,6 @@
 package org.example.user.repository;
 
+import jakarta.persistence.LockModeType;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -26,10 +27,12 @@ public class UserRepository {
                 .uniqueResultOptional();
     }
 
-    public List<String> findUsernamesByBaseName(String baseName){
+    public List<String> findUsernamesByBaseNameForUpdate(String baseName){
+        log.info("Started getting usernames by base name for update");
         String hql = "SELECT u.username FROM UserEntity u WHERE u.username LIKE :baseName";
         return getSession().createQuery(hql, String.class)
                 .setParameter("baseName", baseName + "%")
+                .setLockMode(LockModeType.PESSIMISTIC_WRITE)
                 .getResultList();
     }
 

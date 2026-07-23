@@ -50,14 +50,16 @@ public class TrainingService {
                 .filter(t -> t.getUser().getIsActive())
                 .orElseThrow(() -> {
                     String message = String.format("Trainee with ID %s not found or is inactive", request.traineeId());
-                    return createInvalidRequestDataException(message);
+                    log.warn(message);
+                    return new InvalidRequestDataException(message);
                 });
 
         TrainerEntity trainer = trainerRepository.findById(request.trainerId())
                 .filter(t -> t.getUser().getIsActive())
                 .orElseThrow(() -> {
                     String message = String.format("Trainer with ID %s not found or is inactive", request.trainerId());
-                    return createInvalidRequestDataException(message);
+                    log.warn(message);
+                    return new InvalidRequestDataException(message);
                 });
         TrainingEntity training = gymMapper.toTraining(request, trainee, trainer);
         TrainingEntity savedTraining = trainingRepository.save(training);
@@ -72,7 +74,8 @@ public class TrainingService {
         TrainingEntity training = trainingRepository.findById(request.id())
                 .orElseThrow(() -> {
                     String message = String.format("Training with ID %s not found", request.id());
-                    return createEntityNotFoundException(message);
+                    log.warn(message);
+                    return new EntityNotFoundException(message);
                 });
         TraineeEntity trainee = traineeRepository.findById(training.getTrainee().getId()).get();
         TrainerEntity trainer = trainerRepository.findById(training.getTrainer().getId()).get();
@@ -100,15 +103,5 @@ public class TrainingService {
                         request.toDate(), request.traineeName()).stream()
                 .map(training -> gymMapper.toTrainingSummary(training, training.getTrainee(), training.getTrainer()))
                 .toList();
-    }
-
-    private EntityNotFoundException createEntityNotFoundException(String message){
-        log.warn(message);
-        return new EntityNotFoundException(message);
-    }
-
-    private InvalidRequestDataException createInvalidRequestDataException(String message){
-        log.warn(message);
-        return new InvalidRequestDataException(message);
     }
 }

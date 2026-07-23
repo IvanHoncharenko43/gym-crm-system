@@ -19,17 +19,17 @@ public class TrainerRepository {
         this.sessionFactory = sessionFactory;
     }
 
-    public TrainerEntity save(TrainerEntity trainer){
+    public TrainerEntity save(TrainerEntity trainer) {
         Objects.requireNonNull(trainer, "Trainer cannot be null");
-        if (trainer.getId() == null) {
+        Optional<TrainerEntity> existingTrainer = findById(trainer.getId());
+        if (existingTrainer.isEmpty()) {
             getSession().persist(trainer);
             log.info("Created trainer with ID: {}", trainer.getId());
             return trainer;
-        } else {
-            TrainerEntity updatedTrainer = getSession().merge(trainer);
-            log.info("Updated entity with ID: {}", updatedTrainer.getId());
-            return updatedTrainer;
         }
+        TrainerEntity updatedTrainer = getSession().merge(trainer);
+        log.info("Updated trainer with ID: {}", updatedTrainer.getId());
+        return updatedTrainer;
     }
 
     public Optional<TrainerEntity> findByUsername(String username){

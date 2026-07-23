@@ -19,15 +19,15 @@ public class TraineeRepository {
 
     public TraineeEntity save(TraineeEntity trainee){
         Objects.requireNonNull(trainee, "Trainee cannot be null");
-        if (trainee.getId() == null) {
+        Optional<TraineeEntity> existingTrainee = findById(trainee.getId());
+        if (existingTrainee.isEmpty()) {
             getSession().persist(trainee);
             log.info("Created trainee with ID: {}", trainee.getId());
             return trainee;
-        } else {
-            TraineeEntity updatedTrainee = getSession().merge(trainee);
-            log.info("Updated trainee with ID: {}", updatedTrainee.getId());
-            return updatedTrainee;
         }
+        TraineeEntity updatedTrainee = getSession().merge(trainee);
+        log.info("Updated trainee with ID: {}", updatedTrainee.getId());
+        return updatedTrainee;
     }
 
     public Optional<TraineeEntity> findByUsername(String username){

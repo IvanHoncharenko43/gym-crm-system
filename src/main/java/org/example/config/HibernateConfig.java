@@ -18,12 +18,12 @@ import java.util.Properties;
 @PropertySource("classpath:application.properties")
 public class HibernateConfig {
 
-    private final DatabaseProperties databaseProperties;
-    private final HibernateProperties hibernateProperties;
+    private final DatabaseConfigurationProperties databaseConfigurationProperties;
+    private final HibernateConfigurationProperties hibernateConfigurationProperties;
 
-    public HibernateConfig(DatabaseProperties databaseProperties, HibernateProperties hibernateProperties) {
-        this.databaseProperties = databaseProperties;
-        this.hibernateProperties = hibernateProperties;
+    public HibernateConfig(DatabaseConfigurationProperties databaseConfigurationProperties, HibernateConfigurationProperties hibernateConfigurationProperties) {
+        this.databaseConfigurationProperties = databaseConfigurationProperties;
+        this.hibernateConfigurationProperties = hibernateConfigurationProperties;
     }
 
     @Bean
@@ -38,20 +38,20 @@ public class HibernateConfig {
     @Bean
     public DataSource dataSource() {
         DriverManagerDataSource dataSource = new DriverManagerDataSource();
-        dataSource.setDriverClassName(databaseProperties.driver());
-        dataSource.setUrl(databaseProperties.url());
-        dataSource.setUsername(databaseProperties.username());
-        dataSource.setPassword(databaseProperties.password());
+        dataSource.setDriverClassName(databaseConfigurationProperties.driver());
+        dataSource.setUrl(databaseConfigurationProperties.url());
+        dataSource.setUsername(databaseConfigurationProperties.username());
+        dataSource.setPassword(databaseConfigurationProperties.password());
         return dataSource;
     }
 
     private Properties hibernateProperties() {
         Properties properties = new Properties();
-        properties.put("hibernate.dialect", hibernateProperties.dialect());
-        properties.put("hibernate.show_sql", hibernateProperties.showSql());
-        properties.put("hibernate.format_sql", hibernateProperties.formatSql());
-        properties.put("hibernate.generate_statistics", hibernateProperties.generateStatistics());
-        properties.put("hibernate.hbm2ddl.auto", hibernateProperties.hbm2ddlAuto());
+        properties.put("hibernate.dialect", hibernateConfigurationProperties.dialect());
+        properties.put("hibernate.show_sql", hibernateConfigurationProperties.showSql());
+        properties.put("hibernate.format_sql", hibernateConfigurationProperties.formatSql());
+        properties.put("hibernate.generate_statistics", hibernateConfigurationProperties.generateStatistics());
+        properties.put("hibernate.hbm2ddl.auto", hibernateConfigurationProperties.hbm2ddlAuto());
         return properties;
     }
 
