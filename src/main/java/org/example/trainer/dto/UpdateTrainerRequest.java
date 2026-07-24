@@ -1,13 +1,14 @@
 package org.example.trainer.dto;
 
 
+import org.example.training.dto.TrainingType;
+import org.example.user.dto.UserCredentials;
 import org.example.user.dto.FullName;
-import org.example.training.enums.TrainingType;
 
 public record UpdateTrainerRequest(
         Long id,
+        UserCredentials credentials,
         FullName fullName,
-        TrainingType specialization,
-        boolean isActive
+        TrainingType specialization
 ) {
 }

@@ -2,34 +2,24 @@ package org.example.utils;
 
 import org.springframework.stereotype.Component;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 @Component
 public class UsernameGenerator {
+
     private final Map<String, AtomicInteger> usernameCount = new ConcurrentHashMap<>();
 
-    public String generate(String firstName, String lastName){
+    public String generate(String firstName, String lastName, Set<String> existingUsernames){
         String baseUsername = firstName + "." + lastName;
-        int count = usernameCount.computeIfAbsent(baseUsername, v -> new AtomicInteger(0))
-                .incrementAndGet();
-        if(count == 1){
-            return baseUsername;
-        }
-        return baseUsername + (count-1);
-    }
-
-    public void initData(List<String> existingUsernames) {
-        if (existingUsernames == null || existingUsernames.isEmpty()) {
-            return;
-        }
-        existingUsernames.stream()
-                .map(username -> username.replaceAll("\\d+$", ""))
-                .forEach(baseUsername ->
-                        usernameCount.computeIfAbsent(baseUsername, k -> new AtomicInteger(0))
-                                .incrementAndGet()
-                );
+        AtomicInteger counter = usernameCount.computeIfAbsent(baseUsername, s -> new AtomicInteger(0));
+        return Stream.generate(counter::incrementAndGet)
+                .map(count -> count == 1 ? baseUsername : baseUsername + (count - 1))
+                .filter(username -> !existingUsernames.contains(username))
+                .findFirst()
+                .orElseThrow();
     }
 }

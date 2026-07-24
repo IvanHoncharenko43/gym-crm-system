@@ -1,7 +1,9 @@
 package org.example;
 
+import org.example.training.dto.TrainingType;
+import org.example.core.repository.TrainingTypeEntity;
+import org.example.user.dto.UserCredentials;
 import org.example.user.dto.FullName;
-import org.example.training.enums.TrainingType;
 import org.example.user.dto.UserProfile;
 import org.example.trainee.dto.CreateTraineeRequest;
 import org.example.trainee.repository.TraineeEntity;
@@ -13,8 +15,11 @@ import org.example.trainer.dto.TrainerSummary;
 import org.example.trainer.dto.UpdateTrainerRequest;
 import org.example.training.dto.CreateTrainingRequest;
 import org.example.training.repository.TrainingEntity;
+import org.example.user.repository.UserEntity;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 public class TestUtils {
 
@@ -41,47 +46,40 @@ public class TestUtils {
 
     public static CreateTrainingRequest getCreateTrainingRequest(){
         return new CreateTrainingRequest(
-                TRAINER_ID, TRAINEE_ID, "Cardio",
+                getTraineeCredentials(), TRAINER_ID, TRAINEE_ID, "Cardio",
                 LocalDate.of(2026, 5, 12), 45
         );
     }
 
     public static UpdateTraineeRequest getUpdateTraineeRequest(){
         return new UpdateTraineeRequest(
-                1L, new FullName("John", "Doe"),
-                LocalDate.of(2007, 3, 25), "Home 21 Street", true
-        );
-    }
-
-    public static UpdateTraineeRequest getUpdateTraineeRequest(Long id){
-        return new UpdateTraineeRequest(
-                id, new FullName("John", "Doe"),
-                LocalDate.of(2007, 3, 25), "Home 21 Street", true
+                TRAINEE_ID, getTraineeCredentials(), new FullName("John", "Doe"),
+                LocalDate.of(2007, 3, 25), "Home 21 Street"
         );
     }
 
     public static UpdateTrainerRequest getUpdateTrainerRequest(){
         return new UpdateTrainerRequest(
-                2L, new FullName("John", "Doe"),
-                TrainingType.YOGA, true
+                TRAINER_ID, getTrainerCredentials(),
+                new FullName("John", "Doe"), TrainingType.YOGA
         );
     }
 
-    public static UpdateTrainerRequest getUpdateTrainerRequest(Long id){
-        return new UpdateTrainerRequest(
-                id, new FullName("John", "Doe"),
-                TrainingType.YOGA, true
-        );
+    public static UserEntity getUser(){
+        UserEntity user = new UserEntity();
+        user.setId(1L);
+        user.setFirstName("John");
+        user.setLastName("Doe");
+        user.setUsername(TRAINEE_USERNAME);
+        user.setPassword(TRAINEE_PASSWORD);
+        user.setIsActive(true);
+        return user;
     }
 
     public static TraineeEntity getTrainee(){
         TraineeEntity trainee = new TraineeEntity();
         trainee.setId(TRAINEE_ID);
-        trainee.setFirstName("John");
-        trainee.setLastName("Doe");
-        trainee.setUsername(TRAINEE_USERNAME);
-        trainee.setPassword(TRAINEE_PASSWORD);
-        trainee.setActive(true);
+        trainee.setUser(getUser());
         trainee.setDateOfBirth(LocalDate.of(2007, 3, 25));
         trainee.setAddress("Home 21 Street");
         return trainee;
@@ -90,37 +88,33 @@ public class TestUtils {
     public static TrainerEntity getTrainer(){
         TrainerEntity trainer = new TrainerEntity();
         trainer.setId(TRAINER_ID);
-        trainer.setFirstName("John");
-        trainer.setLastName("Doe");
-        trainer.setUsername(TRAINER_USERNAME);
-        trainer.setPassword(TRAINER_PASSWORD);
-        trainer.setActive(true);
-        trainer.setSpecialization(TrainingType.STRENGTH);
+        trainer.setUser(getUser());
+        trainer.setSpecialization(getTrainingType());
         return trainer;
     }
 
     public static TrainingEntity getTraining(){
         TrainingEntity training = new TrainingEntity();
         training.setId(1L);
-        training.setTrainerId(TRAINER_ID);
-        training.setTraineeId(TRAINEE_ID);
-        training.setTrainingName("Powerlifting");
-        training.setTrainingType(TrainingType.STRENGTH);
+        training.setTrainer(getTrainer());
+        training.setTrainee(getTrainee());
+        training.setTrainingName("Flexibility");
+        training.setTrainingType(getTrainingType());
         training.setTrainingDate(LocalDate.of(2026, 4, 15));
         training.setDurationMinutes(90);
         return training;
     }
 
+    public static TrainingTypeEntity getTrainingType(){
+        TrainingTypeEntity trainingType = new TrainingTypeEntity();
+        trainingType.setId(1L);
+        trainingType.setTrainingTypeName(TrainingType.YOGA);
+        return trainingType;
+    }
+
     public static TraineeSummary getTraineeSummary(Long id){
         return new TraineeSummary(
                 id, new UserProfile(TRAINEE_USERNAME),
-                LocalDate.of(2007, 3, 25), "Home 21 Street"
-        );
-    }
-
-    public static TraineeSummary getTraineeSummary(Long id, String username){
-        return new TraineeSummary(
-                id, new UserProfile(username),
                 LocalDate.of(2007, 3, 25), "Home 21 Street"
         );
     }
@@ -131,10 +125,20 @@ public class TestUtils {
                 TrainingType.YOGA
         );
     }
-    public static TrainerSummary getTrainerSummary(Long id, String username){
-        return new TrainerSummary(
-                id, new UserProfile(username),
-                TrainingType.YOGA
+
+    public static UserCredentials getTraineeCredentials(){
+        return new UserCredentials(
+                TRAINEE_USERNAME, TRAINEE_PASSWORD
         );
+    }
+
+    public static UserCredentials getTrainerCredentials(){
+        return new UserCredentials(
+                TRAINER_USERNAME, TRAINER_PASSWORD
+        );
+    }
+
+    public static Set<String> getExistingUsernamesSet(){
+        return new HashSet<>();
     }
 }

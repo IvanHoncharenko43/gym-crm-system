@@ -1,5 +1,4 @@
-package org.example.training.enums;
-
+package org.example.training.dto;
 
 public enum TrainingType {
     STRENGTH,
