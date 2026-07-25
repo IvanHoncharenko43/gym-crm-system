@@ -1,11 +1,12 @@
 package org.example.trainee.dto;
 
-import org.example.user.dto.UserCredentials;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 
 import java.util.List;
 
 public record UpdateTraineeTrainersRequest(
-        UserCredentials credentials,
-        List<String> trainerUsernames
+        @NotEmpty(message = "Trainers usernames list cannot be empty")
+        List<@NotBlank(message = "Username in the list cannot be blank") String> trainerUsernames
 ){
 }
