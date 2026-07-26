@@ -8,13 +8,15 @@ import org.example.training.service.TrainingTypeService;
 import org.example.user.dto.UserCredentials;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestAttribute;
 
-@RestController("/api/v1/trainings")
+@RestController
+@RequestMapping("/api/v1/trainings")
 public class TrainingController {
 
     private final TrainingService trainingService;

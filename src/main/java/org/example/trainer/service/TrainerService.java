@@ -76,7 +76,7 @@ public class TrainerService {
         authenticator.authorize(username, credentials);
         TrainerEntity existingTrainer = trainerRepository.findByUsername(username)
                 .orElseThrow(() -> {
-                    String message = String.format("Trainer with ID %s not found", request.id());
+                    String message = "Trainer not found";
                     log.warn(message);
                     return new EntityNotFoundException(message);
                 });

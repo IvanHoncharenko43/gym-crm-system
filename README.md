@@ -23,7 +23,13 @@ This is a pure Spring Core implementation of a Gym CRM system. It operates compl
 
 The application runs a built-in simulation inside the `App` main class to demonstrate the required CRUD operations and business logic.
 
-To run the application from your terminal, you should:
+To run the application, you should:
+- Open Run -> Edit Configurations...
+  - Select the App main class configuration.
+  - Paste the following into the Environment variables field:  
+POSTGRES_USER=`user`;POSTGRES_PASSWORD=`password`;POSTGRES_DB=`database_name`;DB_PORT=`port`;DB_HOST=`host`
+
+  - Click Apply and run the application.
 
 - Open your terminal and navigate to the root directory of the project: `cd gym-crm-system`
 
