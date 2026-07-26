@@ -1,7 +1,7 @@
 package org.example.core.service;
 
 import org.example.exception.AuthenticationFailedException;
-import org.example.user.dto.UserCredentials;
+import org.example.user.controller.dto.UserCredentials;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;

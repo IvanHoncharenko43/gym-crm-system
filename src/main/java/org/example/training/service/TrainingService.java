@@ -1,27 +1,24 @@
 package org.example.training.service;
 
 import org.example.exception.InvalidRequestDataException;
-import org.example.training.dto.request.Trainings;
-import org.example.user.dto.UserCredentials;
+import org.example.training.controller.response.Trainings;
+import org.example.user.controller.dto.UserCredentials;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.core.service.AuthenticationComponent;
-import org.example.trainee.dto.GetTraineeTrainingsRequest;
-import org.example.trainer.dto.GetTrainerTrainingsRequest;
+import org.example.trainee.controller.request.GetTraineeTrainingsRequest;
+import org.example.trainer.controller.request.GetTrainerTrainingsRequest;
 import org.example.exception.EntityNotFoundException;
 import org.example.trainee.repository.TraineeRepository;
 import org.example.trainer.repository.TrainerRepository;
 import org.example.core.service.GymMapper;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainer.repository.TrainerEntity;
-import org.example.training.dto.TrainingSummary;
-import org.example.training.dto.CreateTrainingRequest;
+import org.example.training.controller.response.TrainingSummary;
+import org.example.training.controller.request.CreateTrainingRequest;
 import org.example.training.repository.TrainingEntity;
 import org.example.training.repository.TrainingRepository;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Objects;
 
 @Slf4j
 @Service

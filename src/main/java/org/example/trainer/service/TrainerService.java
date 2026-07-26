@@ -1,19 +1,19 @@
 package org.example.trainer.service;
 
 import org.example.exception.InvalidRequestDataException;
-import org.example.trainer.dto.response.Trainers;
-import org.example.user.dto.UserProfile;
+import org.example.trainer.controller.response.Trainers;
+import org.example.user.controller.dto.UserProfile;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.core.service.AuthenticationComponent;
 import org.example.exception.EntityNotFoundException;
-import org.example.core.repository.TrainingTypeEntity;
-import org.example.core.repository.TrainingTypeRepository;
-import org.example.user.dto.UserCredentials;
+import org.example.trainingType.repository.TrainingTypeEntity;
+import org.example.trainingType.repository.TrainingTypeRepository;
+import org.example.user.controller.dto.UserCredentials;
 import org.example.core.service.GymMapper;
-import org.example.trainer.dto.TrainerSummary;
-import org.example.trainer.dto.UpdateTrainerRequest;
-import org.example.trainer.dto.CreateTrainerRequest;
+import org.example.trainer.controller.response.TrainerSummary;
+import org.example.trainer.controller.request.UpdateTrainerRequest;
+import org.example.trainer.controller.request.CreateTrainerRequest;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.trainer.repository.TrainerRepository;
 import org.example.user.repository.UserRepository;

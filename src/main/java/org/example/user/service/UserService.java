@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.core.dto.ChangePasswordRequest;
 import org.example.core.service.AuthenticationComponent;
 import org.example.exception.EntityNotFoundException;
-import org.example.user.dto.UserCredentials;
+import org.example.user.controller.dto.UserCredentials;
 import org.example.user.repository.UserEntity;
 import org.example.user.repository.UserRepository;
 import org.springframework.stereotype.Service;

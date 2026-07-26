@@ -1,18 +1,18 @@
 package org.example.trainee.service;
 
-import org.example.trainer.dto.response.Trainers;
-import org.example.user.dto.UserProfile;
+import org.example.trainer.controller.response.Trainers;
+import org.example.user.controller.dto.UserProfile;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.core.service.AuthenticationComponent;
 import org.example.exception.EntityNotFoundException;
-import org.example.trainee.dto.TraineeSummary;
-import org.example.trainee.dto.UpdateTraineeRequest;
-import org.example.trainee.dto.CreateTraineeRequest;
-import org.example.trainee.dto.UpdateTraineeTrainersRequest;
+import org.example.trainee.controller.response.TraineeSummary;
+import org.example.trainee.controller.request.UpdateTraineeRequest;
+import org.example.trainee.controller.request.CreateTraineeRequest;
+import org.example.trainee.controller.request.UpdateTraineeTrainersRequest;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.trainer.repository.TrainerRepository;
-import org.example.user.dto.UserCredentials;
+import org.example.user.controller.dto.UserCredentials;
 import org.example.core.service.GymMapper;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainee.repository.TraineeRepository;

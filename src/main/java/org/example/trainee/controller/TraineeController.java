@@ -1,17 +1,18 @@
 package org.example.trainee.controller;
 
 import jakarta.validation.Valid;
-import org.example.trainee.dto.CreateTraineeRequest;
-import org.example.trainee.dto.TraineeSummary;
-import org.example.trainee.dto.UpdateTraineeRequest;
-import org.example.trainee.dto.UpdateTraineeTrainersRequest;
-import org.example.trainee.dto.GetTraineeTrainingsRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.example.trainee.controller.request.CreateTraineeRequest;
+import org.example.trainee.controller.response.TraineeSummary;
+import org.example.trainee.controller.request.UpdateTraineeRequest;
+import org.example.trainee.controller.request.UpdateTraineeTrainersRequest;
+import org.example.trainee.controller.request.GetTraineeTrainingsRequest;
 import org.example.trainee.service.TraineeService;
-import org.example.trainer.dto.response.Trainers;
-import org.example.training.dto.request.Trainings;
+import org.example.trainer.controller.response.Trainers;
+import org.example.training.controller.response.Trainings;
 import org.example.training.service.TrainingService;
-import org.example.user.dto.UserCredentials;
-import org.example.user.dto.UserProfile;
+import org.example.user.controller.dto.UserCredentials;
+import org.example.user.controller.dto.UserProfile;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestAttribute;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/trainees")
 public class TraineeController {
@@ -40,6 +42,7 @@ public class TraineeController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public UserProfile registerTrainee(@Valid @RequestBody CreateTraineeRequest request){
+        log.info("POST /api/v1/trainees endpoint called with request");
         return traineeService.create(request);
     }
 
@@ -47,6 +50,7 @@ public class TraineeController {
     @ResponseStatus(HttpStatus.OK)
     public TraineeSummary getTrainee(@RequestParam("username") String username,
                                      @RequestAttribute("userCredentials") UserCredentials credentials){
+        log.info("GET /api/v1/trainees endpoint called");
         return traineeService.getByUsername(username, credentials);
     }
 
@@ -55,6 +59,7 @@ public class TraineeController {
     public TraineeSummary updateTrainee(@RequestParam("username") String username,
                                         @Valid @RequestBody UpdateTraineeRequest request,
                                         @RequestAttribute("userCredentials") UserCredentials credentials){
+        log.info("PUT /api/v1/trainees endpoint called with request");
         return traineeService.update(username, request, credentials);
     }
 
@@ -62,6 +67,7 @@ public class TraineeController {
     @ResponseStatus(HttpStatus.OK)
     public void deleteTrainee(@RequestParam("username") String username,
                               @RequestAttribute("userCredentials") UserCredentials credentials){
+        log.info("DELETE /api/v1/trainees endpoint called");
         traineeService.deleteByUsername(username, credentials);
     }
 
@@ -70,6 +76,7 @@ public class TraineeController {
     public Trainers updateTrainersList(@RequestParam("username") String username,
                                        @Valid @RequestBody UpdateTraineeTrainersRequest request,
                                        @RequestAttribute("userCredentials") UserCredentials credentials){
+        log.info("PUT /api/v1/trainees/trainers endpoint called with request");
         return traineeService.updateTrainersList(username, request, credentials);
     }
 
@@ -77,6 +84,7 @@ public class TraineeController {
     @ResponseStatus(HttpStatus.OK)
     public void changeTraineeActivity(@RequestParam("username") String username,
                                       @RequestAttribute("userCredentials") UserCredentials credentials){
+        log.info("PATCH /api/v1/trainees/activity endpoint called");
         traineeService.changeActivity(username, credentials);
     }
 
@@ -86,6 +94,7 @@ public class TraineeController {
             @Valid GetTraineeTrainingsRequest request,
             @RequestAttribute("userCredentials") UserCredentials credentials
     ){
+        log.info("GET /api/v1/trainees/trainings endpoint called with request params");
         return trainingService.getTraineeTrainingList(request, credentials);
     }
 }
