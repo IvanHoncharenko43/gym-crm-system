@@ -125,6 +125,11 @@ public class GymMapper {
         );
     }
 
+    public UserProfile toUserProfile(UserEntity user){
+        Objects.requireNonNull(user, "User entity cannot be null");
+        return new UserProfile(user.getUsername());
+    }
+
     private UserEntity toNewUser(FullName fullName, Set<String> existingUsernames){
         Objects.requireNonNull(fullName, "Full name cannot be null");
         String firstName = fullName.firstName();

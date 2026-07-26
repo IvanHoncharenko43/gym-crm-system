@@ -10,6 +10,8 @@ public record CreateTrainerRequest(
         @NotNull(message = "Full name cannot be null")
         @Valid
         FullName fullName,
+
+        @NotNull(message = "Specialization cannot be null")
         TrainingType specialization
 ) {
 }

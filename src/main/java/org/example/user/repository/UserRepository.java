@@ -19,6 +19,18 @@ public class UserRepository {
         this.sessionFactory = sessionFactory;
     }
 
+    public UserEntity save(UserEntity user){
+        Optional<UserEntity> existingUser = findByUsername(user.getUsername());
+        if (existingUser.isEmpty()) {
+            getSession().persist(user);
+            log.info("Created user with ID: {}", user.getId());
+            return user;
+        }
+        UserEntity updatedUser = getSession().merge(user);
+        log.info("Updated user with ID: {}", updatedUser.getId());
+        return updatedUser;
+    }
+
     public Optional<UserEntity> findByUsername(String username){
         log.info("Started getting user by username");
         String hql = "FROM UserEntity u WHERE u.username = :username";
