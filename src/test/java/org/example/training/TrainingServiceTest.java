@@ -110,7 +110,7 @@ public class TrainingServiceTest {
         when(traineeRepository.findByUsername(TRAINEE_USERNAME)).thenReturn(Optional.empty());
 
         InvalidRequestDataException exception = assertThrows(InvalidRequestDataException.class,
-                () -> trainingService.create(request));
+                () -> trainingService.create(request, TRAINEE_CREDENTIALS));
         assertTrue(exception.getMessage().contains("Trainee"));
         verify(authenticator, times(1)).authenticate(TRAINEE_CREDENTIALS);
         verify(traineeRepository, times(1)).findByUsername(TRAINEE_USERNAME);
@@ -130,7 +130,7 @@ public class TrainingServiceTest {
         when(traineeRepository.findByUsername(TRAINEE_USERNAME)).thenReturn(Optional.of(trainee));
 
         InvalidRequestDataException exception = assertThrows(InvalidRequestDataException.class,
-                () -> trainingService.create(request));
+                () -> trainingService.create(request, TRAINEE_CREDENTIALS));
         assertTrue(exception.getMessage().contains("Trainee"));
         verify(authenticator, times(1)).authenticate(TRAINEE_CREDENTIALS);
         verify(traineeRepository, times(1)).findByUsername(TRAINEE_USERNAME);
@@ -151,7 +151,7 @@ public class TrainingServiceTest {
         when(trainerRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.empty());
 
         InvalidRequestDataException exception = assertThrows(InvalidRequestDataException.class,
-                () -> trainingService.create(request));
+                () -> trainingService.create(request, TRAINEE_CREDENTIALS));
         assertTrue(exception.getMessage().contains("Trainer"));
         verify(authenticator, times(1)).authenticate(TRAINEE_CREDENTIALS);
         verify(traineeRepository, times(1)).findByUsername(TRAINEE_USERNAME);
@@ -162,7 +162,7 @@ public class TrainingServiceTest {
     @Test
     void create_ThrowInvalidRequestDataException_TrainerIsInactive() {
         CreateTrainingRequest request = new CreateTrainingRequest(
-                TRAINEE_USERNAME, TRAINER_USERNAME, "Cardio",
+                TRAINER_USERNAME, TRAINEE_USERNAME, "Cardio",
                 LocalDate.of(2026, 5, 12), 45
         );
         TraineeEntity trainee = new TraineeEntity();
@@ -176,7 +176,7 @@ public class TrainingServiceTest {
         when(trainerRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(trainer));
 
         InvalidRequestDataException exception = assertThrows(InvalidRequestDataException.class,
-                () -> trainingService.create(request));
+                () -> trainingService.create(request, TRAINEE_CREDENTIALS));
         assertTrue(exception.getMessage().contains("Trainer"));
         verify(authenticator, times(1)).authenticate(TRAINEE_CREDENTIALS);
         verify(traineeRepository, times(1)).findByUsername(TRAINEE_USERNAME);

@@ -46,21 +46,20 @@ public class TestUtils {
 
     public static CreateTrainingRequest getCreateTrainingRequest(){
         return new CreateTrainingRequest(
-                getTraineeCredentials(), TRAINER_ID, TRAINEE_ID, "Cardio",
+                TRAINER_USERNAME, TRAINEE_USERNAME, "Cardio",
                 LocalDate.of(2026, 5, 12), 45
         );
     }
 
     public static UpdateTraineeRequest getUpdateTraineeRequest(){
         return new UpdateTraineeRequest(
-                TRAINEE_ID, getTraineeCredentials(), new FullName("John", "Doe"),
+                new FullName("John", "Doe"),
                 LocalDate.of(2007, 3, 25), "Home 21 Street"
         );
     }
 
     public static UpdateTrainerRequest getUpdateTrainerRequest(){
         return new UpdateTrainerRequest(
-                TRAINER_ID, getTrainerCredentials(),
                 new FullName("John", "Doe"), TrainingType.YOGA
         );
     }

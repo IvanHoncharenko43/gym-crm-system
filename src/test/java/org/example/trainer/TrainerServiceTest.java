@@ -87,7 +87,7 @@ public class TrainerServiceTest {
         verify(userRepository, times(1)).findUsernamesByBaseNameForUpdate(anyString());
         verify(gymMapper, times(1)).toTrainerEntity(eq(request), eq(trainingType), anySet());
         verify(trainerRepository, times(1)).save(trainer);
-        verify(gymMapper, times(1)).toTrainerSummary(trainer);
+        verify(gymMapper, times(1)).toUserProfile(trainer.getUser());
     }
 
     @Test
@@ -152,7 +152,7 @@ public class TrainerServiceTest {
         when(trainerRepository.findByUsername(USERNAME)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> trainerService.update(request));
+                () -> trainerService.update(USERNAME, request, CREDENTIALS));
         assertTrue(exception.getMessage().contains("not found"));
         verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(authenticator, times(1)).authorize(USERNAME, CREDENTIALS);
@@ -172,7 +172,7 @@ public class TrainerServiceTest {
                 .thenReturn(Optional.empty());
 
         InvalidRequestDataException exception = assertThrows(InvalidRequestDataException.class,
-                () -> trainerService.update(request));
+                () -> trainerService.update(USERNAME, request, CREDENTIALS));
         assertTrue(exception.getMessage().contains("not found"));
         verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(authenticator, times(1)).authorize(USERNAME, CREDENTIALS);

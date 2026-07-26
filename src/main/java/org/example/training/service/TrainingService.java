@@ -41,7 +41,7 @@ public class TrainingService {
     }
 
     @Transactional
-    public void create(CreateTrainingRequest request, UserCredentials credentials) {
+    public TrainingSummary create(CreateTrainingRequest request, UserCredentials credentials) {
         authenticator.authenticate(credentials);
         TraineeEntity trainee = traineeRepository.findByUsername(request.traineeUsername())
                 .filter(t -> t.getUser().getIsActive())
@@ -61,6 +61,7 @@ public class TrainingService {
         TrainingEntity training = gymMapper.toTraining(request, trainee, trainer);
         TrainingEntity savedTraining = trainingRepository.save(training);
         log.info("Created training with ID: {}", savedTraining.getId());
+        return gymMapper.toTrainingSummary(training, trainee, trainer);
     }
 
     @Transactional(readOnly = true)

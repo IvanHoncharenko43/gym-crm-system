@@ -79,7 +79,7 @@ public class TraineeServiceTest {
         verify(userRepository, times(1)).findUsernamesByBaseNameForUpdate(anyString());
         verify(gymMapper, times(1)).toTraineeEntity(eq(request), anySet());
         verify(traineeRepository, times(1)).save(trainee);
-        verify(gymMapper, times(1)).toTraineeSummary(trainee);
+        verify(gymMapper, times(1)).toUserProfile(trainee.getUser());
     }
 
     @Test
@@ -121,7 +121,7 @@ public class TraineeServiceTest {
         when(traineeRepository.findByUsername(USERNAME)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> traineeService.update(request));
+                () -> traineeService.update(USERNAME, request, CREDENTIALS));
         assertTrue(exception.getMessage().contains("not found"));
         verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(authenticator, times(1)).authorize(USERNAME, CREDENTIALS);
