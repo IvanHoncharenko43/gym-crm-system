@@ -12,12 +12,13 @@ import org.example.trainer.dto.GetTrainerTrainingsRequest;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.trainer.repository.TrainerRepository;
 import org.example.training.dto.CreateTrainingRequest;
-import org.example.training.dto.GetTrainingRequest;
 import org.example.training.dto.TrainingSummary;
 import org.example.training.dto.TrainingType;
+import org.example.training.dto.request.Trainings;
 import org.example.training.repository.TrainingEntity;
 import org.example.training.repository.TrainingRepository;
 import org.example.training.service.TrainingService;
+import org.example.user.dto.UserCredentials;
 import org.example.user.repository.UserEntity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,7 +38,10 @@ public class TrainingServiceTest {
 
     private static final Long TRAINING_ID = 1L;
     private static final Long TRAINER_ID = 2L;
+    private static final String TRAINER_USERNAME = "John.Doe";
     private static final Long TRAINEE_ID = 3L;
+    private static final String TRAINEE_USERNAME = "John.Doe1";
+    private static final UserCredentials TRAINEE_CREDENTIALS = new UserCredentials(TRAINEE_USERNAME, "Password1234");
 
     @Mock
     private TrainingRepository trainingRepository;
@@ -60,7 +64,7 @@ public class TrainingServiceTest {
     @Test
     void create_CreateAndReturnTrainingResponse_AllEntitiesValid() {
         CreateTrainingRequest request = new CreateTrainingRequest(
-                TestUtils.getTraineeCredentials(), TRAINER_ID, TRAINEE_ID, "Cardio",
+                TRAINER_USERNAME, TRAINEE_USERNAME, "Cardio",
                 LocalDate.of(2026, 5, 12), 45
         );
         TraineeEntity trainee = new TraineeEntity();
@@ -73,25 +77,24 @@ public class TrainingServiceTest {
         training.setId(TRAINING_ID);
         TrainingSummary expectedResponse = new TrainingSummary(
                 TRAINING_ID,
-                TestUtils.getTrainerSummary(TRAINER_ID),
-                TestUtils.getTraineeSummary(TRAINEE_ID),
+                TestUtils.getTrainerSummary(TRAINER_USERNAME),
+                TestUtils.getTraineeSummary(TRAINEE_USERNAME),
                 "Cardio",
                 TrainingType.CARDIO,
                 LocalDate.of(2026, 5, 12), 45
         );
 
-        when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
-        when(trainerRepository.findById(TRAINER_ID)).thenReturn(Optional.of(trainer));
+        when(traineeRepository.findByUsername(TRAINEE_USERNAME)).thenReturn(Optional.of(trainee));
+        when(trainerRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(trainer));
         when(gymMapper.toTraining(request, trainee, trainer)).thenReturn(training);
         when(trainingRepository.save(training)).thenReturn(training);
         when(gymMapper.toTrainingSummary(training, trainee, trainer)).thenReturn(expectedResponse);
 
-        TrainingSummary actualResponse = trainingService.create(request);
+        trainingService.create(request, TRAINEE_CREDENTIALS);
 
-        assertEquals(expectedResponse, actualResponse);
-        verify(authenticator, times(1)).authenticate(request.credentials());
-        verify(traineeRepository, times(1)).findById(TRAINEE_ID);
-        verify(trainerRepository, times(1)).findById(TRAINER_ID);
+        verify(authenticator, times(1)).authenticate(TRAINEE_CREDENTIALS);
+        verify(traineeRepository, times(1)).findByUsername(TRAINEE_USERNAME);
+        verify(trainerRepository, times(1)).findByUsername(TRAINER_USERNAME);
         verify(gymMapper, times(1)).toTraining(request, trainee, trainer);
         verify(trainingRepository, times(1)).save(training);
         verify(gymMapper, times(1)).toTrainingSummary(training, trainee, trainer);
@@ -100,66 +103,66 @@ public class TrainingServiceTest {
     @Test
     void create_ThrowInvalidRequestDataException_TraineeNotFound() {
         CreateTrainingRequest request = new CreateTrainingRequest(
-                TestUtils.getTraineeCredentials(), TRAINER_ID, TRAINEE_ID, "Cardio",
+                TRAINER_USERNAME, TRAINEE_USERNAME, "Cardio",
                 LocalDate.of(2026, 5, 12), 45
         );
 
-        when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.empty());
+        when(traineeRepository.findByUsername(TRAINEE_USERNAME)).thenReturn(Optional.empty());
 
         InvalidRequestDataException exception = assertThrows(InvalidRequestDataException.class,
                 () -> trainingService.create(request));
         assertTrue(exception.getMessage().contains("Trainee"));
-        verify(authenticator, times(1)).authenticate(request.credentials());
-        verify(traineeRepository, times(1)).findById(TRAINEE_ID);
+        verify(authenticator, times(1)).authenticate(TRAINEE_CREDENTIALS);
+        verify(traineeRepository, times(1)).findByUsername(TRAINEE_USERNAME);
         verify(trainingRepository, never()).save(any());
     }
 
     @Test
     void create_ThrowInvalidRequestDataException_TraineeIsInactive() {
         CreateTrainingRequest request = new CreateTrainingRequest(
-                TestUtils.getTraineeCredentials(), TRAINER_ID, TRAINEE_ID, "Cardio",
+                TRAINER_USERNAME, TRAINEE_USERNAME, "Cardio",
                 LocalDate.of(2026, 5, 12), 45
         );
         TraineeEntity trainee = new TraineeEntity();
         trainee.setUser(new UserEntity());
         trainee.getUser().setIsActive(false);
 
-        when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
+        when(traineeRepository.findByUsername(TRAINEE_USERNAME)).thenReturn(Optional.of(trainee));
 
         InvalidRequestDataException exception = assertThrows(InvalidRequestDataException.class,
                 () -> trainingService.create(request));
         assertTrue(exception.getMessage().contains("Trainee"));
-        verify(authenticator, times(1)).authenticate(request.credentials());
-        verify(traineeRepository, times(1)).findById(TRAINEE_ID);
+        verify(authenticator, times(1)).authenticate(TRAINEE_CREDENTIALS);
+        verify(traineeRepository, times(1)).findByUsername(TRAINEE_USERNAME);
         verify(trainingRepository, never()).save(any());
     }
 
     @Test
     void create_ThrowInvalidRequestDataException_TrainerNotFound() {
         CreateTrainingRequest request = new CreateTrainingRequest(
-                TestUtils.getTraineeCredentials(), TRAINER_ID, TRAINEE_ID, "Cardio",
+                TRAINER_USERNAME, TRAINEE_USERNAME, "Cardio",
                 LocalDate.of(2026, 5, 12), 45
         );
         TraineeEntity trainee = new TraineeEntity();
         trainee.setUser(new UserEntity());
         trainee.getUser().setIsActive(true);
 
-        when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
-        when(trainerRepository.findById(TRAINER_ID)).thenReturn(Optional.empty());
+        when(traineeRepository.findByUsername(TRAINEE_USERNAME)).thenReturn(Optional.of(trainee));
+        when(trainerRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.empty());
 
         InvalidRequestDataException exception = assertThrows(InvalidRequestDataException.class,
                 () -> trainingService.create(request));
         assertTrue(exception.getMessage().contains("Trainer"));
-        verify(authenticator, times(1)).authenticate(request.credentials());
-        verify(traineeRepository, times(1)).findById(TRAINEE_ID);
-        verify(trainerRepository, times(1)).findById(TRAINER_ID);
+        verify(authenticator, times(1)).authenticate(TRAINEE_CREDENTIALS);
+        verify(traineeRepository, times(1)).findByUsername(TRAINEE_USERNAME);
+        verify(trainerRepository, times(1)).findByUsername(TRAINER_USERNAME);
         verify(trainingRepository, never()).save(any());
     }
 
     @Test
     void create_ThrowInvalidRequestDataException_TrainerIsInactive() {
         CreateTrainingRequest request = new CreateTrainingRequest(
-                TestUtils.getTraineeCredentials(), TRAINER_ID, TRAINEE_ID, "Cardio",
+                TRAINEE_USERNAME, TRAINER_USERNAME, "Cardio",
                 LocalDate.of(2026, 5, 12), 45
         );
         TraineeEntity trainee = new TraineeEntity();
@@ -169,21 +172,20 @@ public class TrainingServiceTest {
         trainer.setUser(new UserEntity());
         trainer.getUser().setIsActive(false);
 
-        when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
-        when(trainerRepository.findById(TRAINER_ID)).thenReturn(Optional.of(trainer));
+        when(traineeRepository.findByUsername(TRAINEE_USERNAME)).thenReturn(Optional.of(trainee));
+        when(trainerRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(trainer));
 
         InvalidRequestDataException exception = assertThrows(InvalidRequestDataException.class,
                 () -> trainingService.create(request));
         assertTrue(exception.getMessage().contains("Trainer"));
-        verify(authenticator, times(1)).authenticate(request.credentials());
-        verify(traineeRepository, times(1)).findById(TRAINEE_ID);
-        verify(trainerRepository, times(1)).findById(TRAINER_ID);
+        verify(authenticator, times(1)).authenticate(TRAINEE_CREDENTIALS);
+        verify(traineeRepository, times(1)).findByUsername(TRAINEE_USERNAME);
+        verify(trainerRepository, times(1)).findByUsername(TRAINER_USERNAME);
         verify(trainingRepository, never()).save(any());
     }
 
     @Test
     void getById_ReturnResponse_TrainingAndRelationsExist() {
-        GetTrainingRequest request = new GetTrainingRequest(TRAINING_ID, TestUtils.getTraineeCredentials());
         TrainingEntity training = new TrainingEntity();
         TraineeEntity trainee = new TraineeEntity();
         trainee.setId(TRAINEE_ID);
@@ -206,9 +208,9 @@ public class TrainingServiceTest {
         when(trainerRepository.findById(TRAINER_ID)).thenReturn(Optional.of(trainer));
         when(gymMapper.toTrainingSummary(training, trainee, trainer)).thenReturn(expectedResponse);
 
-        TrainingSummary actualResponse = trainingService.getById(request);
+        TrainingSummary actualResponse = trainingService.getById(TRAINING_ID, TRAINEE_CREDENTIALS);
         assertEquals(expectedResponse, actualResponse);
-        verify(authenticator, times(1)).authenticate(request.credentials());
+        verify(authenticator, times(1)).authenticate(TRAINEE_CREDENTIALS);
         verify(trainingRepository, times(1)).findById(TRAINING_ID);
         verify(traineeRepository, times(1)).findById(TRAINEE_ID);
         verify(trainerRepository, times(1)).findById(TRAINER_ID);
@@ -217,14 +219,13 @@ public class TrainingServiceTest {
 
     @Test
     void getById_ThrowEntityNotFoundException_TrainingIsMissing() {
-        GetTrainingRequest request = new GetTrainingRequest(TRAINING_ID, TestUtils.getTraineeCredentials());
         when(trainingRepository.findById(TRAINING_ID)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> trainingService.getById(request));
+                () -> trainingService.getById(TRAINING_ID, TRAINEE_CREDENTIALS));
 
         assertTrue(exception.getMessage().contains("Training"));
-        verify(authenticator, times(1)).authenticate(request.credentials());
+        verify(authenticator, times(1)).authenticate(TRAINEE_CREDENTIALS);
         verify(trainingRepository, times(1)).findById(TRAINING_ID);
         verify(gymMapper, never()).toTrainingSummary(any(), any(), any());
     }
@@ -232,7 +233,7 @@ public class TrainingServiceTest {
     @Test
     void getTraineeTrainingList_ReturnTrainingsList_RequestIsValid(){
         GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
-                TestUtils.getTraineeCredentials(),
+                TRAINEE_USERNAME,
                 LocalDate.of(2023, 12, 3),
                 LocalDate.of(2026, 5, 12),
                 "Doe",
@@ -271,7 +272,7 @@ public class TrainingServiceTest {
         List<TrainingSummary> mappedTrainings = List.of(trainingSummary1, trainingSummary2);
 
         when(trainingRepository.findTraineeTrainingsByCriteria(
-                request.credentials().username(),
+                request.username(),
                 request.fromDate(),
                 request.toDate(),
                 request.trainerName(),
@@ -280,11 +281,11 @@ public class TrainingServiceTest {
         when(gymMapper.toTrainingSummary(training1, trainee1, trainer1)).thenReturn(trainingSummary1);
         when(gymMapper.toTrainingSummary(training2, trainee1, trainer2)).thenReturn(trainingSummary2);
 
-        List<TrainingSummary> result = trainingService.getTraineeTrainingList(request);
-        assertEquals(mappedTrainings, result);
-        verify(authenticator, times(1)).authenticate(request.credentials());
+        Trainings result = trainingService.getTraineeTrainingList(request, TRAINEE_CREDENTIALS);
+        assertEquals(mappedTrainings, result.trainings());
+        verify(authenticator, times(1)).authenticate(TRAINEE_CREDENTIALS);
         verify(trainingRepository, times(1)).findTraineeTrainingsByCriteria(
-                request.credentials().username(),
+                request.username(),
                 request.fromDate(),
                 request.toDate(),
                 request.trainerName(),
@@ -296,7 +297,7 @@ public class TrainingServiceTest {
     @Test
     void getTrainerTrainingList_ReturnTrainingsList_RequestIsValid(){
         GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
-                TestUtils.getTrainerCredentials(),
+                TRAINER_USERNAME,
                 LocalDate.of(2023, 12, 3),
                 LocalDate.of(2026, 5, 12),
                 "Doe");
@@ -334,7 +335,7 @@ public class TrainingServiceTest {
         List<TrainingSummary> mappedTrainings = List.of(trainingSummary1, trainingSummary2);
 
         when(trainingRepository.findTrainerTrainingsByCriteria(
-                request.credentials().username(),
+                request.username(),
                 request.fromDate(),
                 request.toDate(),
                 request.traineeName()
@@ -342,11 +343,11 @@ public class TrainingServiceTest {
         when(gymMapper.toTrainingSummary(training1, trainee1, trainer1)).thenReturn(trainingSummary1);
         when(gymMapper.toTrainingSummary(training2, trainee2, trainer1)).thenReturn(trainingSummary2);
 
-        List<TrainingSummary> result = trainingService.getTrainerTrainingList(request);
-        assertEquals(mappedTrainings, result);
-        verify(authenticator, times(1)).authenticate(request.credentials());
+        Trainings result = trainingService.getTrainerTrainingList(request, TRAINEE_CREDENTIALS);
+        assertEquals(mappedTrainings, result.trainings());
+        verify(authenticator, times(1)).authenticate(TRAINEE_CREDENTIALS);
         verify(trainingRepository, times(1)).findTrainerTrainingsByCriteria(
-                request.credentials().username(),
+                request.username(),
                 request.fromDate(),
                 request.toDate(),
                 request.traineeName());

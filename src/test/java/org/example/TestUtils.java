@@ -119,9 +119,23 @@ public class TestUtils {
         );
     }
 
+    public static TraineeSummary getTraineeSummary(String username){
+        return new TraineeSummary(
+                TRAINEE_ID, new UserProfile(username),
+                LocalDate.of(2007, 3, 25), "Home 21 Street"
+        );
+    }
+
     public static TrainerSummary getTrainerSummary(Long id){
         return new TrainerSummary(
                 id, new UserProfile(TRAINER_USERNAME),
+                TrainingType.YOGA
+        );
+    }
+
+    public static TrainerSummary getTrainerSummary(String username){
+        return new TrainerSummary(
+                TRAINER_ID, new UserProfile(username),
                 TrainingType.YOGA
         );
     }

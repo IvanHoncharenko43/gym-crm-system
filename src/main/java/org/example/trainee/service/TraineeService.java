@@ -5,15 +5,11 @@ import org.example.user.dto.UserProfile;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.core.service.AuthenticationComponent;
-import org.example.core.dto.ChangeActivityRequest;
-import org.example.core.dto.ChangePasswordRequest;
-import org.example.exception.InvalidPasswordException;
 import org.example.exception.EntityNotFoundException;
 import org.example.trainee.dto.TraineeSummary;
 import org.example.trainee.dto.UpdateTraineeRequest;
 import org.example.trainee.dto.CreateTraineeRequest;
 import org.example.trainee.dto.UpdateTraineeTrainersRequest;
-import org.example.trainer.dto.TrainerSummary;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.trainer.repository.TrainerRepository;
 import org.example.user.dto.UserCredentials;
@@ -24,8 +20,6 @@ import org.example.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 @Slf4j
@@ -48,29 +42,12 @@ public class TraineeService {
 
     @Transactional
     public UserProfile create(CreateTraineeRequest request) {
-        Objects.requireNonNull(request, "Request body cannot be null");
         String baseName = request.fullName().firstName() + "." + request.fullName().lastName();
         Set<String> existingUsernames = new HashSet<>(userRepository.findUsernamesByBaseNameForUpdate(baseName));
         TraineeEntity trainee = gymMapper.toTraineeEntity(request, existingUsernames);
         TraineeEntity savedTrainee = traineeRepository.save(trainee);
         log.info("Created trainee profile with ID: {}", savedTrainee.getId());
         return gymMapper.toUserProfile(savedTrainee.getUser());
-    }
-
-    @Transactional(readOnly = true)
-    public TraineeSummary getByUsername(UserCredentials credentials){
-        Objects.requireNonNull(credentials, "Credentials cannot be null");
-        authenticator.authenticate(credentials);
-        log.info("Selecting trainee by username started");
-        String username = credentials.username();
-        return traineeRepository.findByUsername(username)
-                .filter(trainee -> trainee.getUser().getIsActive())
-                .map(gymMapper::toTraineeSummary)
-                .orElseThrow(() -> {
-                    String message = "Trainee not found or is inactive";
-                    log.warn(message);
-                    return new EntityNotFoundException(message);
-                });
     }
 
     @Transactional(readOnly = true)
@@ -88,24 +65,9 @@ public class TraineeService {
     }
 
     @Transactional
-    public TraineeSummary update(UpdateTraineeRequest request) {
-        Objects.requireNonNull(request, "Request body cannot be null");
-        authenticator.authenticate(request.credentials());
-        TraineeEntity existingTrainee = traineeRepository.findById(request.id())
-                .orElseThrow(() -> {
-                    String message = String.format("Trainee with ID %s not found", request.id());
-                    log.warn(message);
-                    return new EntityNotFoundException(message);
-                });
-        TraineeEntity trainee = gymMapper.toTraineeEntity(request, existingTrainee);
-        TraineeEntity updatedTrainee = traineeRepository.save(trainee);
-        log.info("Updated trainee profile with ID: {}", updatedTrainee.getId());
-        return gymMapper.toTraineeSummary(updatedTrainee);
-    }
-
-    @Transactional
     public TraineeSummary update(String username, UpdateTraineeRequest request, UserCredentials credentials) {
         authenticator.authenticate(credentials);
+        authenticator.authorize(username, credentials);
         TraineeEntity existingTrainee = traineeRepository.findByUsername(username)
                 .orElseThrow(() -> {
                     String message = "Trainee not found";
@@ -119,48 +81,17 @@ public class TraineeService {
     }
 
     @Transactional
-    public void deleteByUsername(UserCredentials credentials){
+    public void deleteByUsername(String username, UserCredentials credentials){
         authenticator.authenticate(credentials);
+        authenticator.authorize(username, credentials);
         traineeRepository.deleteByUsername(credentials.username());
         log.info("Deleted trainee profile by username");
     }
 
     @Transactional
-    public void changePassword(ChangePasswordRequest request){
-        Objects.requireNonNull(request, "Request body cannot be null");
-        authenticator.authenticate(request.credentials());
-        TraineeEntity trainee = traineeRepository.findByUsername(request.credentials().username())
-                .filter(t -> t.getUser().getIsActive())
-                .orElseThrow(() -> {
-                    String message = "Trainee not found or is inactive";
-                    log.warn(message);
-                    return new EntityNotFoundException(message);
-                });
-        if(request.newPassword().length() < 10){
-            throw new InvalidPasswordException("Password should be at least 10 characters");
-        }
-        trainee.getUser().setPassword(request.newPassword());
-        traineeRepository.save(trainee);
-    }
-
-    @Transactional
-    public void changeActivity(ChangeActivityRequest request){
-        Objects.requireNonNull(request, "Request body cannot be null");
-        authenticator.authenticate(request.credentials());
-        TraineeEntity trainee = traineeRepository.findByUsername(request.credentials().username())
-                .orElseThrow(() -> {
-                    String message = "Trainee not found";
-                    log.warn(message);
-                    return new EntityNotFoundException(message);
-                });
-        trainee.getUser().setIsActive(!trainee.getUser().getIsActive());
-        traineeRepository.save(trainee);
-        log.info("Activity status changed for a trainee");
-    }
-
-    @Transactional
     public void changeActivity(String username, UserCredentials credentials){
         authenticator.authenticate(credentials);
+        authenticator.authorize(username, credentials);
         TraineeEntity trainee = traineeRepository.findByUsername(username)
                 .orElseThrow(() -> {
                     String message = "Trainee not found";
@@ -173,30 +104,9 @@ public class TraineeService {
     }
 
     @Transactional
-    public List<TrainerSummary> updateTrainersList(UpdateTraineeTrainersRequest request){
-        Objects.requireNonNull(request, "Request body cannot be null");
-        authenticator.authenticate(request.credentials());
-        TraineeEntity trainee = traineeRepository.findByUsername(request.credentials().username())
-                .orElseThrow(() -> {
-                    String message = "Trainee not found";
-                    log.warn(message);
-                    return new EntityNotFoundException(message);
-                });
-        Set<TrainerEntity> newTrainers = new HashSet<>(trainerRepository.findByUsernames(request.trainerUsernames()));
-        trainee.getTrainers().stream()
-                .filter(oldTrainer -> !newTrainers.contains(oldTrainer))
-                .forEach(oldTrainer -> oldTrainer.getTrainees().remove(trainee));
-        newTrainers.forEach(newTrainer -> newTrainer.getTrainees().add(trainee));
-        trainee.getTrainers().addAll(newTrainers);
-        traineeRepository.save(trainee);
-        return newTrainers.stream()
-                .map(gymMapper::toTrainerSummary)
-                .toList();
-    }
-
-    @Transactional
     public Trainers updateTrainersList(String username, UpdateTraineeTrainersRequest request, UserCredentials credentials){
         authenticator.authenticate(credentials);
+        authenticator.authorize(username, credentials);
         TraineeEntity trainee = traineeRepository.findByUsername(username)
                 .orElseThrow(() -> {
                     String message = "Trainee not found";
