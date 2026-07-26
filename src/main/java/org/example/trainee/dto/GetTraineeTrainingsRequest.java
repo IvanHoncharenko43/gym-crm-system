@@ -10,6 +10,7 @@ import java.time.LocalDate;
 
 @ValidDateRange
 public record GetTraineeTrainingsRequest(
+        String username,
         LocalDate fromDate,
         LocalDate toDate,
 

@@ -4,7 +4,7 @@ import org.example.trainer.dto.TrainerSummary;
 
 import java.util.List;
 
-public record TrainersSummaries(
-        List<TrainerSummary> trainerSummaries
+public record Trainers(
+        List<TrainerSummary> trainers
 ) {
 }

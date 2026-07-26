@@ -1,5 +1,7 @@
 package org.example.trainee.service;
 
+import org.example.trainer.dto.response.Trainers;
+import org.example.user.dto.UserProfile;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.core.service.AuthenticationComponent;
@@ -45,14 +47,14 @@ public class TraineeService {
     }
 
     @Transactional
-    public TraineeSummary create(CreateTraineeRequest request) {
+    public UserProfile create(CreateTraineeRequest request) {
         Objects.requireNonNull(request, "Request body cannot be null");
         String baseName = request.fullName().firstName() + "." + request.fullName().lastName();
         Set<String> existingUsernames = new HashSet<>(userRepository.findUsernamesByBaseNameForUpdate(baseName));
         TraineeEntity trainee = gymMapper.toTraineeEntity(request, existingUsernames);
         TraineeEntity savedTrainee = traineeRepository.save(trainee);
         log.info("Created trainee profile with ID: {}", savedTrainee.getId());
-        return gymMapper.toTraineeSummary(savedTrainee);
+        return gymMapper.toUserProfile(savedTrainee.getUser());
     }
 
     @Transactional(readOnly = true)
@@ -71,6 +73,20 @@ public class TraineeService {
                 });
     }
 
+    @Transactional(readOnly = true)
+    public TraineeSummary getByUsername(String username, UserCredentials credentials){
+        authenticator.authenticate(credentials);
+        log.info("Selecting trainee by username started");
+        return traineeRepository.findByUsername(username)
+                .filter(trainee -> trainee.getUser().getIsActive())
+                .map(gymMapper::toTraineeSummary)
+                .orElseThrow(() -> {
+                    String message = "Trainee not found or is inactive";
+                    log.warn(message);
+                    return new EntityNotFoundException(message);
+                });
+    }
+
     @Transactional
     public TraineeSummary update(UpdateTraineeRequest request) {
         Objects.requireNonNull(request, "Request body cannot be null");
@@ -78,6 +94,21 @@ public class TraineeService {
         TraineeEntity existingTrainee = traineeRepository.findById(request.id())
                 .orElseThrow(() -> {
                     String message = String.format("Trainee with ID %s not found", request.id());
+                    log.warn(message);
+                    return new EntityNotFoundException(message);
+                });
+        TraineeEntity trainee = gymMapper.toTraineeEntity(request, existingTrainee);
+        TraineeEntity updatedTrainee = traineeRepository.save(trainee);
+        log.info("Updated trainee profile with ID: {}", updatedTrainee.getId());
+        return gymMapper.toTraineeSummary(updatedTrainee);
+    }
+
+    @Transactional
+    public TraineeSummary update(String username, UpdateTraineeRequest request, UserCredentials credentials) {
+        authenticator.authenticate(credentials);
+        TraineeEntity existingTrainee = traineeRepository.findByUsername(username)
+                .orElseThrow(() -> {
+                    String message = "Trainee not found";
                     log.warn(message);
                     return new EntityNotFoundException(message);
                 });
@@ -128,6 +159,20 @@ public class TraineeService {
     }
 
     @Transactional
+    public void changeActivity(String username, UserCredentials credentials){
+        authenticator.authenticate(credentials);
+        TraineeEntity trainee = traineeRepository.findByUsername(username)
+                .orElseThrow(() -> {
+                    String message = "Trainee not found";
+                    log.warn(message);
+                    return new EntityNotFoundException(message);
+                });
+        trainee.getUser().setIsActive(!trainee.getUser().getIsActive());
+        traineeRepository.save(trainee);
+        log.info("Activity status changed for a trainee");
+    }
+
+    @Transactional
     public List<TrainerSummary> updateTrainersList(UpdateTraineeTrainersRequest request){
         Objects.requireNonNull(request, "Request body cannot be null");
         authenticator.authenticate(request.credentials());
@@ -147,5 +192,28 @@ public class TraineeService {
         return newTrainers.stream()
                 .map(gymMapper::toTrainerSummary)
                 .toList();
+    }
+
+    @Transactional
+    public Trainers updateTrainersList(String username, UpdateTraineeTrainersRequest request, UserCredentials credentials){
+        authenticator.authenticate(credentials);
+        TraineeEntity trainee = traineeRepository.findByUsername(username)
+                .orElseThrow(() -> {
+                    String message = "Trainee not found";
+                    log.warn(message);
+                    return new EntityNotFoundException(message);
+                });
+        Set<TrainerEntity> newTrainers = new HashSet<>(trainerRepository.findByUsernames(request.trainerUsernames()));
+        trainee.getTrainers().stream()
+                .filter(oldTrainer -> !newTrainers.contains(oldTrainer))
+                .forEach(oldTrainer -> oldTrainer.getTrainees().remove(trainee));
+        newTrainers.forEach(newTrainer -> newTrainer.getTrainees().add(trainee));
+        trainee.getTrainers().addAll(newTrainers);
+        traineeRepository.save(trainee);
+        return new Trainers(
+                newTrainers.stream()
+                        .map(gymMapper::toTrainerSummary)
+                        .toList()
+        );
     }
 }
