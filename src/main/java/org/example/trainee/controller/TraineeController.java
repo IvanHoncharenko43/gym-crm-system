@@ -1,6 +1,7 @@
 package org.example.trainee.controller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
 import org.example.trainee.controller.request.CreateTraineeRequest;
 import org.example.trainee.controller.response.TraineeSummary;
@@ -14,6 +15,7 @@ import org.example.training.service.TrainingService;
 import org.example.user.controller.dto.UserCredentials;
 import org.example.user.controller.dto.UserProfile;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestAttribute;
 
 @Slf4j
+@Validated
 @RestController
 @RequestMapping("/api/v1/trainees")
 public class TraineeController {
@@ -48,7 +51,8 @@ public class TraineeController {
 
     @GetMapping(params = "username")
     @ResponseStatus(HttpStatus.OK)
-    public TraineeSummary getTrainee(@RequestParam("username") String username,
+    public TraineeSummary getTrainee(@NotBlank(message = "Username cannot be blank")
+                                         @RequestParam("username") String username,
                                      @RequestAttribute("userCredentials") UserCredentials credentials){
         log.info("GET /api/v1/trainees endpoint called");
         return traineeService.getByUsername(username, credentials);
@@ -56,7 +60,8 @@ public class TraineeController {
 
     @PutMapping(params = "username")
     @ResponseStatus(HttpStatus.OK)
-    public TraineeSummary updateTrainee(@RequestParam("username") String username,
+    public TraineeSummary updateTrainee(@NotBlank(message = "Username cannot be blank")
+                                            @RequestParam("username") String username,
                                         @Valid @RequestBody UpdateTraineeRequest request,
                                         @RequestAttribute("userCredentials") UserCredentials credentials){
         log.info("PUT /api/v1/trainees endpoint called with request");
@@ -65,7 +70,8 @@ public class TraineeController {
 
     @DeleteMapping(params = "username")
     @ResponseStatus(HttpStatus.OK)
-    public void deleteTrainee(@RequestParam("username") String username,
+    public void deleteTrainee(@NotBlank(message = "Username cannot be blank")
+                                  @RequestParam("username") String username,
                               @RequestAttribute("userCredentials") UserCredentials credentials){
         log.info("DELETE /api/v1/trainees endpoint called");
         traineeService.deleteByUsername(username, credentials);
@@ -73,7 +79,8 @@ public class TraineeController {
 
     @PutMapping(value = "/trainers", params = "username")
     @ResponseStatus(HttpStatus.OK)
-    public Trainers updateTrainersList(@RequestParam("username") String username,
+    public Trainers updateTrainersList(@NotBlank(message = "Username cannot be blank")
+                                           @RequestParam("username") String username,
                                        @Valid @RequestBody UpdateTraineeTrainersRequest request,
                                        @RequestAttribute("userCredentials") UserCredentials credentials){
         log.info("PUT /api/v1/trainees/trainers endpoint called with request");
@@ -82,7 +89,8 @@ public class TraineeController {
 
     @PatchMapping(value = "/activity", params = "username")
     @ResponseStatus(HttpStatus.OK)
-    public void changeTraineeActivity(@RequestParam("username") String username,
+    public void changeTraineeActivity(@NotBlank(message = "Username cannot be blank")
+                                          @RequestParam("username") String username,
                                       @RequestAttribute("userCredentials") UserCredentials credentials){
         log.info("PATCH /api/v1/trainees/activity endpoint called");
         traineeService.changeActivity(username, credentials);

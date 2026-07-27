@@ -1,6 +1,7 @@
 package org.example.trainer.controller;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
 import org.example.trainer.controller.request.CreateTrainerRequest;
 import org.example.trainer.controller.request.GetTrainerTrainingsRequest;
@@ -13,6 +14,7 @@ import org.example.training.service.TrainingService;
 import org.example.user.controller.dto.UserCredentials;
 import org.example.user.controller.dto.UserProfile;
 import org.springframework.http.HttpStatus;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -25,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestAttribute;
 
 @Slf4j
+@Validated
 @RestController
 @RequestMapping("/api/v1/trainers")
 public class TrainerController {
@@ -46,7 +49,8 @@ public class TrainerController {
 
     @GetMapping(params = "username")
     @ResponseStatus(HttpStatus.OK)
-    public TrainerSummary getTrainer(@RequestParam("username") String username,
+    public TrainerSummary getTrainer(@NotBlank(message = "Username cannot be blank")
+                                         @RequestParam("username") String username,
                                      @RequestAttribute("userCredentials") UserCredentials credentials){
         log.info("GET /api/v1/trainers endpoint called");
         return trainerService.getByUsername(username, credentials);
@@ -54,7 +58,8 @@ public class TrainerController {
 
     @PutMapping(params = "username")
     @ResponseStatus(HttpStatus.OK)
-    public TrainerSummary updateTrainer(@RequestParam("username") String username,
+    public TrainerSummary updateTrainer(@NotBlank(message = "Username cannot be blank")
+                                            @RequestParam("username") String username,
                                         @Valid @RequestBody UpdateTrainerRequest request,
                                         @RequestAttribute("userCredentials") UserCredentials credentials){
         log.info("PUT /api/v1/trainers endpoint called");
@@ -63,7 +68,8 @@ public class TrainerController {
 
     @GetMapping(value = "/not-assigned", params = "trainee-username")
     @ResponseStatus(HttpStatus.OK)
-    public Trainers getNotAssignedOnTraineeActiveTrainersList(@RequestParam("trainee-username") String traineeUsername,
+    public Trainers getNotAssignedOnTraineeActiveTrainersList(@NotBlank(message = "Trainee username cannot be blank")
+                                                                  @RequestParam("trainee-username") String traineeUsername,
                                                               @RequestAttribute("userCredentials") UserCredentials credentials){
         log.info("GET /api/v1/trainers/not-assigned endpoint called");
         return trainerService.getUnassignedTrainersByTraineeList(traineeUsername, credentials);
@@ -71,7 +77,8 @@ public class TrainerController {
 
     @PatchMapping(value = "/activity", params = "username")
     @ResponseStatus(HttpStatus.OK)
-    public void changeTrainerActivity(@RequestParam("username") String username,
+    public void changeTrainerActivity(@NotBlank(message = "Username cannot be blank")
+                                          @RequestParam("username") String username,
                                       @RequestAttribute("userCredentials") UserCredentials credentials){
         log.info("PATCH /api/v1/trainers/activity endpoint called");
         trainerService.changeActivity(username, credentials);

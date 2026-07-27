@@ -10,7 +10,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestControllerAdvice
@@ -23,9 +25,10 @@ public class GlobalExceptionHandler {
         );
         problemDetail.setTitle("Bad Request");
 
-        Map<String, String> errors = new HashMap<>();
+        Map<String, List<String>> errors = new HashMap<>();
         for(FieldError error : exception.getBindingResult().getFieldErrors()){
-            errors.put(error.getField(), error.getDefaultMessage());
+            errors.computeIfAbsent(error.getField(), key -> new ArrayList<>())
+                    .add(error.getDefaultMessage());
         }
         problemDetail.setProperty("invalidFields", errors);
         return problemDetail;
