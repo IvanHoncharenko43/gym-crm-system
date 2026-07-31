@@ -2,7 +2,9 @@ package org.example.training.service;
 
 import org.example.exception.InvalidRequestDataException;
 import org.example.training.controller.response.Trainings;
+import org.example.training.repository.TrainingSpecifications;
 import org.example.user.controller.dto.UserCredentials;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.core.service.AuthenticationComponent;
@@ -87,9 +89,10 @@ public class TrainingService {
     @Transactional(readOnly = true)
     public Trainings getTraineeTrainingList(GetTraineeTrainingsRequest request, UserCredentials credentials){
         authenticator.authenticate(credentials);
+        Specification<TrainingEntity> specification = TrainingSpecifications.findTraineeTrainings(request.getUsername(),
+                request.getFromDate(), request.getToDate(), request.getTrainerName(), request.getTrainingType().name());
         return new Trainings(
-                trainingRepository.findTraineeTrainingsByCriteria(request.getUsername(), request.getFromDate(), request.getToDate(),
-                                request.getTrainerName(), request.getTrainingType().name()).stream()
+                trainingRepository.findAll(specification).stream()
                         .map(training -> gymMapper.toTrainingSummary(training, training.getTrainee(), training.getTrainer()))
                         .toList()
         );
@@ -98,9 +101,10 @@ public class TrainingService {
     @Transactional(readOnly = true)
     public Trainings getTrainerTrainingList(GetTrainerTrainingsRequest request, UserCredentials credentials){
         authenticator.authenticate(credentials);
+        Specification<TrainingEntity> specification = TrainingSpecifications.findTrainerTrainings(request.username(),
+                request.fromDate(), request.toDate(), request.traineeName());
         return new Trainings(
-                trainingRepository.findTrainerTrainingsByCriteria(request.username(), request.fromDate(),
-                                request.toDate(), request.traineeName()).stream()
+                trainingRepository.findAll(specification).stream()
                         .map(training -> gymMapper.toTrainingSummary(training, training.getTrainee(), training.getTrainer()))
                         .toList()
         );

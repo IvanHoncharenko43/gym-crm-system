@@ -100,7 +100,7 @@ public class TraineeService {
         Optional<TraineeEntity> existingTrainee = traineeRepository.findByUsername(username);
         if(existingTrainee.isPresent()) {
             authenticator.authorize(existingTrainee.get().getUser().getUsername(), credentials);
-            traineeRepository.deleteByUsername(credentials.username());
+            traineeRepository.deleteByUserUsername(credentials.username());
             log.info("Deleted trainee profile by username");
         }
     }

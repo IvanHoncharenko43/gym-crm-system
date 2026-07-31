@@ -41,7 +41,7 @@ public class TrainerService {
 
     @Transactional
     public TrainerSummary create(CreateTrainerRequest request) {
-        TrainingTypeEntity trainingType = trainingTypeRepository.findByName(request.specialization())
+        TrainingTypeEntity trainingType = trainingTypeRepository.findByTrainingTypeName(request.specialization())
                 .orElseThrow(() -> {
                     String message = String.format("Training type %s not found", request.specialization().name());
                     log.warn(message);
@@ -93,7 +93,7 @@ public class TrainerService {
                     return new EntityNotFoundException(message);
                 });
         authenticator.authorize(existingTrainer.getUser().getUsername(), credentials);
-        TrainingTypeEntity trainingType = trainingTypeRepository.findByName(request.specialization())
+        TrainingTypeEntity trainingType = trainingTypeRepository.findByTrainingTypeName(request.specialization())
                 .orElseThrow(() -> {
                     String message = String.format("Training type %s not found", request.specialization().name());
                     log.warn(message);
