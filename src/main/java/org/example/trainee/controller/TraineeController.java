@@ -1,7 +1,30 @@
 package org.example.trainee.controller;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.PATCH;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.BeanParam;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.example.trainee.controller.request.CreateTraineeRequest;
 import org.example.trainee.controller.response.TraineeSummary;
@@ -13,25 +36,21 @@ import org.example.trainer.controller.response.Trainers;
 import org.example.training.controller.response.Trainings;
 import org.example.training.service.TrainingService;
 import org.example.user.controller.dto.UserCredentials;
-import org.example.user.controller.dto.UserProfile;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestAttribute;
 
 @Slf4j
 @Validated
-@RestController
-@RequestMapping("/api/v1/trainees")
+@Tag(name = "Trainees", description = "Operations related to gym trainees")
+@ApiResponses(value = {
+        @ApiResponse(responseCode = "400", description = "Invalid Request", content = @Content(schema = @Schema(
+                implementation = ProblemDetail.class))),
+})
+@Consumes(MediaType.APPLICATION_JSON)
+@Produces(MediaType.APPLICATION_JSON)
+@Path("/v1/trainees")
+@Component
 public class TraineeController {
 
     private final TraineeService traineeService;
@@ -42,67 +61,143 @@ public class TraineeController {
         this.trainingService = trainingService;
     }
 
-    @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public UserProfile registerTrainee(@Valid @RequestBody CreateTraineeRequest request){
+    @Operation(summary = "Register a new trainee", description = "Creates a new trainee profile and returns their summary")
+    @ApiResponse(responseCode = "201", description = "CREATED", content = @Content(schema = @Schema(
+            implementation = TraineeSummary.class)))
+    @POST
+    public Response registerTrainee(
+            @Valid CreateTraineeRequest request){
         log.info("POST /api/v1/trainees endpoint called with request");
-        return traineeService.create(request);
+        return Response.status(Response.Status.CREATED)
+                .entity(traineeService.create(request))
+                .build();
     }
 
-    @GetMapping(params = "username")
-    @ResponseStatus(HttpStatus.OK)
-    public TraineeSummary getTrainee(@NotBlank(message = "Username cannot be blank")
-                                         @RequestParam("username") String username,
-                                     @RequestAttribute("userCredentials") UserCredentials credentials){
-        log.info("GET /api/v1/trainees endpoint called");
-        return traineeService.getByUsername(username, credentials);
+    @Operation(summary = "Get trainee", description = "Returns a single trainee")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(
+                    implementation = TraineeSummary.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "Trainee Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class)))
+    })
+    @GET
+    @Path("/{id}")
+    public TraineeSummary getTrainee(
+            @Parameter(in = ParameterIn.PATH, description = "Trainee ID", example = "12")
+            @PathParam("id") Long id,
+            @Context HttpServletRequest httpServletRequest){
+        log.info("GET /api/v1/trainees/{id} endpoint called");
+        UserCredentials credentials = (UserCredentials) httpServletRequest.getAttribute("userCredentials");
+        return traineeService.getById(id, credentials);
     }
 
-    @PutMapping(params = "username")
-    @ResponseStatus(HttpStatus.OK)
-    public TraineeSummary updateTrainee(@NotBlank(message = "Username cannot be blank")
-                                            @RequestParam("username") String username,
-                                        @Valid @RequestBody UpdateTraineeRequest request,
-                                        @RequestAttribute("userCredentials") UserCredentials credentials){
-        log.info("PUT /api/v1/trainees endpoint called with request");
-        return traineeService.update(username, request, credentials);
+    @Operation(summary = "Update trainee", description = "Updates an existing trainee's profile")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(
+                    implementation = TraineeSummary.class
+            ))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "Trainee Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class)))
+    })
+    @PUT
+    @Path("/{id}")
+    public TraineeSummary updateTrainee(
+            @Parameter(in = ParameterIn.PATH, description = "Trainee ID", example = "12")
+            @PathParam("id") Long id,
+            @Valid UpdateTraineeRequest request,
+            @Context HttpServletRequest httpServletRequest){
+        log.info("PUT /api/v1/trainees/{id} endpoint called with request");
+        UserCredentials credentials = (UserCredentials) httpServletRequest.getAttribute("userCredentials");
+        return traineeService.update(id, request, credentials);
     }
 
-    @DeleteMapping(params = "username")
-    @ResponseStatus(HttpStatus.OK)
-    public void deleteTrainee(@NotBlank(message = "Username cannot be blank")
-                                  @RequestParam("username") String username,
-                              @RequestAttribute("userCredentials") UserCredentials credentials){
+    @Operation(summary = "Delete trainee", description = "Deletes a trainee's profile")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "OK"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class)))
+    })
+    @DELETE
+    public Response deleteTrainee(
+            @Parameter(in = ParameterIn.QUERY, description = "Trainee's username", example = "John.Doe1")
+            @NotBlank(message = "Username cannot be null")
+            @QueryParam("username") String username,
+            @Context HttpServletRequest httpServletRequest){
         log.info("DELETE /api/v1/trainees endpoint called");
+        UserCredentials credentials = (UserCredentials) httpServletRequest.getAttribute("userCredentials");
         traineeService.deleteByUsername(username, credentials);
+        return Response.status(Response.Status.OK).build();
     }
 
-    @PutMapping(value = "/trainers", params = "username")
-    @ResponseStatus(HttpStatus.OK)
-    public Trainers updateTrainersList(@NotBlank(message = "Username cannot be blank")
-                                           @RequestParam("username") String username,
-                                       @Valid @RequestBody UpdateTraineeTrainersRequest request,
-                                       @RequestAttribute("userCredentials") UserCredentials credentials){
-        log.info("PUT /api/v1/trainees/trainers endpoint called with request");
-        return traineeService.updateTrainersList(username, request, credentials);
+    @Operation(summary = "Update trainee's trainers", description = "Updates a trainee's trainers list")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(
+                    implementation = Trainers.class
+            ))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "Trainee Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class)))
+    })
+    @PUT
+    @Path("/{id}/trainers-update")
+    public Trainers updateTrainersList(
+            @Parameter(in = ParameterIn.PATH, description = "Trainee ID", example = "12")
+            @PathParam("id") Long id,
+            @Valid UpdateTraineeTrainersRequest request,
+            @Context HttpServletRequest httpServletRequest){
+        log.info("PUT /api/v1/trainees/{id}/trainers-update endpoint called with request");
+        UserCredentials credentials = (UserCredentials) httpServletRequest.getAttribute("userCredentials");
+        return traineeService.updateTrainersList(id, request, credentials);
     }
 
-    @PatchMapping(value = "/activity", params = "username")
-    @ResponseStatus(HttpStatus.OK)
-    public void changeTraineeActivity(@NotBlank(message = "Username cannot be blank")
-                                          @RequestParam("username") String username,
-                                      @RequestAttribute("userCredentials") UserCredentials credentials){
-        log.info("PATCH /api/v1/trainees/activity endpoint called");
-        traineeService.changeActivity(username, credentials);
+    @Operation(summary = "Change trainee activity", description = "Changes a trainee's activity status")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "OK"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "Trainee Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class)))
+    })
+    @PATCH
+    @Path("/{id}/profile/active-status/change")
+    public Response changeTraineeActivity(
+            @Parameter(in = ParameterIn.PATH, description = "Trainee ID", example = "12")
+            @PathParam("id") Long id,
+            @Context HttpServletRequest httpServletRequest){
+        log.info("PATCH /api/v1/trainees/{id}/profile/active-status/change endpoint called");
+        UserCredentials credentials = (UserCredentials) httpServletRequest.getAttribute("userCredentials");
+        traineeService.changeActivity(id, credentials);
+        return Response.status(Response.Status.OK).build();
     }
 
-    @GetMapping("/trainings")
-    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Get trainee's trainings", description = "Returns an existing trainee's trainings list")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(
+                    implementation = Trainings.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class)))
+    })
+    @GET
+    @Path("/trainings")
     public Trainings getTraineeTrainingList(
-            @Valid GetTraineeTrainingsRequest request,
-            @RequestAttribute("userCredentials") UserCredentials credentials
+            @BeanParam @Valid GetTraineeTrainingsRequest request,
+            @Context HttpServletRequest httpServletRequest
     ){
         log.info("GET /api/v1/trainees/trainings endpoint called with request params");
+        UserCredentials credentials = (UserCredentials) httpServletRequest.getAttribute("userCredentials");
         return trainingService.getTraineeTrainingList(request, credentials);
     }
 }

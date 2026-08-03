@@ -41,50 +41,52 @@ public class UserServiceTest {
     @Test
     void changePassword_Change_RequestIsValid(){
         String newPassword = "New_Password";
-        ChangePasswordRequest request = new ChangePasswordRequest(USERNAME, PASSWORD, newPassword);
+        Long userId = 1L;
+        ChangePasswordRequest request = new ChangePasswordRequest(PASSWORD, newPassword);
         UserEntity existingUser = new UserEntity();
         existingUser.setPassword(PASSWORD);
         existingUser.setIsActive(true);
+        existingUser.setUsername(USERNAME);
 
-        when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(existingUser));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
 
-        userService.changePassword(request, CREDENTIALS);
+        userService.changePassword(userId, request, CREDENTIALS);
 
         verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(authenticator, times(1)).authorize(USERNAME, CREDENTIALS);
-        verify(userRepository, times(1)).findByUsername(USERNAME);
+        verify(userRepository, times(1)).findById(userId);
         verify(userRepository, times(1)).save(existingUser);
     }
 
     @Test
     void changePassword_ThrowEntityNotFoundException_UserDoesNotExist(){
         String newPassword = "New_Password";
-        ChangePasswordRequest request = new ChangePasswordRequest(USERNAME, PASSWORD, newPassword);
+        Long userId = 1L;
+        ChangePasswordRequest request = new ChangePasswordRequest(PASSWORD, newPassword);
 
-        when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.empty());
+        when(userRepository.findById(userId)).thenReturn(Optional.empty());
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> userService.changePassword(request, CREDENTIALS));
+                () -> userService.changePassword(userId, request, CREDENTIALS));
         assertTrue(exception.getMessage().contains("not found"));
         verify(authenticator, times(1)).authenticate(CREDENTIALS);
-        verify(authenticator, times(1)).authorize(USERNAME, CREDENTIALS);
-        verify(userRepository, times(1)).findByUsername(USERNAME);
+        verify(userRepository, times(1)).findById(userId);
         verify(userRepository, never()).save(any());
     }
 
     @Test
     void changePassword_ThrowEntityNotFoundException_UserIsInactive() {
         String newPassword = "New_Password";
-        ChangePasswordRequest request = new ChangePasswordRequest(USERNAME, PASSWORD, newPassword);
+        Long userId = 1L;
+        ChangePasswordRequest request = new ChangePasswordRequest(PASSWORD, newPassword);
         UserEntity inactiveUser = new UserEntity();
         inactiveUser.setIsActive(false);
 
-        when(userRepository.findByUsername(USERNAME)).thenReturn(Optional.of(inactiveUser));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(inactiveUser));
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> userService.changePassword(request, CREDENTIALS));
+                () -> userService.changePassword(userId, request, CREDENTIALS));
         assertTrue(exception.getMessage().contains("inactive"));
         verify(authenticator, times(1)).authenticate(CREDENTIALS);
-        verify(authenticator, times(1)).authorize(USERNAME, CREDENTIALS);
-        verify(userRepository, times(1)).findByUsername(USERNAME);
+        verify(userRepository, times(1)).findById(userId);
         verify(userRepository, never()).save(any());
     }
 }

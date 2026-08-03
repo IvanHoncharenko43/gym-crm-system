@@ -39,6 +39,14 @@ public class UserRepository {
                 .uniqueResultOptional();
     }
 
+    public Optional<UserEntity> findById(Long id){
+        log.info("Started finding user by ID {}", id);
+        String hql = "FROM UserEntity u WHERE u.id = :id";
+        return getSession().createQuery(hql, UserEntity.class)
+                .setParameter("id", id)
+                .uniqueResultOptional();
+    }
+
     public List<String> findUsernamesByBaseNameForUpdate(String baseName){
         log.info("Started getting usernames by base name for update");
         String hql = "SELECT u.username FROM UserEntity u WHERE u.username LIKE :baseName";

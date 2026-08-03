@@ -232,12 +232,12 @@ public class TrainingServiceTest {
 
     @Test
     void getTraineeTrainingList_ReturnTrainingsList_RequestIsValid(){
-        GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
-                TRAINEE_USERNAME,
-                LocalDate.of(2023, 12, 3),
-                LocalDate.of(2026, 5, 12),
-                "Doe",
-                TrainingType.CARDIO);
+        GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest();
+        request.setUsername(TRAINEE_USERNAME);
+        request.setFromDate(LocalDate.of(2023, 12, 3));
+        request.setToDate(LocalDate.of(2026, 5, 12));
+        request.setTrainerName("Doe");
+        request.setTrainingType(TrainingType.CARDIO);
         TraineeEntity trainee1 = new TraineeEntity();
         trainee1.setId(TRAINEE_ID);
         TrainerEntity trainer1 = new TrainerEntity();
@@ -272,11 +272,11 @@ public class TrainingServiceTest {
         List<TrainingSummary> mappedTrainings = List.of(trainingSummary1, trainingSummary2);
 
         when(trainingRepository.findTraineeTrainingsByCriteria(
-                request.username(),
-                request.fromDate(),
-                request.toDate(),
-                request.trainerName(),
-                request.trainingType().name()
+                request.getUsername(),
+                request.getFromDate(),
+                request.getToDate(),
+                request.getTrainerName(),
+                request.getTrainingType().name()
         )).thenReturn(trainings);
         when(gymMapper.toTrainingSummary(training1, trainee1, trainer1)).thenReturn(trainingSummary1);
         when(gymMapper.toTrainingSummary(training2, trainee1, trainer2)).thenReturn(trainingSummary2);
@@ -285,11 +285,11 @@ public class TrainingServiceTest {
         assertEquals(mappedTrainings, result.trainings());
         verify(authenticator, times(1)).authenticate(TRAINEE_CREDENTIALS);
         verify(trainingRepository, times(1)).findTraineeTrainingsByCriteria(
-                request.username(),
-                request.fromDate(),
-                request.toDate(),
-                request.trainerName(),
-                request.trainingType().name());
+                request.getUsername(),
+                request.getFromDate(),
+                request.getToDate(),
+                request.getTrainerName(),
+                request.getTrainingType().name());
         verify(gymMapper, times(1)).toTrainingSummary(training1, trainee1, trainer1);
         verify(gymMapper, times(1)).toTrainingSummary(training2, trainee1, trainer2);
     }

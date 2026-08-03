@@ -24,16 +24,16 @@ public class UserService {
     }
 
     @Transactional
-    public void changePassword(ChangePasswordRequest request, UserCredentials credentials){
+    public void changePassword(Long id, ChangePasswordRequest request, UserCredentials credentials){
         authenticator.authenticate(credentials);
-        authenticator.authorize(request.username(), credentials);
-        UserEntity user = userRepository.findByUsername(request.username())
+        UserEntity user = userRepository.findById(id)
                 .filter(UserEntity::getIsActive)
                 .orElseThrow(() -> {
-                    String message = "User not found or is inactive";
+                    String message = String.format("User with ID %s not found or is inactive", id);
                     log.warn(message);
                     return new EntityNotFoundException(message);
                 });
+        authenticator.authorize(user.getUsername(), credentials);
         user.setPassword(request.newPassword());
         userRepository.save(user);
     }

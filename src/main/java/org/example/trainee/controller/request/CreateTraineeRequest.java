@@ -1,6 +1,7 @@
 package org.example.trainee.controller.request;
 
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
@@ -10,15 +11,20 @@ import org.example.user.controller.dto.FullName;
 
 import java.time.LocalDate;
 
+@Schema(description = "DTO for registering a new trainee", name = "CreateTrainee")
 public record CreateTraineeRequest(
+
+        @Schema(description = "The first and last names of the trainee", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotNull(message = "Full name cannot be null")
         @Valid
         FullName fullName,
 
+        @Schema(description = "Date of birth of the trainee", example = "2007-01-01")
         @Past(message = "Date of birth must be in the past")
         @ValidTraineeAge
         LocalDate dateOfBirth,
 
+        @Schema(description = "The residential address of the trainee", example = "123 Home Address, City")
         @Size(max = 200, message = "Address is too long")
         String address
 ) {

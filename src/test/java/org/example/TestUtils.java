@@ -1,5 +1,6 @@
 package org.example;
 
+import org.example.training.controller.response.TrainingSummary;
 import org.example.trainingType.dto.TrainingType;
 import org.example.trainingType.repository.TrainingTypeEntity;
 import org.example.user.controller.dto.UserCredentials;
@@ -31,6 +32,7 @@ public class TestUtils {
     public static final String TRAINER_PASSWORD = "test122333";
     public static final String FIRST_NAME = "John";
     public static final String LAST_NAME = "Doe";
+    public static final Long TRAINING_ID = 1L;
 
     public static CreateTraineeRequest getCreateTraineeRequest(){
         return new CreateTraineeRequest(
@@ -111,6 +113,13 @@ public class TestUtils {
         return trainingType;
     }
 
+    public static TraineeSummary getTraineeSummary(){
+        return new TraineeSummary(
+                TRAINEE_ID, new UserProfile(TRAINEE_USERNAME),
+                LocalDate.of(2007, 3, 25), "Home 21 Street"
+        );
+    }
+
     public static TraineeSummary getTraineeSummary(Long id){
         return new TraineeSummary(
                 id, new UserProfile(TRAINEE_USERNAME),
@@ -125,6 +134,13 @@ public class TestUtils {
         );
     }
 
+    public static TrainerSummary getTrainerSummary(){
+        return new TrainerSummary(
+                TRAINER_ID, new UserProfile(TRAINER_USERNAME),
+                TrainingType.YOGA
+        );
+    }
+
     public static TrainerSummary getTrainerSummary(Long id){
         return new TrainerSummary(
                 id, new UserProfile(TRAINER_USERNAME),
@@ -136,6 +152,13 @@ public class TestUtils {
         return new TrainerSummary(
                 TRAINER_ID, new UserProfile(username),
                 TrainingType.YOGA
+        );
+    }
+
+    public static TrainingSummary getTrainingSummary(){
+        return new TrainingSummary(
+                TRAINING_ID, getTrainerSummary(), getTraineeSummary(), "Morning Cardio",
+                TrainingType.YOGA, LocalDate.of(2026, 5, 15), 60
         );
     }
 

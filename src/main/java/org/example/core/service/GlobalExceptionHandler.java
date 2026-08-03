@@ -1,14 +1,20 @@
 package org.example.core.service;
 
+import jakarta.annotation.Nullable;
 import jakarta.validation.ConstraintViolationException;
 import org.example.exception.*;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -16,22 +22,42 @@ import java.util.List;
 import java.util.Map;
 
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ProblemDetail handleMethodArgumentNotValidException(MethodArgumentNotValidException exception){
+    @Override
+    protected @Nullable ResponseEntity<Object> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException ex,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.BAD_REQUEST, "Validation failed for one or more fields"
         );
         problemDetail.setTitle("Bad Request");
 
         Map<String, List<String>> errors = new HashMap<>();
-        for(FieldError error : exception.getBindingResult().getFieldErrors()){
+        for(FieldError error : ex.getBindingResult().getFieldErrors()){
             errors.computeIfAbsent(error.getField(), key -> new ArrayList<>())
                     .add(error.getDefaultMessage());
         }
         problemDetail.setProperty("invalidFields", errors);
-        return problemDetail;
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problemDetail);
+    }
+
+    @Override
+    protected @Nullable ResponseEntity<Object> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, "Invalid JSON request"
+        );
+        problemDetail.setTitle("Bad Request");
+        problemDetail.setProperty("violations", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problemDetail);
     }
 
     @ExceptionHandler(ConstraintViolationException.class)
@@ -41,15 +67,6 @@ public class GlobalExceptionHandler {
         );
         problemDetail.setTitle("Bad Request");
         problemDetail.setProperty("violations", exception.getMessage());
-        return problemDetail;
-    }
-
-    @ExceptionHandler(HttpMessageNotReadableException.class)
-    public ProblemDetail handleConstraintViolationException(HttpMessageNotReadableException exception){
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                HttpStatus.BAD_REQUEST, "Invalid JSON request"
-        );
-        problemDetail.setTitle("Bad Request");
         return problemDetail;
     }
 

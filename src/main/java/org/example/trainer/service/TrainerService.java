@@ -2,7 +2,6 @@ package org.example.trainer.service;
 
 import org.example.exception.InvalidRequestDataException;
 import org.example.trainer.controller.response.Trainers;
-import org.example.user.controller.dto.UserProfile;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.core.service.AuthenticationComponent;
@@ -41,7 +40,7 @@ public class TrainerService {
     }
 
     @Transactional
-    public UserProfile create(CreateTrainerRequest request) {
+    public TrainerSummary create(CreateTrainerRequest request) {
         TrainingTypeEntity trainingType = trainingTypeRepository.findByName(request.specialization())
                 .orElseThrow(() -> {
                     String message = String.format("Training type %s not found", request.specialization().name());
@@ -53,7 +52,21 @@ public class TrainerService {
         TrainerEntity trainer = gymMapper.toTrainerEntity(request, trainingType, existingUsernames);
         TrainerEntity savedTrainer = trainerRepository.save(trainer);
         log.info("Created trainer profile with ID: {}", savedTrainer.getId());
-        return gymMapper.toUserProfile(savedTrainer.getUser());
+        return gymMapper.toTrainerSummary(savedTrainer);
+    }
+
+    @Transactional(readOnly = true)
+    public TrainerSummary getById(Long id, UserCredentials credentials){
+        authenticator.authenticate(credentials);
+        log.info("Selecting trainer by ID started");
+        return trainerRepository.findById(id)
+                .filter(trainer -> trainer.getUser().getIsActive())
+                .map(gymMapper::toTrainerSummary)
+                .orElseThrow(() -> {
+                    String message = String.format("Trainer with ID %s not found or is inactive", id);
+                    log.warn(message);
+                    return new EntityNotFoundException(message);
+                });
     }
 
     @Transactional(readOnly = true)
@@ -71,15 +84,15 @@ public class TrainerService {
     }
 
     @Transactional
-    public TrainerSummary update(String username, UpdateTrainerRequest request, UserCredentials credentials) {
+    public TrainerSummary update(Long id, UpdateTrainerRequest request, UserCredentials credentials) {
         authenticator.authenticate(credentials);
-        authenticator.authorize(username, credentials);
-        TrainerEntity existingTrainer = trainerRepository.findByUsername(username)
+        TrainerEntity existingTrainer = trainerRepository.findById(id)
                 .orElseThrow(() -> {
-                    String message = "Trainer not found";
+                    String message = String.format("Trainer with ID %s not found", id);
                     log.warn(message);
                     return new EntityNotFoundException(message);
                 });
+        authenticator.authorize(existingTrainer.getUser().getUsername(), credentials);
         TrainingTypeEntity trainingType = trainingTypeRepository.findByName(request.specialization())
                 .orElseThrow(() -> {
                     String message = String.format("Training type %s not found", request.specialization().name());
@@ -93,18 +106,18 @@ public class TrainerService {
     }
 
     @Transactional
-    public void changeActivity(String username, UserCredentials credentials){
+    public void changeActivity(Long id, UserCredentials credentials){
         authenticator.authenticate(credentials);
-        authenticator.authorize(username, credentials);
-        TrainerEntity trainer = trainerRepository.findByUsername(username)
+        TrainerEntity trainer = trainerRepository.findById(id)
                 .orElseThrow(() -> {
-                    String message = "Trainer not found";
+                    String message = String.format("Trainer with ID %s not found", id);
                     log.warn(message);
                     return new EntityNotFoundException(message);
                 });
+        authenticator.authorize(trainer.getUser().getUsername(), credentials);
         trainer.getUser().setIsActive(!trainer.getUser().getIsActive());
         trainerRepository.save(trainer);
-        log.info("Activity status changed for a trainer");
+        log.info(String.format("Activity status changed for a trainer with ID %s", id));
     }
 
     @Transactional(readOnly = true)

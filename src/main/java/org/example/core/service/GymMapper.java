@@ -19,7 +19,6 @@ import org.example.utils.PasswordGenerator;
 import org.example.utils.UsernameGenerator;
 import org.springframework.stereotype.Component;
 
-import java.util.Objects;
 import java.util.Set;
 
 @Component
@@ -34,7 +33,6 @@ public class GymMapper {
     }
 
     public TraineeEntity toTraineeEntity(CreateTraineeRequest request, Set<String> existingUsernames) {
-        Objects.requireNonNull(request, "Create request cannot be null");
         TraineeEntity trainee = new TraineeEntity();
         trainee.setUser(toNewUser(request.fullName(), existingUsernames));
         trainee.setDateOfBirth(request.dateOfBirth());
@@ -43,19 +41,18 @@ public class GymMapper {
     }
 
     public TraineeEntity toTraineeEntity(UpdateTraineeRequest request, TraineeEntity trainee) {
-        Objects.requireNonNull(request, "Update request cannot be null");
-        Objects.requireNonNull(trainee, "Trainee entity cannot be null");
         UserEntity updatedUser = toUpdatedUser(trainee.getUser(), request.fullName());
         TraineeEntity updatedTrainee = new TraineeEntity();
         updatedTrainee.setId(trainee.getId());
         updatedTrainee.setUser(updatedUser);
         updatedTrainee.setDateOfBirth(request.dateOfBirth());
         updatedTrainee.setAddress(request.address());
+        updatedTrainee.setTrainers(trainee.getTrainers());
+        updatedTrainee.setTrainings(trainee.getTrainings());
         return updatedTrainee;
     }
 
     public TraineeSummary toTraineeSummary(TraineeEntity trainee) {
-        Objects.requireNonNull(trainee, "Trainee entity cannot be null");
         return new TraineeSummary(
                 trainee.getId(),
                 new UserProfile(
@@ -67,7 +64,6 @@ public class GymMapper {
     }
 
     public TrainerEntity toTrainerEntity(CreateTrainerRequest request, TrainingTypeEntity trainingType, Set<String> existingUsernames) {
-        Objects.requireNonNull(request, "Create request cannot be null");
         TrainerEntity trainer = new TrainerEntity();
         trainer.setUser(toNewUser(request.fullName(), existingUsernames));
         trainer.setSpecialization(trainingType);
@@ -75,18 +71,16 @@ public class GymMapper {
     }
 
     public TrainerEntity toTrainerEntity(UpdateTrainerRequest request, TrainerEntity trainer, TrainingTypeEntity trainingType) {
-        Objects.requireNonNull(request, "Update request cannot be null");
-        Objects.requireNonNull(trainer, "Trainer entity cannot be null");
         UserEntity updatedUser = toUpdatedUser(trainer.getUser(), request.fullName());
         TrainerEntity updatedTrainer = new TrainerEntity();
         updatedTrainer.setId(trainer.getId());
         updatedTrainer.setUser(updatedUser);
         updatedTrainer.setSpecialization(trainingType);
-        return trainer;
+        updatedTrainer.setTrainees(trainer.getTrainees());
+        return updatedTrainer;
     }
 
     public TrainerSummary toTrainerSummary(TrainerEntity trainer) {
-        Objects.requireNonNull(trainer, "Trainer entity cannot be null");
         return new TrainerSummary(
                 trainer.getId(),
                 new UserProfile(
@@ -97,9 +91,6 @@ public class GymMapper {
     }
 
     public TrainingEntity toTraining(CreateTrainingRequest request, TraineeEntity trainee, TrainerEntity trainer) {
-        Objects.requireNonNull(request, "Create request cannot be null");
-        Objects.requireNonNull(trainee, "Trainee entity cannot be null");
-        Objects.requireNonNull(trainer, "Trainer entity cannot be null");
         TrainingEntity training = new TrainingEntity();
         training.setTrainee(trainee);
         training.setTrainer(trainer);
@@ -111,9 +102,6 @@ public class GymMapper {
     }
 
     public TrainingSummary toTrainingSummary(TrainingEntity training, TraineeEntity trainee, TrainerEntity trainer) {
-        Objects.requireNonNull(training, "Training entity cannot be null");
-        Objects.requireNonNull(trainee, "Trainee entity cannot be null");
-        Objects.requireNonNull(trainer, "Trainer entity cannot be null");
         return new TrainingSummary(
                 training.getId(),
                 toTrainerSummary(trainer),
@@ -125,13 +113,7 @@ public class GymMapper {
         );
     }
 
-    public UserProfile toUserProfile(UserEntity user){
-        Objects.requireNonNull(user, "User entity cannot be null");
-        return new UserProfile(user.getUsername());
-    }
-
     private UserEntity toNewUser(FullName fullName, Set<String> existingUsernames){
-        Objects.requireNonNull(fullName, "Full name cannot be null");
         String firstName = fullName.firstName();
         String lastName = fullName.lastName();
         UserEntity newUser = new UserEntity();
@@ -144,8 +126,6 @@ public class GymMapper {
     }
 
     private UserEntity toUpdatedUser(UserEntity user, FullName fullName){
-        Objects.requireNonNull(user, "User entity cannot be null");
-        Objects.requireNonNull(fullName, "Full name cannot be null");
         UserEntity updatedUser = new UserEntity();
         updatedUser.setId(user.getId());
         updatedUser.setFirstName(fullName.firstName());

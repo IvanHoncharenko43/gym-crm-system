@@ -20,6 +20,9 @@ import org.example.training.repository.TrainingEntity;
 import org.example.training.repository.TrainingRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+
 @Slf4j
 @Service
 public class TrainingService {
@@ -58,6 +61,8 @@ public class TrainingService {
                     log.warn(message);
                     return new InvalidRequestDataException(message);
                 });
+        trainee.getTrainers().add(trainer);
+        trainer.getTrainees().add(trainee);
         TrainingEntity training = gymMapper.toTraining(request, trainee, trainer);
         TrainingEntity savedTraining = trainingRepository.save(training);
         log.info("Created training with ID: {}", savedTraining.getId());
@@ -83,8 +88,8 @@ public class TrainingService {
     public Trainings getTraineeTrainingList(GetTraineeTrainingsRequest request, UserCredentials credentials){
         authenticator.authenticate(credentials);
         return new Trainings(
-                trainingRepository.findTraineeTrainingsByCriteria(request.username(), request.fromDate(), request.toDate(),
-                                request.trainerName(), request.trainingType().name()).stream()
+                trainingRepository.findTraineeTrainingsByCriteria(request.getUsername(), request.getFromDate(), request.getToDate(),
+                                request.getTrainerName(), request.getTrainingType().name()).stream()
                         .map(training -> gymMapper.toTrainingSummary(training, training.getTrainee(), training.getTrainer()))
                         .toList()
         );
