@@ -131,7 +131,7 @@ public class TraineeRepositoryTest {
 
         doReturn(Optional.of(trainee)).when(traineeRepository).findByUsername(username);
 
-        traineeRepository.deleteByUsername(username);
+        traineeRepository.deleteByUserUsername(username);
         verify(traineeRepository, times(1)).findByUsername(username);
         verify(session, times(1)).remove(trainee);
     }
