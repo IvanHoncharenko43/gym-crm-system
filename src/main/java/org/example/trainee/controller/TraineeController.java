@@ -11,20 +11,30 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.example.trainee.controller.request.CreateTraineeRequest;
+import org.example.trainee.controller.request.GetTraineeTrainingsRequest;
 import org.example.trainee.controller.response.TraineeSummary;
 import org.example.trainee.controller.request.UpdateTraineeRequest;
 import org.example.trainee.controller.request.UpdateTraineeTrainersRequest;
-import org.example.trainee.controller.request.GetTraineeTrainingsRequest;
 import org.example.trainee.service.TraineeService;
 import org.example.trainer.controller.response.Trainers;
 import org.example.training.controller.response.Trainings;
 import org.example.training.service.TrainingService;
 import org.example.user.controller.dto.UserCredentials;
-import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RequestAttribute;
 
 @Slf4j
 @Validated
@@ -69,7 +79,7 @@ public class TraineeController {
     @ResponseStatus(HttpStatus.OK)
     public TraineeSummary getTrainee(
             @Parameter(in = ParameterIn.PATH, description = "Trainee ID", example = "12")
-            @PathVariable("id") Long id,
+            @PathVariable Long id,
             @Parameter(hidden = true)
             @RequestAttribute("userCredentials") UserCredentials credentials){
         log.info("GET /api/v1/trainees/{id} endpoint called");
@@ -92,7 +102,7 @@ public class TraineeController {
     @ResponseStatus(HttpStatus.OK)
     public TraineeSummary updateTrainee(
             @Parameter(in = ParameterIn.PATH, description = "Trainee ID", example = "12")
-            @PathVariable("id") Long id,
+            @PathVariable Long id,
             @Valid @RequestBody UpdateTraineeRequest request,
             @Parameter(hidden = true)
             @RequestAttribute("userCredentials") UserCredentials credentials){
@@ -111,8 +121,8 @@ public class TraineeController {
     @DeleteMapping(params = "username")
     @ResponseStatus(HttpStatus.OK)
     public void deleteTrainee(
-            @Parameter(in = ParameterIn.PATH, description = "Trainee ID", example = "12")
-            @RequestParam("username") String username,
+            @Parameter(in = ParameterIn.QUERY, description = "Trainee's username", example = "John.Doe")
+            @RequestParam String username,
             @Parameter(hidden = true)
             @RequestAttribute("userCredentials") UserCredentials credentials){
         log.info("DELETE /api/v1/trainees/{id} endpoint called");
@@ -135,7 +145,7 @@ public class TraineeController {
     @ResponseStatus(HttpStatus.OK)
     public Trainers updateTrainersList(
             @Parameter(in = ParameterIn.PATH, description = "Trainee ID", example = "12")
-            @PathVariable("id") Long id,
+            @PathVariable Long id,
             @Valid @RequestBody UpdateTraineeTrainersRequest request,
             @Parameter(hidden = true)
             @RequestAttribute("userCredentials") UserCredentials credentials){
@@ -153,14 +163,14 @@ public class TraineeController {
             @ApiResponse(responseCode = "404", description = "Trainee Not Found", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
-    @PatchMapping(value = "/{id}/activity-change")
+    @PatchMapping(value = "/{id}/profile/active-status/change")
     @ResponseStatus(HttpStatus.OK)
     public void changeTraineeActivity(
             @Parameter(in = ParameterIn.PATH, description = "Trainee ID", example = "12")
-            @PathVariable("id") Long id,
+            @PathVariable Long id,
             @Parameter(hidden = true)
             @RequestAttribute("userCredentials") UserCredentials credentials){
-        log.info("PATCH /api/v1/trainees/{id}/activity-change endpoint called");
+        log.info("PATCH /api/v1/trainees/{id}/profile/active-status/change endpoint called");
         traineeService.changeActivity(id, credentials);
     }
 
@@ -171,14 +181,14 @@ public class TraineeController {
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
-    @GetMapping("/trainings")
+    @PostMapping(value = "/trainings/search")
     @ResponseStatus(HttpStatus.OK)
     public Trainings getTraineeTrainingList(
-            @ParameterObject @Valid GetTraineeTrainingsRequest request,
+            @Valid @RequestBody GetTraineeTrainingsRequest request,
             @Parameter(hidden = true)
             @RequestAttribute("userCredentials") UserCredentials credentials
     ){
-        log.info("GET /api/v1/trainees/trainings endpoint called with request params");
+        log.info("GET /api/v1/trainees/trainings/search endpoint called with request params");
         return trainingService.getTraineeTrainingList(request, credentials);
     }
 }

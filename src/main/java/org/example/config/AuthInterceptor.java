@@ -1,4 +1,4 @@
-package org.example.core.service;
+package org.example.config;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -8,19 +8,23 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Arrays;
+import java.util.Collections;
 
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
 
     private final BasicAuthDecoder basicAuthDecoder;
 
-    private final List<String> bypassPostPaths;
+    private final Set<String> bypassPostPaths;
 
     public AuthInterceptor(BasicAuthDecoder basicAuthDecoder,
-                           @Value("#{'${auth.bypass.post.paths}'.split(',')}") List<String> bypassPostPaths){
+                           @Value("${auth.bypass.post.paths}") String[] bypassPostPaths){
         this.basicAuthDecoder = basicAuthDecoder;
-        this.bypassPostPaths = bypassPostPaths;
+        this.bypassPostPaths = bypassPostPaths != null && bypassPostPaths.length > 0
+                ? new HashSet<>(Arrays.asList(bypassPostPaths)) : Collections.emptySet();
     }
 
     @Override

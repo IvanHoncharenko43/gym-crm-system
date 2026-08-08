@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
@@ -21,12 +20,20 @@ import org.example.trainer.service.TrainerService;
 import org.example.training.controller.response.Trainings;
 import org.example.training.service.TrainingService;
 import org.example.user.controller.dto.UserCredentials;
-import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RequestAttribute;
 
 @Slf4j
 @Validated
@@ -70,7 +77,7 @@ public class TrainerController {
     @ResponseStatus(HttpStatus.OK)
     public TrainerSummary getTrainer(
             @Parameter(in = ParameterIn.PATH, description = "Trainer ID", example = "12")
-            @PathVariable("id") Long id,
+            @PathVariable Long id,
             @Parameter(hidden = true)
             @RequestAttribute("userCredentials") UserCredentials credentials){
         log.info("GET /api/v1/trainers/{id} endpoint called");
@@ -93,7 +100,7 @@ public class TrainerController {
     @ResponseStatus(HttpStatus.OK)
     public TrainerSummary updateTrainer(
             @Parameter(in = ParameterIn.PATH, description = "Trainer ID", example = "12")
-            @PathVariable("id") Long id,
+            @PathVariable Long id,
             @Valid @RequestBody UpdateTrainerRequest request,
             @Parameter(hidden = true)
             @RequestAttribute("userCredentials") UserCredentials credentials){
@@ -133,7 +140,7 @@ public class TrainerController {
     @ResponseStatus(HttpStatus.OK)
     public void changeTrainerActivity(
             @Parameter(in = ParameterIn.PATH, description = "Trainer ID", example = "12")
-            @PathVariable("id") Long id,
+            @PathVariable Long id,
             @Parameter(hidden = true)
             @RequestAttribute("userCredentials") UserCredentials credentials){
         log.info("PATCH /api/v1/trainers/{id}/activity-change endpoint called");
@@ -147,10 +154,10 @@ public class TrainerController {
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
-    @GetMapping(value = "/trainings")
+    @PostMapping(value = "/trainings/search")
     @ResponseStatus(HttpStatus.OK)
     public Trainings getTrainerTrainingList(
-            @ParameterObject @Valid GetTrainerTrainingsRequest request,
+            @Valid @RequestBody GetTrainerTrainingsRequest request,
             @Parameter(hidden = true)
             @RequestAttribute("userCredentials") UserCredentials credentials
     ){

@@ -17,7 +17,13 @@ import org.example.trainingType.service.TrainingTypeService;
 import org.example.user.controller.dto.UserCredentials;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestAttribute;
 
 @Slf4j
 @Tag(name = "Trainings", description = "Operations related to gym trainings")
@@ -56,7 +62,10 @@ public class TrainingController {
             implementation = TrainingTypes.class)))
     @GetMapping("/training-types")
     @ResponseStatus(HttpStatus.OK)
-    public TrainingTypes getTrainingTypes(){
+    public TrainingTypes getTrainingTypes(
+            @Parameter(hidden = true)
+            @RequestAttribute("userCredentials") UserCredentials credentials
+    ){
         log.info("GET /api/v1/trainings/training-types endpoint called");
         return trainingTypeService.getAllTrainingTypes(credentials);
     }

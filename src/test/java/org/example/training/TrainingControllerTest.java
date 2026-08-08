@@ -62,14 +62,14 @@ class TrainingControllerTest {
     }
 
     @Test
-    void addTraining_validRequest_returnsTrainingSummary() throws Exception {
+    void addTraining_Return200AndTrainingSummary_RequestIsValid() throws Exception {
         CreateTrainingRequest request = new CreateTrainingRequest(
                 TestUtils.TRAINER_USERNAME, TestUtils.TRAINEE_USERNAME, "Morning Cardio",
                 LocalDate.now().plusDays(7), 45
         );
         when(trainingService.create(request, CREDENTIALS)).thenReturn(TestUtils.getTrainingSummary());
 
-        mockMvc.perform(post("/v1/trainings")
+        mockMvc.perform(post("/api/v1/trainings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
                         .requestAttr("userCredentials", CREDENTIALS))
@@ -81,12 +81,12 @@ class TrainingControllerTest {
     }
 
     @Test
-    void addTraining_blankTrainerUsername_returns400WithProblemDetail() throws Exception {
+    void addTraining_Return400AndProblemDetail_TrainerUsernameIsBlank() throws Exception {
         CreateTrainingRequest request = new CreateTrainingRequest(
                 "  ", TestUtils.TRAINEE_USERNAME, "Cardio", LocalDate.now().plusDays(2), 45
         );
 
-        mockMvc.perform(post("/v1/trainings")
+        mockMvc.perform(post("/api/v1/trainings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
                         .requestAttr("userCredentials", CREDENTIALS))
@@ -96,13 +96,13 @@ class TrainingControllerTest {
     }
 
     @Test
-    void addTraining_durationBelowMinimum_returns400WithProblemDetail() throws Exception {
+    void addTraining_Return400AndProblemDetail_DurationBelowMinimum() throws Exception {
         CreateTrainingRequest request = new CreateTrainingRequest(
                 TestUtils.TRAINER_USERNAME, TestUtils.TRAINEE_USERNAME,
                 "Cardio", LocalDate.now().plusDays(2), 10
         );
 
-        mockMvc.perform(post("/v1/trainings")
+        mockMvc.perform(post("/api/v1/trainings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
                         .requestAttr("userCredentials", CREDENTIALS))
@@ -112,13 +112,13 @@ class TrainingControllerTest {
     }
 
     @Test
-    void addTraining_durationAboveMaximum_returns400WithProblemDetail() throws Exception {
+    void addTraining_Return400AndProblemDetail_DurationAboveMaximum() throws Exception {
         CreateTrainingRequest request = new CreateTrainingRequest(
                 TestUtils.TRAINER_USERNAME, TestUtils.TRAINEE_USERNAME,
                 "Cardio", LocalDate.now().plusDays(2), 400
         );
 
-        mockMvc.perform(post("/v1/trainings")
+        mockMvc.perform(post("/api/v1/trainings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
                         .requestAttr("userCredentials", CREDENTIALS))
@@ -128,12 +128,12 @@ class TrainingControllerTest {
     }
 
     @Test
-    void addTraining_trainingDateIsToday_returns400WithProblemDetail() throws Exception {
+    void addTraining_Return400AndProblemDetail_TrainingDateIsToday() throws Exception {
         CreateTrainingRequest request = new CreateTrainingRequest(
                 TestUtils.TRAINER_USERNAME, TestUtils.TRAINEE_USERNAME, "Cardio", LocalDate.now(), 45
         );
 
-        mockMvc.perform(post("/v1/trainings")
+        mockMvc.perform(post("/api/v1/trainings")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
                         .requestAttr("userCredentials", CREDENTIALS))
@@ -143,11 +143,11 @@ class TrainingControllerTest {
     }
 
     @Test
-    void getTrainingTypes_returns200WithAllTypes() throws Exception {
+    void getTrainingTypes_Returns200AndTrainingTypes() throws Exception {
         TrainingTypes types = new TrainingTypes(List.of(TrainingType.YOGA, TrainingType.CARDIO));
         when(trainingTypeService.getAllTrainingTypes(CREDENTIALS)).thenReturn(types);
 
-        mockMvc.perform(get("/v1/trainings/training-types")
+        mockMvc.perform(get("/api/v1/trainings/training-types")
                         .requestAttr("userCredentials", CREDENTIALS))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trainingTypes").isArray())

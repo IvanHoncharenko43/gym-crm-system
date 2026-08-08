@@ -7,16 +7,17 @@ import org.example.config.InterceptorConfigurationProperties;
 import org.example.exception.EntityNotFoundException;
 import org.example.trainee.controller.TraineeController;
 import org.example.trainee.controller.request.CreateTraineeRequest;
+import org.example.trainee.controller.request.GetTraineeTrainingsRequest;
 import org.example.trainee.controller.request.UpdateTraineeRequest;
 import org.example.trainee.controller.request.UpdateTraineeTrainersRequest;
 import org.example.trainee.service.TraineeService;
 import org.example.trainer.controller.response.Trainers;
 import org.example.training.controller.response.Trainings;
 import org.example.training.service.TrainingService;
+import org.example.trainingType.dto.TrainingType;
 import org.example.user.controller.dto.FullName;
 import org.example.user.controller.dto.UserCredentials;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
@@ -67,13 +68,13 @@ class TraineeControllerTest {
     }
 
     @Test
-    void registerTrainee_validRequest_returnsCreatedWithSummary() throws Exception {
+    void registerTrainee_Return201AndTraineeSummary_RequestIsValid() throws Exception {
         CreateTraineeRequest request = new CreateTraineeRequest(
                 new FullName("John", "Doe"), LocalDate.of(2000, 1, 1), "Home"
         );
         when(traineeService.create(request)).thenReturn(getTraineeSummary());
 
-        mockMvc.perform(post("/v1/trainees")
+        mockMvc.perform(post("/api/v1/trainees")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -85,12 +86,12 @@ class TraineeControllerTest {
     }
 
     @Test
-    void registerTrainee_blankFirstName_returns400WithProblemDetail() throws Exception {
+    void registerTrainee_Return400AndProblemDetail_FirstNameIsBlank() throws Exception {
         CreateTraineeRequest request = new CreateTraineeRequest(
                 new FullName("  ", "Doe"), LocalDate.of(2000, 1, 1), "Home"
         );
 
-        mockMvc.perform(post("/v1/trainees")
+        mockMvc.perform(post("/api/v1/trainees")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -99,12 +100,12 @@ class TraineeControllerTest {
     }
 
     @Test
-    void registerTrainee_underage_returns400WithProblemDetail() throws Exception {
+    void registerTrainee_Return400AndProblemDetail_TraineeIsUnderage() throws Exception {
         CreateTraineeRequest request = new CreateTraineeRequest(
                 new FullName("John", "Doe"), LocalDate.now().minusYears(10), "Home"
         );
 
-        mockMvc.perform(post("/v1/trainees")
+        mockMvc.perform(post("/api/v1/trainees")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
@@ -113,10 +114,10 @@ class TraineeControllerTest {
     }
 
     @Test
-    void getTrainee_validId_returnsSummary() throws Exception {
+    void getTrainee_Return200AndTraineeSummary_IdIsValid() throws Exception {
         when(traineeService.getById(TRAINEE_ID, CREDENTIALS)).thenReturn(getTraineeSummary());
 
-        mockMvc.perform(get("/v1/trainees/{id}", TRAINEE_ID)
+        mockMvc.perform(get("/api/v1/trainees/{id}", TRAINEE_ID)
                         .requestAttr("userCredentials", CREDENTIALS))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(TRAINEE_ID))
@@ -124,12 +125,26 @@ class TraineeControllerTest {
         verify(traineeService, times(1)).getById(TRAINEE_ID, CREDENTIALS);
     }
 
+//    @Test
+//    void getTrainee_Return401AndProblemDetail_UserUnauthorized() throws Exception {
+//        UserCredentials invalidCredentials = new UserCredentials(TRAINEE_USERNAME, "InvalidPassword");
+//        when(traineeService.getById(TRAINEE_ID, invalidCredentials))
+//                .thenThrow(new AuthenticationFailedException("Authentication failed"));
+//
+//        mockMvc.perform(get("/api/v1/trainees/{id}", TRAINEE_ID)
+//                        .requestAttr("userCredentials", invalidCredentials))
+//                .andExpect(status().isUnauthorized())
+//                .andExpect(jsonPath("$.title").value("Authentication Failure"))
+//                .andExpect(jsonPath("$.detail").value("Authentication failed"));
+//        verify(traineeService, times(1)).getById(TRAINEE_ID, invalidCredentials);
+//    }
+
     @Test
-    void getTrainee_notFound_returns404WithProblemDetail() throws Exception {
+    void getTrainee_Return404AndProblemDetail_TraineeNotFound() throws Exception {
         when(traineeService.getById(99L, CREDENTIALS))
                 .thenThrow(new EntityNotFoundException("Trainee not found"));
 
-        mockMvc.perform(get("/v1/trainees/{id}", 99L)
+        mockMvc.perform(get("/api/v1/trainees/{id}", 99L)
                         .requestAttr("userCredentials", CREDENTIALS))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Entity Not Found"))
@@ -138,12 +153,12 @@ class TraineeControllerTest {
     }
 
     @Test
-    void updateTrainee_validRequest_returnsUpdatedSummary() throws Exception {
+    void updateTrainee_Return200AndTraineeSummary_RequestIsValid() throws Exception {
         UpdateTraineeRequest request = new UpdateTraineeRequest(
                 new FullName("John", "Doe"), LocalDate.of(2000, 1, 1), "Home");
         when(traineeService.update(TRAINEE_ID, request, CREDENTIALS)).thenReturn(getTraineeSummary());
 
-        mockMvc.perform(put("/v1/trainees/{id}", TRAINEE_ID)
+        mockMvc.perform(put("/api/v1/trainees/{id}", TRAINEE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
                         .requestAttr("userCredentials", CREDENTIALS))
@@ -153,11 +168,11 @@ class TraineeControllerTest {
     }
 
     @Test
-    void updateTrainee_nullFullName_returns400WithProblemDetail() throws Exception {
+    void updateTrainee_Return400AndProblemDetail_FullNameIsNull() throws Exception {
         UpdateTraineeRequest request = new UpdateTraineeRequest(
                 null, LocalDate.of(2000, 1, 1), "Home");
 
-        mockMvc.perform(put("/v1/trainees/{id}", TRAINEE_ID)
+        mockMvc.perform(put("/api/v1/trainees/{id}", TRAINEE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
                         .requestAttr("userCredentials", CREDENTIALS))
@@ -167,8 +182,8 @@ class TraineeControllerTest {
     }
 
     @Test
-    void deleteTrainee_validUsername_returns200() throws Exception {
-        mockMvc.perform(delete("/v1/trainees")
+    void deleteTrainee_Return200_UsernameIsValid() throws Exception {
+        mockMvc.perform(delete("/api/v1/trainees")
                         .param("username", TRAINEE_USERNAME)
                         .requestAttr("userCredentials", CREDENTIALS))
                 .andExpect(status().isOk());
@@ -176,12 +191,12 @@ class TraineeControllerTest {
     }
 
     @Test
-    void updateTrainersList_validRequest_returnsTrainers() throws Exception {
+    void updateTrainersList_Return200AndTrainers_RequestIsValid() throws Exception {
         Trainers trainers = new Trainers(List.of(getTrainerSummary()));
         UpdateTraineeTrainersRequest request = new UpdateTraineeTrainersRequest(List.of(TRAINER_USERNAME));
         when(traineeService.updateTrainersList(TRAINEE_ID, request, CREDENTIALS)).thenReturn(trainers);
 
-        mockMvc.perform(put("/v1/trainees/{id}/trainers-update", TRAINEE_ID)
+        mockMvc.perform(put("/api/v1/trainees/{id}/trainers-update", TRAINEE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
                         .requestAttr("userCredentials", CREDENTIALS))
@@ -192,11 +207,10 @@ class TraineeControllerTest {
     }
 
     @Test
-    @DisplayName("PUT /v1/trainees/{id}/trainers-update → 400 Bad Request when list is empty (@NotEmpty)")
-    void updateTrainersList_emptyList_returns400WithProblemDetail() throws Exception {
+    void updateTrainersList_Return400AndProblemDetail_ListIsEmpty() throws Exception {
         UpdateTraineeTrainersRequest request = new UpdateTraineeTrainersRequest(List.of());
 
-        mockMvc.perform(put("/v1/trainees/{id}/trainers-update", TRAINEE_ID)
+        mockMvc.perform(put("/api/v1/trainees/{id}/trainers-update", TRAINEE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
                         .requestAttr("userCredentials", CREDENTIALS))
@@ -206,44 +220,55 @@ class TraineeControllerTest {
     }
 
     @Test
-    void changeTraineeActivity_validRequest_returns200() throws Exception {
-        mockMvc.perform(patch("/v1/trainees/{id}/profile/active-status/change", TRAINEE_ID)
+    void changeTraineeActivity_Return200_RequestIsValid() throws Exception {
+        mockMvc.perform(patch("/api/v1/trainees/{id}/profile/active-status/change", TRAINEE_ID)
                         .requestAttr("userCredentials", CREDENTIALS))
                 .andExpect(status().isOk());
         verify(traineeService, times(1)).changeActivity(TRAINEE_ID, CREDENTIALS);
     }
 
     @Test
-    @DisplayName("POST /v1/trainees/trainings/search → 200 OK with valid query params")
-    void getTraineeTrainings_validParams_returnsTrainingList() throws Exception {
+    void getTraineeTrainings_Return200AndTrainings_RequestIsValid() throws Exception {
+        GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
+                TRAINEE_USERNAME, LocalDate.of(2026, 1, 1),
+                LocalDate.of(2026, 12, 31), TRAINER_USERNAME, TrainingType.YOGA
+        );
         Trainings trainings = new Trainings(List.of(getTrainingSummary()));
-        when(trainingService.getTraineeTrainingList(any(), any())).thenReturn(trainings);
+        when(trainingService.getTraineeTrainingList(request, CREDENTIALS)).thenReturn(trainings);
 
-        mockMvc.perform(post("/v1/trainees/trainings/search")
-                        .param("username", TRAINEE_USERNAME)
-                        .param("fromDate", "2026-01-01")
-                        .param("toDate", "2026-12-31")
+        mockMvc.perform(post("/api/v1/trainees/trainings/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
                         .requestAttr("userCredentials", CREDENTIALS))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trainings").isArray())
                 .andExpect(jsonPath("$.trainings[0].trainingName").value("Morning Cardio"));
+        verify(trainingService, times(1)).getTraineeTrainingList(request, CREDENTIALS);
     }
 
     @Test
-    void getTraineeTrainings_blankUsername_returns400() throws Exception {
-        mockMvc.perform(post("/v1/trainees/trainings/search")
-                        .param("username", "")
+    void getTraineeTrainings_Return400_UsernameIsBlank() throws Exception {
+        GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
+                "  ", LocalDate.of(2026, 1, 1),
+                LocalDate.of(2026, 12, 31), TRAINER_USERNAME, TrainingType.YOGA
+        );
+        mockMvc.perform(post("/api/v1/trainees/trainings/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
                         .requestAttr("userCredentials", CREDENTIALS))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"));
     }
 
     @Test
-    void getTraineeTrainings_fromDateAfterToDate_returns400() throws Exception {
-        mockMvc.perform(post("/v1/trainees/trainings/search")
-                        .param("username", TRAINEE_USERNAME)
-                        .param("fromDate", "2026-12-31")
-                        .param("toDate", "2026-01-01")
+    void getTraineeTrainings_Return400_FromDateAfterToDate() throws Exception {
+        GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
+                TRAINEE_USERNAME, LocalDate.of(2026, 12, 31),
+                LocalDate.of(2026, 1, 31), TRAINER_USERNAME, TrainingType.YOGA
+        );
+        mockMvc.perform(post("/api/v1/trainees/trainings/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
                         .requestAttr("userCredentials", CREDENTIALS))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"));

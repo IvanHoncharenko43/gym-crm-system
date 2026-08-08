@@ -15,7 +15,13 @@ import org.example.user.controller.dto.UserCredentials;
 import org.example.user.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestAttribute;
 
 @Slf4j
 @Tag(name = "Users", description = "Operations related to gym users")
@@ -37,16 +43,15 @@ public class UserController {
 
     @Operation(summary = "Change a user's password", description = "Changes a specified user's password")
     @ApiResponse(responseCode = "200", description = "OK")
-    @PutMapping("/{id}/password-change")
+    @PutMapping("/{id}/profile/password-change")
     @ResponseStatus(HttpStatus.OK)
     public void changePassword(
             @Parameter(in = ParameterIn.PATH, description = "User ID", example = "12")
-            @PathVariable("id") Long id,
+            @PathVariable Long id,
             @Valid @RequestBody ChangePasswordRequest request,
             @Parameter(hidden = true)
             @RequestAttribute("userCredentials") UserCredentials credentials){
         log.info("PUT /api/v1/users/change-password endpoint called");
         userService.changePassword(id, request, credentials);
-        return Response.status(Response.Status.OK).build();
     }
 }
