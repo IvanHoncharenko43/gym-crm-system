@@ -1,116 +1,129 @@
 package org.example.user;
 
-import jakarta.persistence.LockModeType;
-import org.apache.catalina.User;
-import org.example.trainee.repository.TraineeEntity;
+import org.example.core.AbstractRepositoryTest;
 import org.example.user.repository.UserEntity;
 import org.example.user.repository.UserRepository;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.hibernate.query.Query;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Spy;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@ExtendWith(MockitoExtension.class)
-public class UserRepositoryTest {
+public class UserRepositoryTest extends AbstractRepositoryTest {
 
-    @Mock
-    private SessionFactory sessionFactory;
-
-    @Mock
-    private Session session;
-
-    @Mock
-    private Query<String> queryString;
-
-    @Mock
-    private Query<UserEntity> queryUserEntity;
-
-    @Spy
-    @InjectMocks
+    @Autowired
     private UserRepository userRepository;
 
-    @BeforeEach
-    void setUp(){
-        when(sessionFactory.getCurrentSession()).thenReturn(session);
-    }
+    @Autowired
+    private TestEntityManager entityManager;
 
-    @Test
-    void save_PersistEntity_EntityDoesNotHaveUsername() {
+    private UserEntity persistUser(String username) {
         UserEntity user = new UserEntity();
-
-        doReturn(Optional.empty()).when(userRepository).findByUsername(null);
-
-        UserEntity createdUser = userRepository.save(user);
-        verify(userRepository, times(1)).findByUsername(null);
-        verify(session, times(1)).persist(user);
-        assertEquals(user, createdUser);
+        user.setFirstName("John");
+        user.setLastName("Doe");
+        user.setUsername(username);
+        user.setPassword("password1234");
+        user.setIsActive(true);
+        return entityManager.persistAndFlush(user);
     }
 
     @Test
-    void save_MergeEntity_EntityHasId() {
+    void save_PersistUserEntity_EntityIsNew() {
         String username = "John.Doe";
         UserEntity user = new UserEntity();
+        user.setFirstName("John");
+        user.setLastName("Doe");
         user.setUsername(username);
+        user.setPassword("password1234");
+        user.setIsActive(true);
 
-        doReturn(Optional.of(user)).when(userRepository).findByUsername(username);
-        when(session.merge(user)).thenReturn(user);
+        UserEntity savedUser = userRepository.save(user);
+        entityManager.flush();
+        entityManager.clear();
 
-        UserEntity result = userRepository.save(user);
-        assertEquals(user, result);
-        verify(userRepository, times(1)).findByUsername(username);
-        verify(session, times(1)).merge(user);
+        assertThat(savedUser.getId()).isNotNull();
+        UserEntity existingUser = entityManager.find(UserEntity.class, savedUser.getId());
+        assertThat(existingUser).isNotNull();
+        assertThat(existingUser.getUsername()).isEqualTo(username);
+    }
+
+    @Test
+    void save_MergeUserEntity_EntityHasId() {
+        String username = "John.Doe";
+        UserEntity user = persistUser(username);
+        entityManager.clear();
+
+        UserEntity toUpdate = userRepository.findById(user.getId()).orElseThrow();
+        toUpdate.setPassword("newPassword");
+        userRepository.save(toUpdate);
+        entityManager.flush();
+        entityManager.clear();
+
+        UserEntity existingUser = entityManager.find(UserEntity.class, user.getId());
+        assertThat(existingUser.getPassword()).isEqualTo("newPassword");
+    }
+
+    @Test
+    void findById_ReturnUser_IdExists() {
+        String username = "John.Doe";
+        UserEntity user = persistUser(username);
+        entityManager.clear();
+
+        Optional<UserEntity> existingUser = userRepository.findById(user.getId());
+
+        assertThat(existingUser).isPresent();
+        assertThat(existingUser.get().getUsername()).isEqualTo(username);
+    }
+
+    @Test
+    void findById_ReturnEmpty_IdDoesNotExist() {
+        Optional<UserEntity> user = userRepository.findById(99L);
+
+        assertThat(user).isEmpty();
     }
 
     @Test
     void findByUsername_ReturnUser_UsernameExists() {
         String username = "John.Doe";
-        String hql = "FROM UserEntity u WHERE u.username = :username";
-        UserEntity user = new UserEntity();
-        user.setUsername(username);
+        persistUser(username);
+        entityManager.clear();
 
-        when(session.createQuery(hql, UserEntity.class)).thenReturn(queryUserEntity);
-        when(queryUserEntity.setParameter("username", username)).thenReturn(queryUserEntity);
-        when(queryUserEntity.uniqueResultOptional()).thenReturn(Optional.of(user));
+        Optional<UserEntity> existingUser = userRepository.findByUsername(username);
 
-        Optional<UserEntity> result = userRepository.findByUsername(username);
-        assertTrue(result.isPresent());
-        assertEquals(user, result.get());
-        verify(session, times(1)).createQuery(hql, UserEntity.class);
-        verify(queryUserEntity, times(1)).setParameter("username", username);
-        verify(queryUserEntity, times(1)).uniqueResultOptional();
+        assertThat(existingUser).isPresent();
+        assertThat(existingUser.get().getUsername()).isEqualTo(username);
     }
 
     @Test
-    void findUsernamesByBaseName_ReturnUsernamesList_BaseNameExist(){
-        String baseName = "John.Doe";
-        String hql = "SELECT u.username FROM UserEntity u WHERE u.username LIKE :baseName";
-        List<String> usernames = List.of("John.Doe", "John.Doe1", "John.Doe2");
+    void findByUsername_ReturnEmpty_UsernameDoesNotExist() {
+        Optional<UserEntity> user = userRepository.findByUsername("not.found");
 
-        when(session.createQuery(hql, String.class)).thenReturn(queryString);
-        when(queryString.setParameter("baseName", baseName + "%")).thenReturn(queryString);
-        when(queryString.setLockMode(LockModeType.PESSIMISTIC_WRITE)).thenReturn(queryString);
-        when(queryString.getResultList()).thenReturn(usernames);
-
-        List<String> result = userRepository.findUsernamesByBaseNameForUpdate(baseName);
-        assertEquals(3, result.size());
-        assertEquals(usernames, result);
-        verify(session, times(1)).createQuery(hql, String.class);
-        verify(queryString, times(1)).setParameter("baseName", baseName + "%");
-        verify(queryString, times(1)).setLockMode(LockModeType.PESSIMISTIC_WRITE);
-        verify(queryString, times(1)).getResultList();
+        assertThat(user).isEmpty();
     }
 
+    @Test
+    void findUsernamesByBaseNameForUpdate_ReturnUsernamesList_BaseNameExists() {
+        String baseUsername = "John.Doe";
+        persistUser("Jane.Smith");
+        persistUser(baseUsername + 1);
+        persistUser(baseUsername + 2);
+        entityManager.clear();
+
+        List<String> usernames = userRepository.findUsernamesByBaseNameForUpdate(baseUsername);
+
+        assertThat(usernames).containsExactlyInAnyOrder(baseUsername+1, baseUsername+2);
+    }
+
+    @Test
+    void findUsernamesByBaseNameForUpdate_ReturnEmptyList_NoMatchExists() {
+        persistUser("John.Doe");
+        entityManager.clear();
+
+        List<String> usernames = userRepository.findUsernamesByBaseNameForUpdate("Jane.Smith");
+
+        assertThat(usernames).isEmpty();
+    }
 }

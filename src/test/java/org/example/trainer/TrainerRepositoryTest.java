@@ -1,173 +1,189 @@
 package org.example.trainer;
 
+import org.example.core.AbstractRepositoryTest;
+import org.example.trainee.repository.TraineeEntity;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.trainer.repository.TrainerRepository;
+import org.example.trainingType.dto.TrainingType;
+import org.example.trainingType.repository.TrainingTypeEntity;
 import org.example.user.repository.UserEntity;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.hibernate.query.Query;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Spy;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.times;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@ExtendWith(MockitoExtension.class)
-public class TrainerRepositoryTest {
+public class TrainerRepositoryTest extends AbstractRepositoryTest {
 
-    @Mock
-    private SessionFactory sessionFactory;
-
-    @Mock
-    private Session session;
-
-    @Mock
-    private Query<TrainerEntity> query;
-
-    @Spy
-    @InjectMocks
+    @Autowired
     private TrainerRepository trainerRepository;
 
-    @BeforeEach
-    void setUp() {
-        when(sessionFactory.getCurrentSession()).thenReturn(session);
+    @Autowired
+    private TestEntityManager entityManager;
+
+    private UserEntity persistUser(String username) {
+        UserEntity user = new UserEntity();
+        user.setFirstName("John");
+        user.setLastName("Doe");
+        user.setUsername(username);
+        user.setPassword("password1234");
+        user.setIsActive(true);
+        return entityManager.persistAndFlush(user);
     }
 
-    @Test
-    void save_PersistEntity_EntityDoesNotHaveId() {
+    private TrainingTypeEntity persistTrainingType(TrainingType name) {
+        TrainingTypeEntity trainingType = new TrainingTypeEntity();
+        trainingType.setTrainingTypeName(name);
+        return entityManager.persistAndFlush(trainingType);
+    }
+
+    private TrainerEntity persistTrainer(String username, TrainingTypeEntity specialization) {
         TrainerEntity trainer = new TrainerEntity();
+        trainer.setUser(persistUser(username));
+        trainer.setSpecialization(specialization);
+        return entityManager.persistAndFlush(trainer);
+    }
 
-        doReturn(Optional.empty()).when(trainerRepository).findById(null);
-
-        TrainerEntity createdEntity = trainerRepository.save(trainer);
-        verify(trainerRepository, times(1)).findById(null);
-        verify(session, times(1)).persist(trainer);
-        assertEquals(trainer, createdEntity);
+    private TraineeEntity persistTrainee(String username) {
+        TraineeEntity trainee = new TraineeEntity();
+        trainee.setUser(persistUser(username));
+        trainee.setAddress("21 Home Street");
+        trainee.setDateOfBirth(LocalDate.of(2007, 1, 1));
+        return entityManager.persistAndFlush(trainee);
     }
 
     @Test
-    void save_MergeEntity_EntityHasId() {
-        Long id = 1L;
+    void save_PersistTrainerEntity_EntityIsNew() {
+        TrainingTypeEntity specialization = persistTrainingType(TrainingType.STRENGTH);
+        UserEntity user = persistUser("John.Doe");
         TrainerEntity trainer = new TrainerEntity();
-        trainer.setId(id);
+        trainer.setUser(user);
+        trainer.setSpecialization(specialization);
 
-        doReturn(Optional.of(trainer)).when(trainerRepository).findById(id);
-        when(session.merge(trainer)).thenReturn(trainer);
+        TrainerEntity saved = trainerRepository.save(trainer);
+        entityManager.flush();
+        entityManager.clear();
 
-        TrainerEntity result = trainerRepository.save(trainer);
-        assertEquals(trainer, result);
-        verify(trainerRepository, times(1)).findById(id);
-        verify(session, times(1)).merge(trainer);
+        assertThat(saved.getId()).isNotNull();
+        TrainerEntity reloaded = entityManager.find(TrainerEntity.class, saved.getId());
+        assertThat(reloaded).isNotNull();
+        assertThat(reloaded.getUser().getUsername()).isEqualTo("John.Doe");
     }
 
     @Test
-    void findByUsername_ReturnTrainer_UsernameExists() {
+    void save_MergeTrainerEntity_EntityHasId() {
+        TrainingTypeEntity specialization = persistTrainingType(TrainingType.STRENGTH);
+        TrainingTypeEntity newSpecialization = persistTrainingType(TrainingType.CARDIO);
+        TrainerEntity trainer = persistTrainer("John.Doe", specialization);
+        entityManager.clear();
+
+        TrainerEntity trainerToUpdate = trainerRepository.findById(trainer.getId()).orElseThrow();
+        trainerToUpdate.setSpecialization(newSpecialization);
+        trainerRepository.save(trainerToUpdate);
+        entityManager.flush();
+        entityManager.clear();
+
+        TrainerEntity reloaded = entityManager.find(TrainerEntity.class, trainer.getId());
+        assertThat(reloaded.getSpecialization().getTrainingTypeName()).isEqualTo(TrainingType.CARDIO);
+    }
+
+    @Test
+    void findById_ReturnTrainerWithUserAndSpecialization_IdExists() {
+        TrainingTypeEntity specialization = persistTrainingType(TrainingType.YOGA);
+        TrainerEntity trainer = persistTrainer("John.Doe", specialization);
+        entityManager.clear();
+
+        Optional<TrainerEntity> existingTrainer = trainerRepository.findById(trainer.getId());
+
+        assertThat(existingTrainer).isPresent();
+        assertThat(existingTrainer.get().getUser().getUsername()).isEqualTo("John.Doe");
+        assertThat(existingTrainer.get().getSpecialization().getTrainingTypeName()).isEqualTo(TrainingType.YOGA);
+    }
+
+    @Test
+    void findById_ReturnEmpty_IdDoesNotExist() {
+        Optional<TrainerEntity> trainer = trainerRepository.findById(99L);
+
+        assertThat(trainer).isEmpty();
+    }
+
+    @Test
+    void findByUsername_ReturnTrainerWithUserAndSpecialization_UsernameExists() {
         String username = "John.Doe";
-        String hql = "FROM TrainerEntity t JOIN FETCH t.user JOIN FETCH t.specialization WHERE t.user.username = :username";
-        TrainerEntity trainer = new TrainerEntity();
-        trainer.setUser(new UserEntity());
-        trainer.getUser().setUsername(username);
+        TrainingTypeEntity specialization = persistTrainingType(TrainingType.FLEXIBILITY);
+        TrainerEntity trainer = persistTrainer(username, specialization);
+        entityManager.clear();
 
-        when(session.createQuery(hql, TrainerEntity.class)).thenReturn(query);
-        when(query.setParameter("username", username)).thenReturn(query);
-        when(query.uniqueResultOptional()).thenReturn(Optional.of(trainer));
+        Optional<TrainerEntity> existingTrainer = trainerRepository.findByUsername(username);
 
-        Optional<TrainerEntity> result = trainerRepository.findByUsername(username);
-        assertTrue(result.isPresent());
-        assertEquals(trainer, result.get());
-        verify(session, times(1)).createQuery(hql, TrainerEntity.class);
-        verify(query, times(1)).setParameter("username", username);
-        verify(query, times(1)).uniqueResultOptional();
+        assertThat(existingTrainer).isPresent();
+        assertThat(existingTrainer.get().getId()).isEqualTo(trainer.getId());
+        assertThat(existingTrainer.get().getUser().getUsername()).isEqualTo(username);
     }
 
     @Test
-    void getById_ReturnEntity_IdExists() {
-        TrainerEntity trainer = new TrainerEntity();
-        Long id = 1L;
-        trainer.setId(id);
-        String hql = "FROM TrainerEntity t JOIN FETCH t.user JOIN FETCH t.specialization WHERE t.id = :id";
+    void findByUsername_ReturnEmpty_UsernameDoesNotExist() {
+        Optional<TrainerEntity> trainer = trainerRepository.findByUsername("not.found");
 
-        when(session.createQuery(hql, TrainerEntity.class)).thenReturn(query);
-        when(query.setParameter("id", id)).thenReturn(query);
-        when(query.uniqueResultOptional()).thenReturn(Optional.of(trainer));
-
-        Optional<TrainerEntity> result = trainerRepository.findById(id);
-
-        assertTrue(result.isPresent());
-        assertEquals(trainer, result.get());
-        verify(session, times(1)).createQuery(hql, TrainerEntity.class);
-        verify(query, times(1)).setParameter("id", id);
-        verify(query, times(1)).uniqueResultOptional();
+        assertThat(trainer).isEmpty();
     }
 
     @Test
-    void getById_ReturnEmpty_IdDoesNotExist() {
-        String hql = "FROM TrainerEntity t JOIN FETCH t.user JOIN FETCH t.specialization WHERE t.id = :id";
+    void findByUsernames_ReturnTrainersList_UsernamesExist() {
+        TrainingTypeEntity specialization = persistTrainingType(TrainingType.STRENGTH);
+        persistTrainer("Jane.Smith", specialization);
+        persistTrainer("John.Doe", specialization);
+        persistTrainer("Not.Included", specialization);
+        entityManager.clear();
 
-        when(session.createQuery(hql, TrainerEntity.class)).thenReturn(query);
-        when(query.setParameter("id", 99L)).thenReturn(query);
-        when(query.uniqueResultOptional()).thenReturn(Optional.empty());
+        List<TrainerEntity> trainers = trainerRepository.findByUsernames(List.of("Jane.Smith", "John.Doe"));
 
-        Optional<TrainerEntity> result = trainerRepository.findById(99L);
-        assertTrue(result.isEmpty());
-        verify(session, times(1)).createQuery(hql, TrainerEntity.class);
-        verify(query, times(1)).setParameter("id", 99L);
-        verify(query, times(1)).uniqueResultOptional();
+        assertThat(trainers).extracting(t -> t.getUser().getUsername())
+                .containsExactlyInAnyOrder("Jane.Smith", "John.Doe");
     }
 
     @Test
-    void findByUsernames_ReturnTrainersList_UsernamesExist(){
-        List<String> usernames = List.of("John.Doe", "Jane.Smith");
-        TrainerEntity trainer1 = new TrainerEntity();
-        TrainerEntity trainer2 = new TrainerEntity();
-        List<TrainerEntity> trainers = List.of(trainer1, trainer2);
-        String hql = "SELECT tr FROM TrainerEntity tr " +
-                "JOIN FETCH tr.user " +
-                "JOIN FETCH tr.specialization " +
-                "WHERE tr.user.username IN :usernames";
+    void findByUsernames_ReturnEmptyList_UsernamesDoNotExist() {
+        List<TrainerEntity> trainers = trainerRepository.findByUsernames(List.of("not.found"));
 
-        when(session.createQuery(hql, TrainerEntity.class)).thenReturn(query);
-        when(query.setParameter("usernames", usernames)).thenReturn(query);
-        when(query.getResultList()).thenReturn(trainers);
-
-        List<TrainerEntity> result = trainerRepository.findByUsernames(usernames);
-        assertEquals(trainers, result);
-        assertEquals(2, result.size());
-        verify(session, times(1)).createQuery(hql, TrainerEntity.class);
-        verify(query, times(1)).setParameter("usernames", usernames);
-        verify(query, times(1)).getResultList();
+        assertThat(trainers).isEmpty();
     }
 
     @Test
-    void findUnassignedTrainersByTraineeUsername(){
+    void findUnassignedTrainersByTraineeUsername_ReturnTrainersList_UnassignedTrainersExist() {
         String traineeUsername = "John.Doe";
-        String hql = """ 
-                SELECT tr FROM TrainerEntity tr 
-                JOIN FETCH tr.user
-                JOIN FETCH tr.specialization
-                WHERE NOT EXISTS (SELECT 1 FROM tr.trainees t WHERE t.user.username = :username)""";
-        TrainerEntity trainer = new TrainerEntity();
-        List<TrainerEntity> trainers = List.of(trainer);
+        TrainingTypeEntity specialization = persistTrainingType(TrainingType.STRENGTH);
+        TraineeEntity trainee = persistTrainee(traineeUsername);
+        TrainerEntity assignedTrainer = persistTrainer("Jane.Smith", specialization);
+        persistTrainer("Unassigned.Doe", specialization);
 
-        when(session.createQuery(hql, TrainerEntity.class)).thenReturn(query);
-        when(query.setParameter("username", traineeUsername)).thenReturn(query);
-        when(query.getResultList()).thenReturn(trainers);
+        trainee.getTrainers().add(assignedTrainer);
+        entityManager.flush();
+        entityManager.clear();
 
-        List<TrainerEntity> result = trainerRepository.findUnassignedTrainersByTraineeUsername(traineeUsername);
-        assertEquals(1, result.size());
-        assertEquals(trainers, result);
-        verify(session, times(1)).createQuery(hql, TrainerEntity.class);
-        verify(query, times(1)).setParameter("username", traineeUsername);
-        verify(query, times(1)).getResultList();
+        List<TrainerEntity> unassignedTrainers = trainerRepository.findUnassignedTrainersByTraineeUsername(traineeUsername);
+
+        assertThat(unassignedTrainers).extracting(t -> t.getUser().getUsername())
+                .containsExactly("Unassigned.Doe");
+    }
+
+    @Test
+    void findUnassignedTrainersByTraineeUsername_ReturnEmptyList_AllTrainersAssigned() {
+        String traineeUsername = "John.Doe";
+        TrainingTypeEntity specialization = persistTrainingType(TrainingType.STRENGTH);
+        TraineeEntity trainee = persistTrainee(traineeUsername);
+        TrainerEntity trainer = persistTrainer("Jane.Smith", specialization);
+
+        trainee.getTrainers().add(trainer);
+        entityManager.flush();
+        entityManager.clear();
+
+        List<TrainerEntity> unassignedTrainers = trainerRepository.findUnassignedTrainersByTraineeUsername(traineeUsername);
+
+        assertThat(unassignedTrainers).isEmpty();
     }
 }

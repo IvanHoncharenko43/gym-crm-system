@@ -1,138 +1,177 @@
 package org.example.trainee;
 
+import org.example.core.AbstractRepositoryTest;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainee.repository.TraineeRepository;
+import org.example.trainer.repository.TrainerEntity;
+import org.example.training.repository.TrainingEntity;
+import org.example.trainingType.dto.TrainingType;
+import org.example.trainingType.repository.TrainingTypeEntity;
 import org.example.user.repository.UserEntity;
-import org.hibernate.Session;
-import org.hibernate.SessionFactory;
-import org.hibernate.query.Query;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Spy;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 
+import java.time.LocalDate;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@ExtendWith(MockitoExtension.class)
-public class TraineeRepositoryTest {
+public class TraineeRepositoryTest extends AbstractRepositoryTest {
 
-    @Mock
-    private SessionFactory sessionFactory;
-
-    @Mock
-    private Session session;
-
-    @Mock
-    private Query<TraineeEntity> query;
-
-    @Spy
-    @InjectMocks
+    @Autowired
     private TraineeRepository traineeRepository;
 
-    @BeforeEach
-    void setUp() {
-        when(sessionFactory.getCurrentSession()).thenReturn(session);
+    @Autowired
+    private TestEntityManager entityManager;
+
+    private UserEntity persistUser(String username) {
+        UserEntity user = new UserEntity();
+        user.setFirstName("John");
+        user.setLastName("Doe");
+        user.setUsername(username);
+        user.setPassword("password1234");
+        user.setIsActive(true);
+        return entityManager.persistAndFlush(user);
     }
 
-    @Test
-    void save_PersistEntity_EntityDoesNotHaveId() {
+    private TraineeEntity persistTrainee(String username) {
         TraineeEntity trainee = new TraineeEntity();
-
-        doReturn(Optional.empty()).when(traineeRepository).findById(null);
-
-        TraineeEntity createdEntity = traineeRepository.save(trainee);
-        verify(traineeRepository, times(1)).findById(null);
-        verify(session, times(1)).persist(trainee);
-        assertEquals(trainee, createdEntity);
+        trainee.setUser(persistUser(username));
+        trainee.setAddress("21 Home Street");
+        trainee.setDateOfBirth(LocalDate.of(2007, 1, 1));
+        return entityManager.persistAndFlush(trainee);
     }
 
     @Test
-    void save_MergeEntity_EntityHasId() {
-        Long id = 1L;
+    void save_PersistTraineeEntity_EntityIsNew() {
+        UserEntity user = persistUser("John.Doe");
         TraineeEntity trainee = new TraineeEntity();
-        trainee.setId(id);
+        trainee.setUser(user);
+        trainee.setAddress("21 Home Street");
+        trainee.setDateOfBirth(LocalDate.of(2007, 1, 1));
 
-        doReturn(Optional.of(trainee)).when(traineeRepository).findById(id);
-        when(session.merge(trainee)).thenReturn(trainee);
+        TraineeEntity saved = traineeRepository.save(trainee);
+        entityManager.flush();
+        entityManager.clear();
 
-        TraineeEntity result = traineeRepository.save(trainee);
-        assertEquals(trainee, result);
-        verify(traineeRepository, times(1)).findById(id);
-        verify(session, times(1)).merge(trainee);
+        assertThat(saved.getId()).isNotNull();
+        TraineeEntity reloaded = entityManager.find(TraineeEntity.class, saved.getId());
+        assertThat(reloaded).isNotNull();
+        assertThat(reloaded.getAddress()).isEqualTo("21 Home Street");
     }
 
     @Test
-    void findByUsername_ReturnTrainee_UsernameExists() {
+    void save_MergeTraineeEntity_EntityHasId() {
+        TraineeEntity trainee = persistTrainee("John.Doe");
+        entityManager.clear();
+
+        TraineeEntity traineeToUpdate = traineeRepository.findById(trainee.getId()).orElseThrow();
+        traineeToUpdate.setAddress("Updated Address");
+        traineeRepository.save(traineeToUpdate);
+        entityManager.flush();
+        entityManager.clear();
+
+        TraineeEntity reloaded = entityManager.find(TraineeEntity.class, trainee.getId());
+        assertThat(reloaded.getAddress()).isEqualTo("Updated Address");
+    }
+
+    @Test
+    void findById_ReturnTraineeWithUser_IdExists() {
         String username = "John.Doe";
-        String hql = "FROM TraineeEntity t JOIN FETCH t.user WHERE t.user.username = :username";
-        TraineeEntity trainee = new TraineeEntity();
-        trainee.setUser(new UserEntity());
-        trainee.getUser().setUsername(username);
+        TraineeEntity trainee = persistTrainee(username);
+        entityManager.clear();
 
-        when(session.createQuery(hql, TraineeEntity.class)).thenReturn(query);
-        when(query.setParameter("username", username)).thenReturn(query);
-        when(query.uniqueResultOptional()).thenReturn(Optional.of(trainee));
+        Optional<TraineeEntity> existingUser = traineeRepository.findById(trainee.getId());
 
-        Optional<TraineeEntity> result = traineeRepository.findByUsername(username);
-        assertTrue(result.isPresent());
-        assertEquals(trainee, result.get());
-        verify(session, times(1)).createQuery(hql, TraineeEntity.class);
-        verify(query, times(1)).setParameter("username", username);
-        verify(query, times(1)).uniqueResultOptional();
-    }
-
-    @Test
-    void findById_ReturnEntity_IdExists() {
-        TraineeEntity trainee = new TraineeEntity();
-        Long id = 1L;
-        trainee.setId(id);
-        String hql = "FROM TraineeEntity t JOIN FETCH t.user WHERE t.id = :id";
-
-        when(session.createQuery(hql, TraineeEntity.class)).thenReturn(query);
-        when(query.setParameter("id", id)).thenReturn(query);
-        when(query.uniqueResultOptional()).thenReturn(Optional.of(trainee));
-
-        Optional<TraineeEntity> result = traineeRepository.findById(id);
-
-        assertTrue(result.isPresent());
-        assertEquals(trainee, result.get());
-        verify(session, times(1)).createQuery(hql, TraineeEntity.class);
-        verify(query, times(1)).setParameter("id", id);
-        verify(query, times(1)).uniqueResultOptional();
+        assertThat(existingUser).isPresent();
+        assertThat(existingUser.get().getUser().getUsername()).isEqualTo(username);
     }
 
     @Test
     void findById_ReturnEmpty_IdDoesNotExist() {
-        String hql = "FROM TraineeEntity t JOIN FETCH t.user WHERE t.id = :id";
-        when(session.createQuery(hql, TraineeEntity.class)).thenReturn(query);
-        when(query.setParameter("id", 99L)).thenReturn(query);
-        when(query.uniqueResultOptional()).thenReturn(Optional.empty());
+        Optional<TraineeEntity> user = traineeRepository.findById(99L);
 
-        Optional<TraineeEntity> result = traineeRepository.findById(99L);
-        assertTrue(result.isEmpty());
-        verify(session, times(1)).createQuery(hql, TraineeEntity.class);
-        verify(query, times(1)).setParameter("id", 99L);
-        verify(query, times(1)).uniqueResultOptional();
+        assertThat(user).isEmpty();
     }
 
     @Test
-    void deleteByUsername_RemoveTrainee_UsernameExists(){
+    void findByUsername_ReturnTraineeWithUser_UsernameExists() {
         String username = "John.Doe";
-        TraineeEntity trainee = new TraineeEntity();
-        trainee.setUser(new UserEntity());
-        trainee.getUser().setUsername(username);
+        TraineeEntity trainee = persistTrainee(username);
+        entityManager.clear();
 
-        doReturn(Optional.of(trainee)).when(traineeRepository).findByUsername(username);
+        Optional<TraineeEntity> existingUser = traineeRepository.findByUsername(username);
+
+        assertThat(existingUser).isPresent();
+        assertThat(existingUser.get().getId()).isEqualTo(trainee.getId());
+        assertThat(existingUser.get().getUser().getUsername()).isEqualTo(username);
+    }
+
+    @Test
+    void findByUsername_ReturnEmpty_UsernameDoesNotExist() {
+        Optional<TraineeEntity> user = traineeRepository.findByUsername("not.found");
+
+        assertThat(user).isEmpty();
+    }
+
+    @Test
+    void deleteByUserUsername_RemoveTraineeAndCascadeUser_UsernameExists() {
+        String username = "John.Doe";
+        TraineeEntity trainee = persistTrainee(username);
+        Long traineeId = trainee.getId();
+        Long userId = trainee.getUser().getId();
+        entityManager.clear();
 
         traineeRepository.deleteByUserUsername(username);
-        verify(traineeRepository, times(1)).findByUsername(username);
-        verify(session, times(1)).remove(trainee);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(entityManager.find(TraineeEntity.class, traineeId)).isNull();
+        assertThat(entityManager.find(UserEntity.class, userId)).isNull();
+    }
+
+    @Test
+    void deleteByUserUsername_CascadeRemoveTrainings_UsernameExists() {
+        String username = "John.Doe";
+        TraineeEntity trainee = persistTrainee(username);
+
+        TrainingTypeEntity trainingType = new TrainingTypeEntity();
+        trainingType.setTrainingTypeName(TrainingType.CARDIO);
+        entityManager.persistAndFlush(trainingType);
+
+        TrainerEntity trainer = new TrainerEntity();
+        trainer.setUser(persistUser("Jane.Smith"));
+        trainer.setSpecialization(trainingType);
+        entityManager.persistAndFlush(trainer);
+
+        TrainingEntity training = new TrainingEntity();
+        training.setTrainingName("Cascade Test Training");
+        training.setTrainingDate(LocalDate.now());
+        training.setDurationMinutes(60);
+        training.setTrainee(trainee);
+        training.setTrainer(trainer);
+        training.setTrainingType(trainingType);
+        entityManager.persistAndFlush(training);
+        Long trainingId = training.getId();
+
+        entityManager.clear();
+
+        traineeRepository.deleteByUserUsername(username);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(entityManager.find(TrainingEntity.class, trainingId)).isNull();
+    }
+
+    @Test
+    void deleteByUserUsername_DoNothing_UsernameDoesNotExist() {
+        persistTrainee("John.Doe");
+        long countBefore = traineeRepository.count();
+
+        traineeRepository.deleteByUserUsername("not.real");
+        entityManager.flush();
+
+        assertThat(traineeRepository.count()).isEqualTo(countBefore);
     }
 }
