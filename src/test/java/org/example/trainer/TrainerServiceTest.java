@@ -190,6 +190,52 @@ public class TrainerServiceTest {
     }
 
     @Test
+    void getById_ReturnResponse_TrainerExists() {
+        TrainerEntity trainer = new TrainerEntity();
+        trainer.setUser(new UserEntity());
+        trainer.getUser().setIsActive(true);
+        TrainerSummary expectedResponse = new TrainerSummary(
+                TRAINER_ID, new UserProfile(USERNAME),
+                TrainingType.YOGA
+        );
+
+        when(trainerRepository.findById(TRAINER_ID)).thenReturn(Optional.of(trainer));
+        when(gymMapper.toTrainerSummary(trainer)).thenReturn(expectedResponse);
+
+        TrainerSummary actualResponse = trainerService.getById(TRAINER_ID, CREDENTIALS);
+        assertEquals(expectedResponse, actualResponse);
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
+        verify(trainerRepository, times(1)).findById(TRAINER_ID);
+        verify(gymMapper, times(1)).toTrainerSummary(trainer);
+    }
+
+    @Test
+    void getById_ThrowEntityNotFoundException_TrainerDoesNotExist() {
+        when(trainerRepository.findById(TRAINER_ID)).thenReturn(Optional.empty());
+
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> trainerService.getById(TRAINER_ID, CREDENTIALS));
+        assertTrue(exception.getMessage().contains("not found"));
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
+        verify(trainerRepository, times(1)).findById(TRAINER_ID);
+    }
+
+    @Test
+    void getById_ThrowEntityNotFoundException_TrainerInactive() {
+        TrainerEntity trainer = new TrainerEntity();
+        trainer.setUser(new UserEntity());
+        trainer.getUser().setIsActive(false);
+
+        when(trainerRepository.findById(TRAINER_ID)).thenReturn(Optional.of(trainer));
+
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> trainerService.getById(TRAINER_ID, CREDENTIALS));
+        assertTrue(exception.getMessage().contains("inactive"));
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
+        verify(trainerRepository, times(1)).findById(TRAINER_ID);
+    }
+
+    @Test
     void getByUsername_ReturnResponse_TrainerExists() {
         TrainerEntity trainer = new TrainerEntity();
         trainer.setUser(new UserEntity());
