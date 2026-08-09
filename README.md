@@ -1,20 +1,32 @@
 # Gym CRM System
 
-This is a Spring Web MVC and Hibernate-based REST API implementation of a Gym CRM system. The application operates **without Spring Boot**, utilizing a PostgreSQL database for persistent storage, and is deployed inside an embedded Tomcat servlet container managed by the Maven Cargo plugin.
+This is a Spring Boot 4 and Hibernate/Spring Data JPA-based REST API implementation of a Gym CRM system. The application deploys on an embedded Tomcat container managed automatically by Spring Boot
 
 ## Prerequisites
 * Java 21 installed and configured in your system path.
 * Maven 3.6+ installed.
 
+## Environment Configuration & Profiles
+
+The application utilizes Spring Boot Profiles to manage different environments:
+* `local`: For local development.
+* `dev`: Shared remote development environment.
+* `stg`: Pre-production staging environment.
+* `prod`: Production configuration.
+
 ## Setup
 **Configure database credentials:**  
 - create .env in the root folder
-- set such properties with your values:
+- set such properties with your values to configure Docker:
   -  POSTGRES_USER=`user`
   -  POSTGRES_PASSWORD=`password`
   -  POSTGRES_DB=`database_name`
   -  DB_PORT=`port`
-  -  DB_HOST=`host`
+- set such properties with your values to inject system environment variables:
+  -  SPRING_PROFILES_ACTIVE=`profile`
+  -  SPRING_DATASOURCE_URL=`url`
+  -  SPRING_DATASOURCE_USERNAME=`username`
+  -  SPRING_DATASOURCE_PASSWORD=`port`
 
 ## Running Docker
 - Open your terminal and navigate to the root directory of the project with the `cd directory/` command
@@ -22,16 +34,7 @@ This is a Spring Web MVC and Hibernate-based REST API implementation of a Gym CR
 ## How to Run the Application
 
 To run the application inside IntelliJ IDEA, you should:
-- Open Run -> Edit Configurations...
-  - Click the `+` button and select `Maven`.
-  - Configure `Run (Command Line)`: clean package cargo:run
-  - Paste the following into the Environment variables field:  
+
 POSTGRES_USER=`user`;POSTGRES_PASSWORD=`password`;POSTGRES_DB=`database_name`;DB_PORT=`port`;DB_HOST=`host`
 
-  - Click Apply
-- Run the application by clicking `Run`
-
-To run the application inside terminal (Windows PowerShell), you should:
-- Open your terminal and navigate to the root directory of the project: `cd gym-crm-system`
-- Paste in the command specifying the environment variables:  
-`$env:POSTGRES_USER="postgres"; $env:POSTGRES_PASSWORD="password1234"; $env:POSTGRES_DB="gym_db"; $env:DB_PORT="5435"; $env:DB_HOST="localhost"; mvn clean package cargo:run`
+- Click `Run` to run the GymCrmApplication
