@@ -57,7 +57,6 @@ public class TraineeService {
     @Transactional(readOnly = true)
     public TraineeSummary getById(Long id, UserCredentials credentials){
         authenticator.authenticate(credentials);
-        log.info("Selecting trainee by id started");
         return traineeRepository.findById(id)
                 .filter(trainee -> trainee.getUser().getIsActive())
                 .map(gymMapper::toTraineeSummary)
@@ -71,7 +70,6 @@ public class TraineeService {
     @Transactional(readOnly = true)
     public TraineeSummary getByUsername(String username, UserCredentials credentials){
         authenticator.authenticate(credentials);
-        log.info("Selecting trainee by username started");
         return traineeRepository.findByUsername(username)
                 .filter(trainee -> trainee.getUser().getIsActive())
                 .map(gymMapper::toTraineeSummary)
@@ -105,7 +103,7 @@ public class TraineeService {
         if(existingTrainee.isPresent()) {
             authenticator.authorize(existingTrainee.get().getUser().getUsername(), credentials);
             traineeRepository.deleteByUserUsername(credentials.username());
-            log.info("Deleted trainee profile by username");
+            log.info("Deleted by username a trainee profile with ID: {}", existingTrainee.get().getId());
         }
     }
 
@@ -121,7 +119,7 @@ public class TraineeService {
         authenticator.authorize(trainee.getUser().getUsername(), credentials);
         trainee.getUser().setIsActive(!trainee.getUser().getIsActive());
         traineeRepository.save(trainee);
-        log.info("Activity status changed for a trainee");
+        log.info("Activity status changed for a trainee with ID: {}", id);
     }
 
     @Transactional
@@ -142,6 +140,7 @@ public class TraineeService {
         trainee.getTrainers().addAll(newTrainers);
         traineeRepository.save(trainee);
         transactionalMetricService.incrementOnCommit("trainer_assignments_total");
+        log.info("Updated trainers for a trainee ID: {}", id);
         return new Trainers(
                 newTrainers.stream()
                         .map(gymMapper::toTrainerSummary)

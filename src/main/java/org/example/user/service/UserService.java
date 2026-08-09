@@ -36,5 +36,6 @@ public class UserService {
         authenticator.authorize(user.getUsername(), credentials);
         user.setPassword(request.newPassword());
         userRepository.save(user);
+        log.info("Changed password for a user with ID: {}", id);
     }
 }

@@ -86,15 +86,16 @@ public class TrainingService {
                 });
         TraineeEntity trainee = traineeRepository.findById(training.getTrainee().getId()).get();
         TrainerEntity trainer = trainerRepository.findById(training.getTrainer().getId()).get();
-        log.info("Selected training by ID: {}", id);
+        log.debug("Selected training by ID: {}", id);
         return gymMapper.toTrainingSummary(training, trainee, trainer);
     }
 
     @Transactional(readOnly = true)
     public Trainings getTraineeTrainingList(GetTraineeTrainingsRequest request, UserCredentials credentials){
         authenticator.authenticate(credentials);
-        Specification<TrainingEntity> specification = TrainingSpecifications.findTraineeTrainings(request.getUsername(),
-                request.getFromDate(), request.getToDate(), request.getTrainerName(), request.getTrainingType().name());
+        log.debug("Getting trainee trainings");
+        Specification<TrainingEntity> specification = TrainingSpecifications.findTraineeTrainings(request.username(),
+                request.fromDate(), request.toDate(), request.trainerName(), request.trainingType().name());
         return new Trainings(
                 trainingRepository.findAll(specification).stream()
                         .map(training -> gymMapper.toTrainingSummary(training, training.getTrainee(), training.getTrainer()))
@@ -105,6 +106,7 @@ public class TrainingService {
     @Transactional(readOnly = true)
     public Trainings getTrainerTrainingList(GetTrainerTrainingsRequest request, UserCredentials credentials){
         authenticator.authenticate(credentials);
+        log.debug("Getting trainer trainings");
         Specification<TrainingEntity> specification = TrainingSpecifications.findTrainerTrainings(request.username(),
                 request.fromDate(), request.toDate(), request.traineeName());
         return new Trainings(

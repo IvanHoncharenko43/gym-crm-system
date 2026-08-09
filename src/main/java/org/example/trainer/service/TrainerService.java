@@ -62,7 +62,6 @@ public class TrainerService {
     @Transactional(readOnly = true)
     public TrainerSummary getById(Long id, UserCredentials credentials){
         authenticator.authenticate(credentials);
-        log.info("Selecting trainer by ID started");
         return trainerRepository.findById(id)
                 .filter(trainer -> trainer.getUser().getIsActive())
                 .map(gymMapper::toTrainerSummary)
@@ -76,7 +75,6 @@ public class TrainerService {
     @Transactional(readOnly = true)
     public TrainerSummary getByUsername(String username, UserCredentials credentials){
         authenticator.authenticate(credentials);
-        log.info("Selecting trainer by username started");
         return trainerRepository.findByUsername(username)
                 .filter(trainer -> trainer.getUser().getIsActive())
                 .map(gymMapper::toTrainerSummary)
@@ -121,12 +119,13 @@ public class TrainerService {
         authenticator.authorize(trainer.getUser().getUsername(), credentials);
         trainer.getUser().setIsActive(!trainer.getUser().getIsActive());
         trainerRepository.save(trainer);
-        log.info(String.format("Activity status changed for a trainer with ID %s", id));
+        log.info("Activity status changed for a trainer with ID: {}", id);
     }
 
     @Transactional(readOnly = true)
     public Trainers getUnassignedTrainersByTraineeList(String traineeUsername, UserCredentials credentials){
         authenticator.authenticate(credentials);
+        log.debug("Getting unassigned trainers by trainee");
         return new Trainers(
                 trainerRepository.findUnassignedTrainersByTraineeUsername(traineeUsername).stream()
                         .filter(trainer -> trainer.getUser().getIsActive())
