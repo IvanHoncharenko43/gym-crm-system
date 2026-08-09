@@ -1,5 +1,6 @@
 package org.example.trainee.service;
 
+import org.example.monitoring.TransactionalMetricService;
 import org.example.trainer.controller.response.Trainers;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -30,14 +31,16 @@ public class TraineeService {
     private final UserRepository userRepository;
     private final GymMapper gymMapper;
     private final AuthenticationComponent authenticator;
+    private final TransactionalMetricService transactionalMetricService;
 
     public TraineeService(TraineeRepository traineeRepository, TrainerRepository trainerRepository, UserRepository userRepository,
-                          GymMapper gymMapper, AuthenticationComponent authenticator){
+                          GymMapper gymMapper, AuthenticationComponent authenticator, TransactionalMetricService transactionalMetricService){
         this.traineeRepository = traineeRepository;
         this.trainerRepository = trainerRepository;
         this.userRepository = userRepository;
         this.gymMapper = gymMapper;
         this.authenticator = authenticator;
+        this.transactionalMetricService = transactionalMetricService;
     }
 
     @Transactional
@@ -47,6 +50,7 @@ public class TraineeService {
         TraineeEntity trainee = gymMapper.toTraineeEntity(request, existingUsernames);
         TraineeEntity savedTrainee = traineeRepository.save(trainee);
         log.info("Created trainee profile with ID: {}", savedTrainee.getId());
+        transactionalMetricService.incrementOnCommit("gym_users_created_total", "role", "TRAINEE");
         return gymMapper.toTraineeSummary(savedTrainee);
     }
 
@@ -137,6 +141,7 @@ public class TraineeService {
         newTrainers.forEach(newTrainer -> newTrainer.getTrainees().add(trainee));
         trainee.getTrainers().addAll(newTrainers);
         traineeRepository.save(trainee);
+        transactionalMetricService.incrementOnCommit("trainer_assignments_total");
         return new Trainers(
                 newTrainers.stream()
                         .map(gymMapper::toTrainerSummary)

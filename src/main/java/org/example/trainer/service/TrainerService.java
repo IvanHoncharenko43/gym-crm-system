@@ -1,5 +1,6 @@
 package org.example.trainer.service;
 
+import org.example.monitoring.TransactionalMetricService;
 import org.example.exception.InvalidRequestDataException;
 import org.example.trainer.controller.response.Trainers;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,14 +30,16 @@ public class TrainerService {
     private final UserRepository userRepository;
     private final GymMapper gymMapper;
     private final AuthenticationComponent authenticator;
+    private final TransactionalMetricService transactionalMetricService;
 
     public TrainerService(TrainerRepository trainerRepository, TrainingTypeRepository trainingTypeRepository, UserRepository userRepository,
-                          GymMapper gymMapper, AuthenticationComponent authenticator){
+                          GymMapper gymMapper, AuthenticationComponent authenticator, TransactionalMetricService transactionalMetricService){
         this.trainerRepository = trainerRepository;
         this.trainingTypeRepository = trainingTypeRepository;
         this.userRepository = userRepository;
         this.gymMapper = gymMapper;
         this.authenticator = authenticator;
+        this.transactionalMetricService = transactionalMetricService;
     }
 
     @Transactional
@@ -52,6 +55,7 @@ public class TrainerService {
         TrainerEntity trainer = gymMapper.toTrainerEntity(request, trainingType, existingUsernames);
         TrainerEntity savedTrainer = trainerRepository.save(trainer);
         log.info("Created trainer profile with ID: {}", savedTrainer.getId());
+        transactionalMetricService.incrementOnCommit("gym_users_created_total", "role", "TRAINER");
         return gymMapper.toTrainerSummary(savedTrainer);
     }
 

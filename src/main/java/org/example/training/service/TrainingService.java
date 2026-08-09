@@ -1,5 +1,6 @@
 package org.example.training.service;
 
+import org.example.monitoring.TransactionalMetricService;
 import org.example.exception.InvalidRequestDataException;
 import org.example.training.controller.response.Trainings;
 import org.example.training.repository.TrainingSpecifications;
@@ -34,15 +35,17 @@ public class TrainingService {
     private final TrainerRepository trainerRepository;
     private final GymMapper gymMapper;
     private final AuthenticationComponent authenticator;
+    private final TransactionalMetricService transactionalMetricService;
 
     public TrainingService(TrainingRepository trainingRepository, TraineeRepository traineeRepository,
                            TrainerRepository trainerRepository, GymMapper gymMapper,
-                           AuthenticationComponent authenticator){
+                           AuthenticationComponent authenticator, TransactionalMetricService transactionalMetricService){
         this.trainingRepository = trainingRepository;
         this.traineeRepository = traineeRepository;
         this.trainerRepository = trainerRepository;
         this.gymMapper = gymMapper;
         this.authenticator = authenticator;
+        this.transactionalMetricService = transactionalMetricService;
     }
 
     @Transactional
@@ -68,6 +71,7 @@ public class TrainingService {
         TrainingEntity training = gymMapper.toTraining(request, trainee, trainer);
         TrainingEntity savedTraining = trainingRepository.save(training);
         log.info("Created training with ID: {}", savedTraining.getId());
+        transactionalMetricService.incrementOnCommit("training_sessions_booked_total", "type", training.getTrainingType().getTrainingTypeName().name());
         return gymMapper.toTrainingSummary(training, trainee, trainer);
     }
 
