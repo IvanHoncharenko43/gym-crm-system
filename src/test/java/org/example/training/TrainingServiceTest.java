@@ -5,6 +5,7 @@ import org.example.core.service.AuthenticationComponent;
 import org.example.exception.EntityNotFoundException;
 import org.example.core.service.GymMapper;
 import org.example.exception.InvalidRequestDataException;
+import org.example.monitoring.TransactionalMetricService;
 import org.example.trainee.controller.request.GetTraineeTrainingsRequest;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainee.repository.TraineeRepository;
@@ -19,6 +20,7 @@ import org.example.training.controller.response.Trainings;
 import org.example.training.repository.TrainingEntity;
 import org.example.training.repository.TrainingRepository;
 import org.example.training.service.TrainingService;
+import org.example.trainingType.repository.TrainingTypeEntity;
 import org.example.user.controller.dto.UserCredentials;
 import org.example.user.repository.UserEntity;
 import org.junit.jupiter.api.Test;
@@ -61,6 +63,9 @@ public class TrainingServiceTest {
     @Mock
     private AuthenticationComponent authenticator;
 
+    @Mock
+    private TransactionalMetricService transactionalMetricService;
+
     @InjectMocks
     private TrainingService trainingService;
 
@@ -78,6 +83,9 @@ public class TrainingServiceTest {
         trainer.getUser().setIsActive(true);
         TrainingEntity training = new TrainingEntity();
         training.setId(TRAINING_ID);
+        TrainingTypeEntity trainingType = new TrainingTypeEntity();
+        trainingType.setTrainingTypeName(TrainingType.YOGA);
+        training.setTrainingType(trainingType);
         TrainingSummary expectedResponse = new TrainingSummary(
                 TRAINING_ID,
                 TestUtils.getTrainerSummary(TRAINER_USERNAME),

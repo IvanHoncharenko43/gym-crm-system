@@ -3,6 +3,7 @@ package org.example.trainee;
 import org.example.TestUtils;
 import org.example.core.service.AuthenticationComponent;
 import org.example.exception.EntityNotFoundException;
+import org.example.monitoring.TransactionalMetricService;
 import org.example.trainee.controller.request.UpdateTraineeTrainersRequest;
 import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.response.Trainers;
@@ -54,6 +55,9 @@ public class TraineeServiceTest {
 
     @Mock
     private AuthenticationComponent authenticator;
+
+    @Mock
+    private TransactionalMetricService transactionalMetricService;
 
     @InjectMocks
     private TraineeService traineeService;
@@ -189,7 +193,7 @@ public class TraineeServiceTest {
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
         verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(authenticator, times(1)).authorize(USERNAME, CREDENTIALS);
-        verify(traineeRepository, times(1)).deleteByUsername(USERNAME);
+        verify(traineeRepository, times(1)).deleteByUserUsername(USERNAME);
     }
 
     @Test

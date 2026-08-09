@@ -37,7 +37,7 @@ class TrainingControllerTest {
     static class TestConfig {
         @Bean
         InterceptorConfigurationProperties interceptorConfigurationProperties() {
-            return new InterceptorConfigurationProperties("/**", "");
+            return new InterceptorConfigurationProperties("/**");
         }
     }
 

@@ -43,7 +43,7 @@ class TraineeControllerTest {
     static class TestConfig {
         @Bean
         InterceptorConfigurationProperties interceptorConfigurationProperties() {
-            return new InterceptorConfigurationProperties("/**", "");
+            return new InterceptorConfigurationProperties("/**");
         }
     }
 
@@ -124,20 +124,6 @@ class TraineeControllerTest {
                 .andExpect(jsonPath("$.profile.username").value(TRAINEE_USERNAME));
         verify(traineeService, times(1)).getById(TRAINEE_ID, CREDENTIALS);
     }
-
-//    @Test
-//    void getTrainee_Return401AndProblemDetail_UserUnauthorized() throws Exception {
-//        UserCredentials invalidCredentials = new UserCredentials(TRAINEE_USERNAME, "InvalidPassword");
-//        when(traineeService.getById(TRAINEE_ID, invalidCredentials))
-//                .thenThrow(new AuthenticationFailedException("Authentication failed"));
-//
-//        mockMvc.perform(get("/api/v1/trainees/{id}", TRAINEE_ID)
-//                        .requestAttr("userCredentials", invalidCredentials))
-//                .andExpect(status().isUnauthorized())
-//                .andExpect(jsonPath("$.title").value("Authentication Failure"))
-//                .andExpect(jsonPath("$.detail").value("Authentication failed"));
-//        verify(traineeService, times(1)).getById(TRAINEE_ID, invalidCredentials);
-//    }
 
     @Test
     void getTrainee_Return404AndProblemDetail_TraineeNotFound() throws Exception {
