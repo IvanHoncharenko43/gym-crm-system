@@ -35,6 +35,4 @@ The application utilizes Spring Boot Profiles to manage different environments:
 
 To run the application inside IntelliJ IDEA, you should:
 
-POSTGRES_USER=`user`;POSTGRES_PASSWORD=`password`;POSTGRES_DB=`database_name`;DB_PORT=`port`;DB_HOST=`host`
-
 - Click `Run` to run the GymCrmApplication
