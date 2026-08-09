@@ -2,7 +2,7 @@ package org.example.core;
 
 import org.example.core.service.AuthenticationComponent;
 import org.example.exception.AuthenticationFailedException;
-import org.example.user.dto.UserCredentials;
+import org.example.user.controller.dto.UserCredentials;
 import org.example.user.repository.UserEntity;
 import org.example.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;

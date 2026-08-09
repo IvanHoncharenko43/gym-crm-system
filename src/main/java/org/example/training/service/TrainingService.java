@@ -1,26 +1,27 @@
 package org.example.training.service;
 
 import org.example.exception.InvalidRequestDataException;
+import org.example.training.controller.response.Trainings;
+import org.example.user.controller.dto.UserCredentials;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.core.service.AuthenticationComponent;
-import org.example.trainee.dto.GetTraineeTrainingsRequest;
-import org.example.trainer.dto.GetTrainerTrainingsRequest;
+import org.example.trainee.controller.request.GetTraineeTrainingsRequest;
+import org.example.trainer.controller.request.GetTrainerTrainingsRequest;
 import org.example.exception.EntityNotFoundException;
 import org.example.trainee.repository.TraineeRepository;
 import org.example.trainer.repository.TrainerRepository;
 import org.example.core.service.GymMapper;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainer.repository.TrainerEntity;
-import org.example.training.dto.GetTrainingRequest;
-import org.example.training.dto.TrainingSummary;
-import org.example.training.dto.CreateTrainingRequest;
+import org.example.training.controller.response.TrainingSummary;
+import org.example.training.controller.request.CreateTrainingRequest;
 import org.example.training.repository.TrainingEntity;
 import org.example.training.repository.TrainingRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.HashSet;
 
 @Slf4j
 @Service
@@ -43,65 +44,65 @@ public class TrainingService {
     }
 
     @Transactional
-    public TrainingSummary create(CreateTrainingRequest request) {
-        Objects.requireNonNull(request, "Request body cannot be null");
-        authenticator.authenticate(request.credentials());
-        TraineeEntity trainee = traineeRepository.findById(request.traineeId())
+    public TrainingSummary create(CreateTrainingRequest request, UserCredentials credentials) {
+        authenticator.authenticate(credentials);
+        TraineeEntity trainee = traineeRepository.findByUsername(request.traineeUsername())
                 .filter(t -> t.getUser().getIsActive())
                 .orElseThrow(() -> {
-                    String message = String.format("Trainee with ID %s not found or is inactive", request.traineeId());
+                    String message = "Trainee not found or is inactive";
                     log.warn(message);
                     return new InvalidRequestDataException(message);
                 });
 
-        TrainerEntity trainer = trainerRepository.findById(request.trainerId())
+        TrainerEntity trainer = trainerRepository.findByUsername(request.trainerUsername())
                 .filter(t -> t.getUser().getIsActive())
                 .orElseThrow(() -> {
-                    String message = String.format("Trainer with ID %s not found or is inactive", request.trainerId());
+                    String message = "Trainer not found or is inactive";
                     log.warn(message);
                     return new InvalidRequestDataException(message);
                 });
+        trainee.getTrainers().add(trainer);
+        trainer.getTrainees().add(trainee);
         TrainingEntity training = gymMapper.toTraining(request, trainee, trainer);
         TrainingEntity savedTraining = trainingRepository.save(training);
         log.info("Created training with ID: {}", savedTraining.getId());
-        return gymMapper.toTrainingSummary(savedTraining, trainee, trainer);
+        return gymMapper.toTrainingSummary(training, trainee, trainer);
     }
 
     @Transactional(readOnly = true)
-    public TrainingSummary getById(GetTrainingRequest request) {
-        Objects.requireNonNull(request, "Request body cannot be null");
-        authenticator.authenticate(request.credentials());
-        TrainingEntity training = trainingRepository.findById(request.id())
+    public TrainingSummary getById(Long id, UserCredentials credentials) {
+        authenticator.authenticate(credentials);
+        TrainingEntity training = trainingRepository.findById(id)
                 .orElseThrow(() -> {
-                    String message = String.format("Training with ID %s not found", request.id());
+                    String message = String.format("Training with ID %s not found", id);
                     log.warn(message);
                     return new EntityNotFoundException(message);
                 });
         TraineeEntity trainee = traineeRepository.findById(training.getTrainee().getId()).get();
         TrainerEntity trainer = trainerRepository.findById(training.getTrainer().getId()).get();
-        log.info("Selected training by ID: {}", request.id());
+        log.info("Selected training by ID: {}", id);
         return gymMapper.toTrainingSummary(training, trainee, trainer);
     }
 
     @Transactional(readOnly = true)
-    public List<TrainingSummary> getTraineeTrainingList(GetTraineeTrainingsRequest request){
-        Objects.requireNonNull(request, "Request body cannot be null");
-        authenticator.authenticate(request.credentials());
-        return trainingRepository.findTraineeTrainingsByCriteria(
-                request.credentials().username(), request.fromDate(), request.toDate(),
-                request.trainerName(), request.trainingType().name()).stream()
-                .map(training -> gymMapper.toTrainingSummary(training, training.getTrainee(), training.getTrainer()))
-                .toList();
+    public Trainings getTraineeTrainingList(GetTraineeTrainingsRequest request, UserCredentials credentials){
+        authenticator.authenticate(credentials);
+        return new Trainings(
+                trainingRepository.findTraineeTrainingsByCriteria(request.getUsername(), request.getFromDate(), request.getToDate(),
+                                request.getTrainerName(), request.getTrainingType().name()).stream()
+                        .map(training -> gymMapper.toTrainingSummary(training, training.getTrainee(), training.getTrainer()))
+                        .toList()
+        );
     }
 
     @Transactional(readOnly = true)
-    public List<TrainingSummary> getTrainerTrainingList(GetTrainerTrainingsRequest request){
-        Objects.requireNonNull(request, "Request body cannot be null");
-        authenticator.authenticate(request.credentials());
-        return trainingRepository.findTrainerTrainingsByCriteria(
-                request.credentials().username(), request.fromDate(),
-                        request.toDate(), request.traineeName()).stream()
-                .map(training -> gymMapper.toTrainingSummary(training, training.getTrainee(), training.getTrainer()))
-                .toList();
+    public Trainings getTrainerTrainingList(GetTrainerTrainingsRequest request, UserCredentials credentials){
+        authenticator.authenticate(credentials);
+        return new Trainings(
+                trainingRepository.findTrainerTrainingsByCriteria(request.username(), request.fromDate(),
+                                request.toDate(), request.traineeName()).stream()
+                        .map(training -> gymMapper.toTrainingSummary(training, training.getTrainee(), training.getTrainer()))
+                        .toList()
+        );
     }
 }

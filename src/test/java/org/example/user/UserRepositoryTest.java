@@ -1,6 +1,8 @@
 package org.example.user;
 
 import jakarta.persistence.LockModeType;
+import org.apache.catalina.User;
+import org.example.trainee.repository.TraineeEntity;
 import org.example.user.repository.UserEntity;
 import org.example.user.repository.UserRepository;
 import org.hibernate.Session;
@@ -11,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
@@ -35,12 +38,40 @@ public class UserRepositoryTest {
     @Mock
     private Query<UserEntity> queryUserEntity;
 
+    @Spy
     @InjectMocks
     private UserRepository userRepository;
 
     @BeforeEach
     void setUp(){
         when(sessionFactory.getCurrentSession()).thenReturn(session);
+    }
+
+    @Test
+    void save_PersistEntity_EntityDoesNotHaveUsername() {
+        UserEntity user = new UserEntity();
+
+        doReturn(Optional.empty()).when(userRepository).findByUsername(null);
+
+        UserEntity createdUser = userRepository.save(user);
+        verify(userRepository, times(1)).findByUsername(null);
+        verify(session, times(1)).persist(user);
+        assertEquals(user, createdUser);
+    }
+
+    @Test
+    void save_MergeEntity_EntityHasId() {
+        String username = "John.Doe";
+        UserEntity user = new UserEntity();
+        user.setUsername(username);
+
+        doReturn(Optional.of(user)).when(userRepository).findByUsername(username);
+        when(session.merge(user)).thenReturn(user);
+
+        UserEntity result = userRepository.save(user);
+        assertEquals(user, result);
+        verify(userRepository, times(1)).findByUsername(username);
+        verify(session, times(1)).merge(user);
     }
 
     @Test

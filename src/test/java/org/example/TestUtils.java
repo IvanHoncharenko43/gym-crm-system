@@ -1,19 +1,20 @@
 package org.example;
 
-import org.example.training.dto.TrainingType;
-import org.example.core.repository.TrainingTypeEntity;
-import org.example.user.dto.UserCredentials;
-import org.example.user.dto.FullName;
-import org.example.user.dto.UserProfile;
-import org.example.trainee.dto.CreateTraineeRequest;
+import org.example.training.controller.response.TrainingSummary;
+import org.example.trainingType.dto.TrainingType;
+import org.example.trainingType.repository.TrainingTypeEntity;
+import org.example.user.controller.dto.UserCredentials;
+import org.example.user.controller.dto.FullName;
+import org.example.user.controller.dto.UserProfile;
+import org.example.trainee.controller.request.CreateTraineeRequest;
 import org.example.trainee.repository.TraineeEntity;
-import org.example.trainee.dto.TraineeSummary;
-import org.example.trainee.dto.UpdateTraineeRequest;
-import org.example.trainer.dto.CreateTrainerRequest;
+import org.example.trainee.controller.response.TraineeSummary;
+import org.example.trainee.controller.request.UpdateTraineeRequest;
+import org.example.trainer.controller.request.CreateTrainerRequest;
 import org.example.trainer.repository.TrainerEntity;
-import org.example.trainer.dto.TrainerSummary;
-import org.example.trainer.dto.UpdateTrainerRequest;
-import org.example.training.dto.CreateTrainingRequest;
+import org.example.trainer.controller.response.TrainerSummary;
+import org.example.trainer.controller.request.UpdateTrainerRequest;
+import org.example.training.controller.request.CreateTrainingRequest;
 import org.example.training.repository.TrainingEntity;
 import org.example.user.repository.UserEntity;
 
@@ -31,6 +32,7 @@ public class TestUtils {
     public static final String TRAINER_PASSWORD = "test122333";
     public static final String FIRST_NAME = "John";
     public static final String LAST_NAME = "Doe";
+    public static final Long TRAINING_ID = 1L;
 
     public static CreateTraineeRequest getCreateTraineeRequest(){
         return new CreateTraineeRequest(
@@ -46,21 +48,20 @@ public class TestUtils {
 
     public static CreateTrainingRequest getCreateTrainingRequest(){
         return new CreateTrainingRequest(
-                getTraineeCredentials(), TRAINER_ID, TRAINEE_ID, "Cardio",
+                TRAINER_USERNAME, TRAINEE_USERNAME, "Cardio",
                 LocalDate.of(2026, 5, 12), 45
         );
     }
 
     public static UpdateTraineeRequest getUpdateTraineeRequest(){
         return new UpdateTraineeRequest(
-                TRAINEE_ID, getTraineeCredentials(), new FullName("John", "Doe"),
+                new FullName("John", "Doe"),
                 LocalDate.of(2007, 3, 25), "Home 21 Street"
         );
     }
 
     public static UpdateTrainerRequest getUpdateTrainerRequest(){
         return new UpdateTrainerRequest(
-                TRAINER_ID, getTrainerCredentials(),
                 new FullName("John", "Doe"), TrainingType.YOGA
         );
     }
@@ -112,6 +113,13 @@ public class TestUtils {
         return trainingType;
     }
 
+    public static TraineeSummary getTraineeSummary(){
+        return new TraineeSummary(
+                TRAINEE_ID, new UserProfile(TRAINEE_USERNAME),
+                LocalDate.of(2007, 3, 25), "Home 21 Street"
+        );
+    }
+
     public static TraineeSummary getTraineeSummary(Long id){
         return new TraineeSummary(
                 id, new UserProfile(TRAINEE_USERNAME),
@@ -119,10 +127,38 @@ public class TestUtils {
         );
     }
 
+    public static TraineeSummary getTraineeSummary(String username){
+        return new TraineeSummary(
+                TRAINEE_ID, new UserProfile(username),
+                LocalDate.of(2007, 3, 25), "Home 21 Street"
+        );
+    }
+
+    public static TrainerSummary getTrainerSummary(){
+        return new TrainerSummary(
+                TRAINER_ID, new UserProfile(TRAINER_USERNAME),
+                TrainingType.YOGA
+        );
+    }
+
     public static TrainerSummary getTrainerSummary(Long id){
         return new TrainerSummary(
                 id, new UserProfile(TRAINER_USERNAME),
                 TrainingType.YOGA
+        );
+    }
+
+    public static TrainerSummary getTrainerSummary(String username){
+        return new TrainerSummary(
+                TRAINER_ID, new UserProfile(username),
+                TrainingType.YOGA
+        );
+    }
+
+    public static TrainingSummary getTrainingSummary(){
+        return new TrainingSummary(
+                TRAINING_ID, getTrainerSummary(), getTraineeSummary(), "Morning Cardio",
+                TrainingType.YOGA, LocalDate.of(2026, 5, 15), 60
         );
     }
 

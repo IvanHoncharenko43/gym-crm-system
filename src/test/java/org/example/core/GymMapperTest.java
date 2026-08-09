@@ -2,18 +2,18 @@ package org.example.core;
 
 import org.example.TestUtils;
 import org.example.core.service.GymMapper;
-import org.example.trainee.dto.CreateTraineeRequest;
+import org.example.trainee.controller.request.CreateTraineeRequest;
 import org.example.trainee.repository.TraineeEntity;
-import org.example.trainee.dto.TraineeSummary;
-import org.example.trainee.dto.UpdateTraineeRequest;
-import org.example.trainer.dto.CreateTrainerRequest;
+import org.example.trainee.controller.response.TraineeSummary;
+import org.example.trainee.controller.request.UpdateTraineeRequest;
+import org.example.trainer.controller.request.CreateTrainerRequest;
 import org.example.trainer.repository.TrainerEntity;
-import org.example.trainer.dto.TrainerSummary;
-import org.example.trainer.dto.UpdateTrainerRequest;
-import org.example.training.dto.CreateTrainingRequest;
+import org.example.trainer.controller.response.TrainerSummary;
+import org.example.trainer.controller.request.UpdateTrainerRequest;
+import org.example.training.controller.request.CreateTrainingRequest;
 import org.example.training.repository.TrainingEntity;
-import org.example.training.dto.TrainingSummary;
-import org.example.core.repository.TrainingTypeEntity;
+import org.example.training.controller.response.TrainingSummary;
+import org.example.trainingType.repository.TrainingTypeEntity;
 import org.example.utils.PasswordGenerator;
 import org.example.utils.UsernameGenerator;
 import org.junit.jupiter.api.Test;
@@ -62,18 +62,18 @@ public class GymMapperTest {
     @Test
     void toTrainee_MapCorrectly_FromUpdateRequest() {
         UpdateTraineeRequest request = TestUtils.getUpdateTraineeRequest();
-        TraineeEntity trainee = TestUtils.getTrainee();
+        TraineeEntity expectedTrainee = TestUtils.getTrainee();
 
-        trainee = gymMapper.toTraineeEntity(request, trainee);
+        TraineeEntity actualTrainee = gymMapper.toTraineeEntity(request, expectedTrainee);
 
-        assertNotNull(trainee);
-        assertEquals(request.id(), trainee.getId());
-        assertEquals(request.fullName().firstName(), trainee.getUser().getFirstName());
-        assertEquals(request.fullName().lastName(), trainee.getUser().getLastName());
-        assertEquals(request.credentials().username(), trainee.getUser().getUsername());
-        assertEquals(request.credentials().password(), trainee.getUser().getPassword());
-        assertEquals(request.dateOfBirth(), trainee.getDateOfBirth());
-        assertEquals(request.address(), trainee.getAddress());
+        assertNotNull(actualTrainee);
+        assertEquals(expectedTrainee.getId(), actualTrainee.getId());
+        assertEquals(request.fullName().firstName(), actualTrainee.getUser().getFirstName());
+        assertEquals(request.fullName().lastName(), actualTrainee.getUser().getLastName());
+        assertEquals(expectedTrainee.getUser().getUsername(), actualTrainee.getUser().getUsername());
+        assertEquals(expectedTrainee.getUser().getPassword(), actualTrainee.getUser().getPassword());
+        assertEquals(request.dateOfBirth(), actualTrainee.getDateOfBirth());
+        assertEquals(request.address(), actualTrainee.getAddress());
     }
 
     @Test
@@ -116,18 +116,20 @@ public class GymMapperTest {
     @Test
     void toTrainer_MapCorrectly_FromUpdateRequest() {
         UpdateTrainerRequest request = TestUtils.getUpdateTrainerRequest();
-        TrainerEntity trainer = TestUtils.getTrainer();
+        TrainerEntity expectedTrainer = TestUtils.getTrainer();
         TrainingTypeEntity trainingType = TestUtils.getTrainingType();
 
-        trainer = gymMapper.toTrainerEntity(request, trainer, trainingType);
+        TrainerEntity actualTrainer = gymMapper.toTrainerEntity(request, expectedTrainer, trainingType);
 
-        assertNotNull(trainer);
-        assertEquals(request.id(), trainer.getId());
-        assertEquals(request.fullName().firstName(), trainer.getUser().getFirstName());
-        assertEquals(request.fullName().lastName(), trainer.getUser().getLastName());
+        assertNotNull(actualTrainer);
+        assertEquals(expectedTrainer.getId(), actualTrainer.getId());
+        assertEquals(request.fullName().firstName(), actualTrainer.getUser().getFirstName());
+        assertEquals(request.fullName().lastName(), actualTrainer.getUser().getLastName());
+        assertEquals(expectedTrainer.getUser().getUsername(), actualTrainer.getUser().getUsername());
+        assertEquals(expectedTrainer.getUser().getPassword(), actualTrainer.getUser().getPassword());
 
-        assertNotNull(trainer.getSpecialization());
-        assertEquals(request.specialization(), trainer.getSpecialization().getTrainingTypeName());
+        assertNotNull(actualTrainer.getSpecialization());
+        assertEquals(request.specialization(), actualTrainer.getSpecialization().getTrainingTypeName());
     }
 
     @Test

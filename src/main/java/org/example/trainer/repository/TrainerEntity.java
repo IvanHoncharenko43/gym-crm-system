@@ -14,7 +14,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.example.trainee.repository.TraineeEntity;
-import org.example.core.repository.TrainingTypeEntity;
+import org.example.trainingType.repository.TrainingTypeEntity;
 import org.example.user.repository.UserEntity;
 
 import java.util.HashSet;

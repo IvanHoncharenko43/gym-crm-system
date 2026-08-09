@@ -11,7 +11,7 @@ import jakarta.persistence.Column;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.example.core.repository.TrainingTypeEntity;
+import org.example.trainingType.repository.TrainingTypeEntity;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainer.repository.TrainerEntity;
 
