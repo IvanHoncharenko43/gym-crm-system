@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component;
 
 @Component
 public record InterceptorConfigurationProperties(
-        @Value("${interceptor.path.include}") String includePath,
-        @Value("${interceptor.path.exclude}") String excludePath
+        @Value("${interceptor.path.include}") String includePath
 ) {
 }
