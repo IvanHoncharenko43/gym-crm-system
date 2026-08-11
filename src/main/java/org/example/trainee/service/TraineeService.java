@@ -1,6 +1,7 @@
 package org.example.trainee.service;
 
-import org.example.monitoring.TransactionalMetricService;
+import lombok.RequiredArgsConstructor;
+import org.example.monitoring.GymCrmMetrics;
 import org.example.trainer.controller.response.Trainers;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -25,23 +26,14 @@ import java.util.Set;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class TraineeService {
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
     private final UserRepository userRepository;
     private final GymMapper gymMapper;
     private final AuthenticationComponent authenticator;
-    private final TransactionalMetricService transactionalMetricService;
-
-    public TraineeService(TraineeRepository traineeRepository, TrainerRepository trainerRepository, UserRepository userRepository,
-                          GymMapper gymMapper, AuthenticationComponent authenticator, TransactionalMetricService transactionalMetricService){
-        this.traineeRepository = traineeRepository;
-        this.trainerRepository = trainerRepository;
-        this.userRepository = userRepository;
-        this.gymMapper = gymMapper;
-        this.authenticator = authenticator;
-        this.transactionalMetricService = transactionalMetricService;
-    }
+    private final GymCrmMetrics gymCrmMetrics;
 
     @Transactional
     public TraineeSummary create(CreateTraineeRequest request) {
@@ -50,7 +42,7 @@ public class TraineeService {
         TraineeEntity trainee = gymMapper.toTraineeEntity(request, existingUsernames);
         TraineeEntity savedTrainee = traineeRepository.save(trainee);
         log.info("Created trainee profile with ID: {}", savedTrainee.getId());
-        transactionalMetricService.incrementOnCommit("gym_users_created_total", "role", "TRAINEE");
+        gymCrmMetrics.incrementTraineeCreation();
         return gymMapper.toTraineeSummary(savedTrainee);
     }
 
@@ -139,7 +131,7 @@ public class TraineeService {
         newTrainers.forEach(newTrainer -> newTrainer.getTrainees().add(trainee));
         trainee.getTrainers().addAll(newTrainers);
         traineeRepository.save(trainee);
-        transactionalMetricService.incrementOnCommit("trainer_assignments_total");
+        gymCrmMetrics.incrementTrainerAssignment();
         log.info("Updated trainers for a trainee ID: {}", id);
         return new Trainers(
                 newTrainers.stream()

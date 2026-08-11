@@ -46,27 +46,25 @@ public class TrainingController {
     }
 
     @Operation(summary = "Add a new training", description = "Creates a new training and returns its summary")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(
-            implementation = TrainingSummary.class)))
+    @ApiResponse(responseCode = "200", description = "Added a new training")
     @PostMapping
     @ResponseStatus(HttpStatus.OK)
     public TrainingSummary addTraining(@Valid @RequestBody CreateTrainingRequest request,
                                        @Parameter(hidden = true)
-                                       @RequestAttribute("userCredentials") UserCredentials credentials){
+                                       @RequestAttribute UserCredentials userCredentials){
         log.info("POST /api/v1/trainings endpoint called");
-        return trainingService.create(request, credentials);
+        return trainingService.create(request, userCredentials);
     }
 
     @Operation(summary = "Get training types", description = "Returns a list of all training types")
-    @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(
-            implementation = TrainingTypes.class)))
+    @ApiResponse(responseCode = "200", description = "Retrieved all training types")
     @GetMapping("/training-types")
     @ResponseStatus(HttpStatus.OK)
     public TrainingTypes getTrainingTypes(
             @Parameter(hidden = true)
-            @RequestAttribute("userCredentials") UserCredentials credentials
+            @RequestAttribute UserCredentials userCredentials
     ){
         log.info("GET /api/v1/trainings/training-types endpoint called");
-        return trainingTypeService.getAllTrainingTypes(credentials);
+        return trainingTypeService.getAllTrainingTypes(userCredentials);
     }
 }

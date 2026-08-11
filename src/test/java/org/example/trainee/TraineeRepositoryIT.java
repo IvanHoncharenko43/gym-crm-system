@@ -1,6 +1,6 @@
 package org.example.trainee;
 
-import org.example.core.AbstractRepositoryTest;
+import org.example.core.AbstractRepositoryIT;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainee.repository.TraineeRepository;
 import org.example.trainer.repository.TrainerEntity;
@@ -15,9 +15,10 @@ import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import java.time.LocalDate;
 import java.util.Optional;
 
+import static org.example.TestUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class TraineeRepositoryTest extends AbstractRepositoryTest {
+public class TraineeRepositoryIT extends AbstractRepositoryIT {
 
     @Autowired
     private TraineeRepository traineeRepository;
@@ -25,31 +26,10 @@ public class TraineeRepositoryTest extends AbstractRepositoryTest {
     @Autowired
     private TestEntityManager entityManager;
 
-    private UserEntity persistUser(String username) {
-        UserEntity user = new UserEntity();
-        user.setFirstName("John");
-        user.setLastName("Doe");
-        user.setUsername(username);
-        user.setPassword("password1234");
-        user.setIsActive(true);
-        return entityManager.persistAndFlush(user);
-    }
-
-    private TraineeEntity persistTrainee(String username) {
-        TraineeEntity trainee = new TraineeEntity();
-        trainee.setUser(persistUser(username));
-        trainee.setAddress("21 Home Street");
-        trainee.setDateOfBirth(LocalDate.of(2007, 1, 1));
-        return entityManager.persistAndFlush(trainee);
-    }
-
     @Test
     void save_PersistTraineeEntity_EntityIsNew() {
-        UserEntity user = persistUser("John.Doe");
-        TraineeEntity trainee = new TraineeEntity();
-        trainee.setUser(user);
-        trainee.setAddress("21 Home Street");
-        trainee.setDateOfBirth(LocalDate.of(2007, 1, 1));
+        UserEntity user = entityManager.persistAndFlush(buildUser("John.Doe"));
+        TraineeEntity trainee = buildTrainee(user);
 
         TraineeEntity saved = traineeRepository.save(trainee);
         entityManager.flush();
@@ -58,12 +38,13 @@ public class TraineeRepositoryTest extends AbstractRepositoryTest {
         assertThat(saved.getId()).isNotNull();
         TraineeEntity reloaded = entityManager.find(TraineeEntity.class, saved.getId());
         assertThat(reloaded).isNotNull();
-        assertThat(reloaded.getAddress()).isEqualTo("21 Home Street");
+        assertThat(reloaded.getAddress()).isEqualTo(DEFAULT_ADDRESS);
     }
 
     @Test
     void save_MergeTraineeEntity_EntityHasId() {
-        TraineeEntity trainee = persistTrainee("John.Doe");
+        UserEntity user = entityManager.persistAndFlush(buildUser("John.Doe"));
+        TraineeEntity trainee = entityManager.persistAndFlush(buildTrainee(user));
         entityManager.clear();
 
         TraineeEntity traineeToUpdate = traineeRepository.findById(trainee.getId()).orElseThrow();
@@ -79,7 +60,8 @@ public class TraineeRepositoryTest extends AbstractRepositoryTest {
     @Test
     void findById_ReturnTraineeWithUser_IdExists() {
         String username = "John.Doe";
-        TraineeEntity trainee = persistTrainee(username);
+        UserEntity user = entityManager.persistAndFlush(buildUser(username));
+        TraineeEntity trainee = entityManager.persistAndFlush(buildTrainee(user));
         entityManager.clear();
 
         Optional<TraineeEntity> existingUser = traineeRepository.findById(trainee.getId());
@@ -98,7 +80,8 @@ public class TraineeRepositoryTest extends AbstractRepositoryTest {
     @Test
     void findByUsername_ReturnTraineeWithUser_UsernameExists() {
         String username = "John.Doe";
-        TraineeEntity trainee = persistTrainee(username);
+        UserEntity user = entityManager.persistAndFlush(buildUser(username));
+        TraineeEntity trainee = entityManager.persistAndFlush(buildTrainee(user));
         entityManager.clear();
 
         Optional<TraineeEntity> existingUser = traineeRepository.findByUsername(username);
@@ -118,7 +101,8 @@ public class TraineeRepositoryTest extends AbstractRepositoryTest {
     @Test
     void deleteByUserUsername_RemoveTraineeAndCascadeUser_UsernameExists() {
         String username = "John.Doe";
-        TraineeEntity trainee = persistTrainee(username);
+        UserEntity user = entityManager.persistAndFlush(buildUser(username));
+        TraineeEntity trainee = entityManager.persistAndFlush(buildTrainee(user));
         Long traineeId = trainee.getId();
         Long userId = trainee.getUser().getId();
         entityManager.clear();
@@ -134,25 +118,14 @@ public class TraineeRepositoryTest extends AbstractRepositoryTest {
     @Test
     void deleteByUserUsername_CascadeRemoveTrainings_UsernameExists() {
         String username = "John.Doe";
-        TraineeEntity trainee = persistTrainee(username);
+        UserEntity user = entityManager.persistAndFlush(buildUser(username));
+        TraineeEntity trainee = entityManager.persistAndFlush(buildTrainee(user));
 
-        TrainingTypeEntity trainingType = new TrainingTypeEntity();
-        trainingType.setTrainingTypeName(TrainingType.CARDIO);
-        entityManager.persistAndFlush(trainingType);
-
-        TrainerEntity trainer = new TrainerEntity();
-        trainer.setUser(persistUser("Jane.Smith"));
-        trainer.setSpecialization(trainingType);
-        entityManager.persistAndFlush(trainer);
-
-        TrainingEntity training = new TrainingEntity();
-        training.setTrainingName("Cascade Test Training");
-        training.setTrainingDate(LocalDate.now());
-        training.setDurationMinutes(60);
-        training.setTrainee(trainee);
-        training.setTrainer(trainer);
-        training.setTrainingType(trainingType);
-        entityManager.persistAndFlush(training);
+        TrainingTypeEntity trainingType = entityManager.persistAndFlush(buildTrainingType(TrainingType.CARDIO));
+        UserEntity trainerUser = entityManager.persistAndFlush(buildUser("Jane.Smith"));
+        TrainerEntity trainer = entityManager.persistAndFlush(buildTrainer(trainerUser, trainingType));
+        TrainingEntity training = entityManager.persistAndFlush(buildTraining(
+                trainee, trainer, trainingType, "Cascade Test Training", LocalDate.now(), 60));
         Long trainingId = training.getId();
 
         entityManager.clear();
@@ -166,7 +139,8 @@ public class TraineeRepositoryTest extends AbstractRepositoryTest {
 
     @Test
     void deleteByUserUsername_DoNothing_UsernameDoesNotExist() {
-        persistTrainee("John.Doe");
+        UserEntity user = entityManager.persistAndFlush(buildUser("John.Doe"));
+        entityManager.persistAndFlush(buildTrainee(user));
         long countBefore = traineeRepository.count();
 
         traineeRepository.deleteByUserUsername("not.real");

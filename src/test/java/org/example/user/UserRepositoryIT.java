@@ -1,6 +1,6 @@
 package org.example.user;
 
-import org.example.core.AbstractRepositoryTest;
+import org.example.core.AbstractRepositoryIT;
 import org.example.user.repository.UserEntity;
 import org.example.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
@@ -10,9 +10,10 @@ import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import java.util.List;
 import java.util.Optional;
 
+import static org.example.TestUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class UserRepositoryTest extends AbstractRepositoryTest {
+public class UserRepositoryIT extends AbstractRepositoryIT {
 
     @Autowired
     private UserRepository userRepository;
@@ -20,25 +21,10 @@ public class UserRepositoryTest extends AbstractRepositoryTest {
     @Autowired
     private TestEntityManager entityManager;
 
-    private UserEntity persistUser(String username) {
-        UserEntity user = new UserEntity();
-        user.setFirstName("John");
-        user.setLastName("Doe");
-        user.setUsername(username);
-        user.setPassword("password1234");
-        user.setIsActive(true);
-        return entityManager.persistAndFlush(user);
-    }
-
     @Test
     void save_PersistUserEntity_EntityIsNew() {
         String username = "John.Doe";
-        UserEntity user = new UserEntity();
-        user.setFirstName("John");
-        user.setLastName("Doe");
-        user.setUsername(username);
-        user.setPassword("password1234");
-        user.setIsActive(true);
+        UserEntity user = buildUser(username);
 
         UserEntity savedUser = userRepository.save(user);
         entityManager.flush();
@@ -53,7 +39,7 @@ public class UserRepositoryTest extends AbstractRepositoryTest {
     @Test
     void save_MergeUserEntity_EntityHasId() {
         String username = "John.Doe";
-        UserEntity user = persistUser(username);
+        UserEntity user = entityManager.persistAndFlush(buildUser(username));
         entityManager.clear();
 
         UserEntity toUpdate = userRepository.findById(user.getId()).orElseThrow();
@@ -69,7 +55,7 @@ public class UserRepositoryTest extends AbstractRepositoryTest {
     @Test
     void findById_ReturnUser_IdExists() {
         String username = "John.Doe";
-        UserEntity user = persistUser(username);
+        UserEntity user = entityManager.persistAndFlush(buildUser(username));
         entityManager.clear();
 
         Optional<UserEntity> existingUser = userRepository.findById(user.getId());
@@ -88,7 +74,7 @@ public class UserRepositoryTest extends AbstractRepositoryTest {
     @Test
     void findByUsername_ReturnUser_UsernameExists() {
         String username = "John.Doe";
-        persistUser(username);
+        entityManager.persistAndFlush(buildUser(username));
         entityManager.clear();
 
         Optional<UserEntity> existingUser = userRepository.findByUsername(username);
@@ -107,9 +93,9 @@ public class UserRepositoryTest extends AbstractRepositoryTest {
     @Test
     void findUsernamesByBaseNameForUpdate_ReturnUsernamesList_BaseNameExists() {
         String baseUsername = "John.Doe";
-        persistUser("Jane.Smith");
-        persistUser(baseUsername + 1);
-        persistUser(baseUsername + 2);
+        entityManager.persistAndFlush(buildUser("Jane.Smith"));
+        entityManager.persistAndFlush(buildUser(baseUsername + 1));
+        entityManager.persistAndFlush(buildUser(baseUsername + 2));
         entityManager.clear();
 
         List<String> usernames = userRepository.findUsernamesByBaseNameForUpdate(baseUsername);
@@ -119,7 +105,7 @@ public class UserRepositoryTest extends AbstractRepositoryTest {
 
     @Test
     void findUsernamesByBaseNameForUpdate_ReturnEmptyList_NoMatchExists() {
-        persistUser("John.Doe");
+        entityManager.persistAndFlush(buildUser("John.Doe"));
         entityManager.clear();
 
         List<String> usernames = userRepository.findUsernamesByBaseNameForUpdate("Jane.Smith");

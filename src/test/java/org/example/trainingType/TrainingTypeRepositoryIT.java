@@ -1,6 +1,6 @@
 package org.example.trainingType;
 
-import org.example.core.AbstractRepositoryTest;
+import org.example.core.AbstractRepositoryIT;
 import org.example.trainingType.dto.TrainingType;
 import org.example.trainingType.repository.TrainingTypeEntity;
 import org.example.trainingType.repository.TrainingTypeRepository;
@@ -11,9 +11,10 @@ import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import java.util.List;
 import java.util.Optional;
 
+import static org.example.TestUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class TrainingTypeRepositoryTest extends AbstractRepositoryTest {
+public class TrainingTypeRepositoryIT extends AbstractRepositoryIT {
 
     @Autowired
     private TrainingTypeRepository trainingTypeRepository;
@@ -21,16 +22,10 @@ public class TrainingTypeRepositoryTest extends AbstractRepositoryTest {
     @Autowired
     private TestEntityManager entityManager;
 
-    private TrainingTypeEntity persistTrainingType(TrainingType name) {
-        TrainingTypeEntity trainingType = new TrainingTypeEntity();
-        trainingType.setTrainingTypeName(name);
-        return entityManager.persistAndFlush(trainingType);
-    }
-
     @Test
     void findAll_ReturnAllTrainingTypes_DataExists() {
-        persistTrainingType(TrainingType.STRENGTH);
-        persistTrainingType(TrainingType.YOGA);
+        entityManager.persistAndFlush(buildTrainingType(TrainingType.STRENGTH));
+        entityManager.persistAndFlush(buildTrainingType(TrainingType.YOGA));
         entityManager.clear();
 
         List<TrainingTypeEntity> found = trainingTypeRepository.findAll();
@@ -49,7 +44,7 @@ public class TrainingTypeRepositoryTest extends AbstractRepositoryTest {
 
     @Test
     void findByTrainingTypeName_ReturnTrainingType_NameExists() {
-        TrainingTypeEntity trainingType = persistTrainingType(TrainingType.CARDIO);
+        TrainingTypeEntity trainingType = entityManager.persistAndFlush(buildTrainingType(TrainingType.CARDIO));
         entityManager.clear();
 
         Optional<TrainingTypeEntity> found = trainingTypeRepository.findByTrainingTypeName(TrainingType.CARDIO);

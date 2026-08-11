@@ -4,7 +4,6 @@ import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -17,5 +16,5 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u.username FROM UserEntity u WHERE u.username LIKE CONCAT(:baseName, '%')")
-    List<String> findUsernamesByBaseNameForUpdate(@Param("baseName") String baseName);
+    List<String> findUsernamesByBaseNameForUpdate(String baseName);
 }

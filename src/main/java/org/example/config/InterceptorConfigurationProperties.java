@@ -1,10 +1,9 @@
 package org.example.config;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@Component
+@ConfigurationProperties(prefix = "interceptor")
 public record InterceptorConfigurationProperties(
-        @Value("${interceptor.path.include}") String includePath
+        String includePath
 ) {
 }

@@ -1,7 +1,5 @@
 package org.example.user;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.example.config.AuthInterceptor;
 import org.example.config.InterceptorConfigurationProperties;
 import org.example.core.dto.ChangePasswordRequest;
@@ -18,6 +16,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.json.JsonMapper;
 
 import static org.example.TestUtils.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,7 +25,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = UserController.class)
-class UserControllerTest {
+class UserControllerIT {
 
     @TestConfiguration
     static class TestConfig {
@@ -40,7 +39,9 @@ class UserControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-    private final ObjectMapper objectMapper = new ObjectMapper().registerModule(new JavaTimeModule());
+
+    @Autowired
+    private JsonMapper jsonMapper;
 
     @MockitoBean
     private UserService userService;
@@ -60,7 +61,7 @@ class UserControllerTest {
 
         mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", TRAINEE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request))
+                        .content(jsonMapper.writeValueAsString(request))
                         .requestAttr("userCredentials", CREDENTIALS))
                 .andExpect(status().isOk());
         verify(userService, times(1)).changePassword(TRAINEE_ID, request, CREDENTIALS);
@@ -72,7 +73,20 @@ class UserControllerTest {
 
         mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", TRAINEE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request))
+                        .content(jsonMapper.writeValueAsString(request))
+                        .requestAttr("userCredentials", CREDENTIALS))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.title").value("Bad Request"))
+                .andExpect(jsonPath("$.invalidFields").isNotEmpty());
+    }
+
+    @Test
+    void changePassword_Return400AndProblemDetail_NewPasswordIsBlank() throws Exception {
+        ChangePasswordRequest request = new ChangePasswordRequest("oldPassword1234", "");
+
+        mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", TRAINEE_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(request))
                         .requestAttr("userCredentials", CREDENTIALS))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"))
@@ -85,7 +99,7 @@ class UserControllerTest {
 
         mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", TRAINEE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request))
+                        .content(jsonMapper.writeValueAsString(request))
                         .requestAttr("userCredentials", CREDENTIALS))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"))
@@ -100,7 +114,7 @@ class UserControllerTest {
 
         mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", TRAINEE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request))
+                        .content(jsonMapper.writeValueAsString(request))
                         .requestAttr("userCredentials", CREDENTIALS))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Entity Not Found"))

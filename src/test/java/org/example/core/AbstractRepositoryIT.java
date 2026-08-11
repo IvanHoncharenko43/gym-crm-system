@@ -7,7 +7,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-public class AbstractRepositoryTest {
+public class AbstractRepositoryIT {
 
     @ServiceConnection
     static final PostgreSQLContainer<?> POSTGRES =

@@ -12,10 +12,10 @@ import java.util.Optional;
 public interface TrainerRepository extends JpaRepository<TrainerEntity, Long> {
 
     @Query("SELECT t FROM TrainerEntity t JOIN FETCH t.user JOIN FETCH t.specialization WHERE t.id = :id")
-    Optional<TrainerEntity> findById(@Param("id") Long id);
+    Optional<TrainerEntity> findById(Long id);
 
     @Query("SELECT t FROM TrainerEntity t JOIN FETCH t.user JOIN FETCH t.specialization WHERE t.user.username = :username")
-    Optional<TrainerEntity> findByUsername(@Param("username") String username);
+    Optional<TrainerEntity> findByUsername(String username);
 
     @Query("SELECT t FROM TrainerEntity t JOIN FETCH t.user JOIN FETCH t.specialization WHERE t.user.username IN :usernames")
     List<TrainerEntity> findByUsernames(@Param("usernames") List<String> usernames);
@@ -24,6 +24,6 @@ public interface TrainerRepository extends JpaRepository<TrainerEntity, Long> {
             SELECT tr FROM TrainerEntity tr
             JOIN FETCH tr.user
             JOIN FETCH tr.specialization
-            WHERE NOT EXISTS (SELECT 1 FROM tr.trainees t WHERE t.user.username = :username)""")
-    List<TrainerEntity> findUnassignedTrainersByTraineeUsername(@Param("username") String traineeUsername);
+            WHERE NOT EXISTS (SELECT 1 FROM tr.trainees t WHERE t.user.username = :traineeUsername)""")
+    List<TrainerEntity> findUnassignedTrainersByTraineeUsername(String traineeUsername);
 }

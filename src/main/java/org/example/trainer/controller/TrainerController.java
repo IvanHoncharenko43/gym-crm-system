@@ -55,8 +55,7 @@ public class TrainerController {
     }
 
     @Operation(summary = "Register a new trainer", description = "Creates a new trainer profile and returns their summary")
-    @ApiResponse(responseCode = "201", description = "CREATED", content = @Content(schema = @Schema(
-            implementation = TrainerSummary.class)))
+    @ApiResponse(responseCode = "201", description = "Registered a new trainer")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public TrainerSummary registerTrainer(@Valid @RequestBody CreateTrainerRequest request){
@@ -66,8 +65,7 @@ public class TrainerController {
 
     @Operation(summary = "Get trainer", description = "Returns a single trainer")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(
-                    implementation = TrainerSummary.class))),
+            @ApiResponse(responseCode = "200", description = "Retrieved the trainer"),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Trainer Not Found", content = @Content(schema = @Schema(
@@ -79,16 +77,14 @@ public class TrainerController {
             @Parameter(in = ParameterIn.PATH, description = "Trainer ID", example = "12")
             @PathVariable Long id,
             @Parameter(hidden = true)
-            @RequestAttribute("userCredentials") UserCredentials credentials){
+            @RequestAttribute UserCredentials userCredentials){
         log.info("GET /api/v1/trainers/{id} endpoint called");
-        return trainerService.getById(id, credentials);
+        return trainerService.getById(id, userCredentials);
     }
 
     @Operation(summary = "Update trainer", description = "Updates an existing trainer's profile")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(
-                    implementation = TrainerSummary.class
-            ))),
+            @ApiResponse(responseCode = "200", description = "Updated the trainer"),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
@@ -103,15 +99,14 @@ public class TrainerController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateTrainerRequest request,
             @Parameter(hidden = true)
-            @RequestAttribute("userCredentials") UserCredentials credentials){
+            @RequestAttribute UserCredentials userCredentials){
         log.info("PUT /api/v1/trainers/{id} endpoint called");
-        return trainerService.update(id, request, credentials);
+        return trainerService.update(id, request, userCredentials);
     }
 
     @Operation(summary = "Get not assigned trainers by trainee", description = "Returns a list of trainers that are not assigned to a specific trainee")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(
-                    implementation = Trainers.class))),
+            @ApiResponse(responseCode = "200", description = "Retrieved not assigned on the trainee trainers"),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
@@ -121,14 +116,14 @@ public class TrainerController {
             @NotBlank(message = "Trainee username cannot be blank")
             @RequestParam("trainee-username") String traineeUsername,
             @Parameter(hidden = true)
-            @RequestAttribute("userCredentials") UserCredentials credentials){
+            @RequestAttribute UserCredentials userCredentials){
         log.info("GET /api/v1/trainers/not-assigned endpoint called");
-        return trainerService.getUnassignedTrainersByTraineeList(traineeUsername, credentials);
+        return trainerService.getUnassignedTrainersByTraineeList(traineeUsername, userCredentials);
     }
 
     @Operation(summary = "Change trainer activity", description = "Changes a trainer's activity status")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "OK"),
+            @ApiResponse(responseCode = "200", description = "Changed activity of the trainer"),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
@@ -136,21 +131,20 @@ public class TrainerController {
             @ApiResponse(responseCode = "404", description = "Trainer Not Found", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
-    @PatchMapping(value = "/{id}/activity-change")
+    @PatchMapping(value = "/{id}/profile/active-status/change")
     @ResponseStatus(HttpStatus.OK)
     public void changeTrainerActivity(
             @Parameter(in = ParameterIn.PATH, description = "Trainer ID", example = "12")
             @PathVariable Long id,
             @Parameter(hidden = true)
-            @RequestAttribute("userCredentials") UserCredentials credentials){
-        log.info("PATCH /api/v1/trainers/{id}/activity-change endpoint called");
-        trainerService.changeActivity(id, credentials);
+            @RequestAttribute UserCredentials userCredentials){
+        log.info("PATCH /api/v1/trainers/{id}/profile/active-status/change endpoint called");
+        trainerService.changeActivity(id, userCredentials);
     }
 
     @Operation(summary = "Get trainer's trainings", description = "Returns an existing trainer's trainings list")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "OK", content = @Content(schema = @Schema(
-                    implementation = Trainings.class))),
+            @ApiResponse(responseCode = "200", description = "Retrieved trainee's trainings"),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
@@ -159,9 +153,9 @@ public class TrainerController {
     public Trainings getTrainerTrainingList(
             @Valid @RequestBody GetTrainerTrainingsRequest request,
             @Parameter(hidden = true)
-            @RequestAttribute("userCredentials") UserCredentials credentials
+            @RequestAttribute UserCredentials userCredentials
     ){
         log.info("GET /api/v1/trainers/trainings/search endpoint called");
-        return trainingService.getTrainerTrainingList(request, credentials);
+        return trainingService.getTrainerTrainingList(request, userCredentials);
     }
 }

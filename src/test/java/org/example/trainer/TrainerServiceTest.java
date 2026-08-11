@@ -4,7 +4,7 @@ import org.example.TestUtils;
 import org.example.core.service.AuthenticationComponent;
 import org.example.exception.EntityNotFoundException;
 import org.example.exception.InvalidRequestDataException;
-import org.example.monitoring.TransactionalMetricService;
+import org.example.monitoring.GymCrmMetrics;
 import org.example.trainer.controller.request.CreateTrainerRequest;
 import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.request.UpdateTrainerRequest;
@@ -58,7 +58,7 @@ public class TrainerServiceTest {
     private AuthenticationComponent authenticator;
 
     @Mock
-    private TransactionalMetricService transactionalMetricService;
+    private GymCrmMetrics gymCrmMetrics;
 
     @InjectMocks
     private TrainerService trainerService;

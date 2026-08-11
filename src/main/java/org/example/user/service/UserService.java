@@ -1,5 +1,6 @@
 package org.example.user.service;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.core.dto.ChangePasswordRequest;
 import org.example.core.service.AuthenticationComponent;
@@ -13,15 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
     private final AuthenticationComponent authenticator;
-
-    public UserService(UserRepository userRepository, AuthenticationComponent authenticator){
-        this.userRepository = userRepository;
-        this.authenticator = authenticator;
-    }
 
     @Transactional
     public void changePassword(Long id, ChangePasswordRequest request, UserCredentials credentials){

@@ -1,5 +1,6 @@
 package org.example.trainingType.service;
 
+import lombok.RequiredArgsConstructor;
 import org.example.core.service.AuthenticationComponent;
 import org.example.trainingType.repository.TrainingTypeEntity;
 import org.example.trainingType.repository.TrainingTypeRepository;
@@ -9,15 +10,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@RequiredArgsConstructor
 public class TrainingTypeService {
 
     private final TrainingTypeRepository trainingTypeRepository;
     private final AuthenticationComponent authenticator;
-
-    public TrainingTypeService(TrainingTypeRepository trainingTypeRepository, AuthenticationComponent authenticator){
-        this.trainingTypeRepository = trainingTypeRepository;
-        this.authenticator = authenticator;
-    }
 
     @Transactional(readOnly = true)
     public TrainingTypes getAllTrainingTypes(UserCredentials credentials){

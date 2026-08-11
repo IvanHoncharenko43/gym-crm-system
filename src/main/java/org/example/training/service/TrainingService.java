@@ -1,11 +1,10 @@
 package org.example.training.service;
 
-import org.example.monitoring.TransactionalMetricService;
+import lombok.RequiredArgsConstructor;
+import org.example.monitoring.GymCrmMetrics;
 import org.example.exception.InvalidRequestDataException;
 import org.example.training.controller.response.Trainings;
-import org.example.training.repository.TrainingSpecifications;
 import org.example.user.controller.dto.UserCredentials;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.core.service.AuthenticationComponent;
@@ -23,11 +22,9 @@ import org.example.training.repository.TrainingEntity;
 import org.example.training.repository.TrainingRepository;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class TrainingService {
 
     private final TrainingRepository trainingRepository;
@@ -35,18 +32,7 @@ public class TrainingService {
     private final TrainerRepository trainerRepository;
     private final GymMapper gymMapper;
     private final AuthenticationComponent authenticator;
-    private final TransactionalMetricService transactionalMetricService;
-
-    public TrainingService(TrainingRepository trainingRepository, TraineeRepository traineeRepository,
-                           TrainerRepository trainerRepository, GymMapper gymMapper,
-                           AuthenticationComponent authenticator, TransactionalMetricService transactionalMetricService){
-        this.trainingRepository = trainingRepository;
-        this.traineeRepository = traineeRepository;
-        this.trainerRepository = trainerRepository;
-        this.gymMapper = gymMapper;
-        this.authenticator = authenticator;
-        this.transactionalMetricService = transactionalMetricService;
-    }
+    private final GymCrmMetrics gymCrmMetrics;
 
     @Transactional
     public TrainingSummary create(CreateTrainingRequest request, UserCredentials credentials) {
@@ -71,7 +57,7 @@ public class TrainingService {
         TrainingEntity training = gymMapper.toTraining(request, trainee, trainer);
         TrainingEntity savedTraining = trainingRepository.save(training);
         log.info("Created training with ID: {}", savedTraining.getId());
-        transactionalMetricService.incrementOnCommit("training_sessions_booked_total", "type", training.getTrainingType().getTrainingTypeName().name());
+        gymCrmMetrics.incrementTrainingCreated(training.getTrainingType().getTrainingTypeName().name());
         return gymMapper.toTrainingSummary(training, trainee, trainer);
     }
 
@@ -94,10 +80,10 @@ public class TrainingService {
     public Trainings getTraineeTrainingList(GetTraineeTrainingsRequest request, UserCredentials credentials){
         authenticator.authenticate(credentials);
         log.debug("Getting trainee trainings");
-        Specification<TrainingEntity> specification = TrainingSpecifications.findTraineeTrainings(request.username(),
-                request.fromDate(), request.toDate(), request.trainerName(), request.trainingType().name());
         return new Trainings(
-                trainingRepository.findAll(specification).stream()
+                trainingRepository.findTraineeTrainings(request.username(), request.fromDate(), request.toDate(),
+                                request.trainerName(), request.trainingType().name())
+                        .stream()
                         .map(training -> gymMapper.toTrainingSummary(training, training.getTrainee(), training.getTrainer()))
                         .toList()
         );
@@ -107,10 +93,10 @@ public class TrainingService {
     public Trainings getTrainerTrainingList(GetTrainerTrainingsRequest request, UserCredentials credentials){
         authenticator.authenticate(credentials);
         log.debug("Getting trainer trainings");
-        Specification<TrainingEntity> specification = TrainingSpecifications.findTrainerTrainings(request.username(),
-                request.fromDate(), request.toDate(), request.traineeName());
         return new Trainings(
-                trainingRepository.findAll(specification).stream()
+                trainingRepository.findTrainerTrainings(request.username(), request.fromDate(),
+                                request.toDate(), request.traineeName())
+                        .stream()
                         .map(training -> gymMapper.toTrainingSummary(training, training.getTrainee(), training.getTrainer()))
                         .toList()
         );

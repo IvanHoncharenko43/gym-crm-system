@@ -134,6 +134,13 @@ public class TestUtils {
         );
     }
 
+    public static TraineeSummary getTraineeSummaryWithNoOptional(){
+        return new TraineeSummary(
+                TRAINEE_ID, new UserProfile(TRAINEE_USERNAME),
+                null, null
+        );
+    }
+
     public static TrainerSummary getTrainerSummary(){
         return new TrainerSummary(
                 TRAINER_ID, new UserProfile(TRAINER_USERNAME),
@@ -176,5 +183,56 @@ public class TestUtils {
 
     public static Set<String> getExistingUsernamesSet(){
         return new HashSet<>();
+    }
+
+    public static final String DEFAULT_PASSWORD = "password1234";
+    public static final String DEFAULT_ADDRESS = "21 Home Street";
+    public static final LocalDate DEFAULT_DATE_OF_BIRTH = LocalDate.of(2007, 1, 1);
+
+    public static UserEntity buildUser(String username, String lastName) {
+        UserEntity user = new UserEntity();
+        user.setFirstName(FIRST_NAME);
+        user.setLastName(lastName);
+        user.setUsername(username);
+        user.setPassword(DEFAULT_PASSWORD);
+        user.setIsActive(true);
+        return user;
+    }
+
+    public static UserEntity buildUser(String username) {
+        return buildUser(username, LAST_NAME);
+    }
+
+    public static TraineeEntity buildTrainee(UserEntity user) {
+        TraineeEntity trainee = new TraineeEntity();
+        trainee.setUser(user);
+        trainee.setAddress(DEFAULT_ADDRESS);
+        trainee.setDateOfBirth(DEFAULT_DATE_OF_BIRTH);
+        return trainee;
+    }
+
+    public static TrainingTypeEntity buildTrainingType(TrainingType name) {
+        TrainingTypeEntity trainingType = new TrainingTypeEntity();
+        trainingType.setTrainingTypeName(name);
+        return trainingType;
+    }
+
+    public static TrainerEntity buildTrainer(UserEntity user, TrainingTypeEntity specialization) {
+        TrainerEntity trainer = new TrainerEntity();
+        trainer.setUser(user);
+        trainer.setSpecialization(specialization);
+        return trainer;
+    }
+
+    public static TrainingEntity buildTraining(TraineeEntity trainee, TrainerEntity trainer, TrainingTypeEntity trainingType,
+                                                String name, LocalDate date, int durationMinutes) {
+        TrainingEntity training = new TrainingEntity();
+        training.setTrainingName(name);
+        training.setTrainingDate(date);
+        training.setDurationMinutes(durationMinutes);
+        training.setTrainee(trainee);
+        training.setTrainer(trainer);
+        training.setTrainingType(trainingType);
+        return training;
     }
 }

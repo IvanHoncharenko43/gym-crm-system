@@ -4,7 +4,6 @@ package org.example.trainee.controller.request;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
 import org.example.core.validator.ValidTraineeAge;
 import org.example.user.controller.dto.FullName;
@@ -20,7 +19,6 @@ public record CreateTraineeRequest(
         FullName fullName,
 
         @Schema(description = "Date of birth of the trainee", example = "2007-01-01")
-        @Past(message = "Date of birth must be in the past")
         @ValidTraineeAge
         LocalDate dateOfBirth,
 

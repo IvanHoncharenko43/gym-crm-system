@@ -1,6 +1,6 @@
 package org.example.trainer;
 
-import org.example.core.AbstractRepositoryTest;
+import org.example.core.AbstractRepositoryIT;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.trainer.repository.TrainerRepository;
@@ -11,13 +11,13 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+import static org.example.TestUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class TrainerRepositoryTest extends AbstractRepositoryTest {
+public class TrainerRepositoryIT extends AbstractRepositoryIT {
 
     @Autowired
     private TrainerRepository trainerRepository;
@@ -25,44 +25,11 @@ public class TrainerRepositoryTest extends AbstractRepositoryTest {
     @Autowired
     private TestEntityManager entityManager;
 
-    private UserEntity persistUser(String username) {
-        UserEntity user = new UserEntity();
-        user.setFirstName("John");
-        user.setLastName("Doe");
-        user.setUsername(username);
-        user.setPassword("password1234");
-        user.setIsActive(true);
-        return entityManager.persistAndFlush(user);
-    }
-
-    private TrainingTypeEntity persistTrainingType(TrainingType name) {
-        TrainingTypeEntity trainingType = new TrainingTypeEntity();
-        trainingType.setTrainingTypeName(name);
-        return entityManager.persistAndFlush(trainingType);
-    }
-
-    private TrainerEntity persistTrainer(String username, TrainingTypeEntity specialization) {
-        TrainerEntity trainer = new TrainerEntity();
-        trainer.setUser(persistUser(username));
-        trainer.setSpecialization(specialization);
-        return entityManager.persistAndFlush(trainer);
-    }
-
-    private TraineeEntity persistTrainee(String username) {
-        TraineeEntity trainee = new TraineeEntity();
-        trainee.setUser(persistUser(username));
-        trainee.setAddress("21 Home Street");
-        trainee.setDateOfBirth(LocalDate.of(2007, 1, 1));
-        return entityManager.persistAndFlush(trainee);
-    }
-
     @Test
     void save_PersistTrainerEntity_EntityIsNew() {
-        TrainingTypeEntity specialization = persistTrainingType(TrainingType.STRENGTH);
-        UserEntity user = persistUser("John.Doe");
-        TrainerEntity trainer = new TrainerEntity();
-        trainer.setUser(user);
-        trainer.setSpecialization(specialization);
+        TrainingTypeEntity specialization = entityManager.persistAndFlush(buildTrainingType(TrainingType.STRENGTH));
+        UserEntity user = entityManager.persistAndFlush(buildUser("John.Doe"));
+        TrainerEntity trainer = buildTrainer(user, specialization);
 
         TrainerEntity saved = trainerRepository.save(trainer);
         entityManager.flush();
@@ -76,9 +43,10 @@ public class TrainerRepositoryTest extends AbstractRepositoryTest {
 
     @Test
     void save_MergeTrainerEntity_EntityHasId() {
-        TrainingTypeEntity specialization = persistTrainingType(TrainingType.STRENGTH);
-        TrainingTypeEntity newSpecialization = persistTrainingType(TrainingType.CARDIO);
-        TrainerEntity trainer = persistTrainer("John.Doe", specialization);
+        TrainingTypeEntity specialization = entityManager.persistAndFlush(buildTrainingType(TrainingType.STRENGTH));
+        TrainingTypeEntity newSpecialization = entityManager.persistAndFlush(buildTrainingType(TrainingType.CARDIO));
+        UserEntity user = entityManager.persistAndFlush(buildUser("John.Doe"));
+        TrainerEntity trainer = entityManager.persistAndFlush(buildTrainer(user, specialization));
         entityManager.clear();
 
         TrainerEntity trainerToUpdate = trainerRepository.findById(trainer.getId()).orElseThrow();
@@ -93,8 +61,9 @@ public class TrainerRepositoryTest extends AbstractRepositoryTest {
 
     @Test
     void findById_ReturnTrainerWithUserAndSpecialization_IdExists() {
-        TrainingTypeEntity specialization = persistTrainingType(TrainingType.YOGA);
-        TrainerEntity trainer = persistTrainer("John.Doe", specialization);
+        TrainingTypeEntity specialization = entityManager.persistAndFlush(buildTrainingType(TrainingType.YOGA));
+        UserEntity user = entityManager.persistAndFlush(buildUser("John.Doe"));
+        TrainerEntity trainer = entityManager.persistAndFlush(buildTrainer(user, specialization));
         entityManager.clear();
 
         Optional<TrainerEntity> existingTrainer = trainerRepository.findById(trainer.getId());
@@ -114,8 +83,9 @@ public class TrainerRepositoryTest extends AbstractRepositoryTest {
     @Test
     void findByUsername_ReturnTrainerWithUserAndSpecialization_UsernameExists() {
         String username = "John.Doe";
-        TrainingTypeEntity specialization = persistTrainingType(TrainingType.FLEXIBILITY);
-        TrainerEntity trainer = persistTrainer(username, specialization);
+        TrainingTypeEntity specialization = entityManager.persistAndFlush(buildTrainingType(TrainingType.FLEXIBILITY));
+        UserEntity user = entityManager.persistAndFlush(buildUser(username));
+        TrainerEntity trainer = entityManager.persistAndFlush(buildTrainer(user, specialization));
         entityManager.clear();
 
         Optional<TrainerEntity> existingTrainer = trainerRepository.findByUsername(username);
@@ -134,10 +104,13 @@ public class TrainerRepositoryTest extends AbstractRepositoryTest {
 
     @Test
     void findByUsernames_ReturnTrainersList_UsernamesExist() {
-        TrainingTypeEntity specialization = persistTrainingType(TrainingType.STRENGTH);
-        persistTrainer("Jane.Smith", specialization);
-        persistTrainer("John.Doe", specialization);
-        persistTrainer("Not.Included", specialization);
+        TrainingTypeEntity specialization = entityManager.persistAndFlush(buildTrainingType(TrainingType.STRENGTH));
+        UserEntity janeUser = entityManager.persistAndFlush(buildUser("Jane.Smith"));
+        entityManager.persistAndFlush(buildTrainer(janeUser, specialization));
+        UserEntity johnUser = entityManager.persistAndFlush(buildUser("John.Doe"));
+        entityManager.persistAndFlush(buildTrainer(johnUser, specialization));
+        UserEntity excludedUser = entityManager.persistAndFlush(buildUser("Not.Included"));
+        entityManager.persistAndFlush(buildTrainer(excludedUser, specialization));
         entityManager.clear();
 
         List<TrainerEntity> trainers = trainerRepository.findByUsernames(List.of("Jane.Smith", "John.Doe"));
@@ -156,10 +129,13 @@ public class TrainerRepositoryTest extends AbstractRepositoryTest {
     @Test
     void findUnassignedTrainersByTraineeUsername_ReturnTrainersList_UnassignedTrainersExist() {
         String traineeUsername = "John.Doe";
-        TrainingTypeEntity specialization = persistTrainingType(TrainingType.STRENGTH);
-        TraineeEntity trainee = persistTrainee(traineeUsername);
-        TrainerEntity assignedTrainer = persistTrainer("Jane.Smith", specialization);
-        persistTrainer("Unassigned.Doe", specialization);
+        TrainingTypeEntity specialization = entityManager.persistAndFlush(buildTrainingType(TrainingType.STRENGTH));
+        UserEntity traineeUser = entityManager.persistAndFlush(buildUser(traineeUsername));
+        TraineeEntity trainee = entityManager.persistAndFlush(buildTrainee(traineeUser));
+        UserEntity assignedTrainerUser = entityManager.persistAndFlush(buildUser("Jane.Smith"));
+        TrainerEntity assignedTrainer = entityManager.persistAndFlush(buildTrainer(assignedTrainerUser, specialization));
+        UserEntity unassignedTrainerUser = entityManager.persistAndFlush(buildUser("Unassigned.Doe"));
+        entityManager.persistAndFlush(buildTrainer(unassignedTrainerUser, specialization));
 
         trainee.getTrainers().add(assignedTrainer);
         entityManager.flush();
@@ -174,9 +150,11 @@ public class TrainerRepositoryTest extends AbstractRepositoryTest {
     @Test
     void findUnassignedTrainersByTraineeUsername_ReturnEmptyList_AllTrainersAssigned() {
         String traineeUsername = "John.Doe";
-        TrainingTypeEntity specialization = persistTrainingType(TrainingType.STRENGTH);
-        TraineeEntity trainee = persistTrainee(traineeUsername);
-        TrainerEntity trainer = persistTrainer("Jane.Smith", specialization);
+        TrainingTypeEntity specialization = entityManager.persistAndFlush(buildTrainingType(TrainingType.STRENGTH));
+        UserEntity traineeUser = entityManager.persistAndFlush(buildUser(traineeUsername));
+        TraineeEntity trainee = entityManager.persistAndFlush(buildTrainee(traineeUser));
+        UserEntity trainerUser = entityManager.persistAndFlush(buildUser("Jane.Smith"));
+        TrainerEntity trainer = entityManager.persistAndFlush(buildTrainer(trainerUser, specialization));
 
         trainee.getTrainers().add(trainer);
         entityManager.flush();

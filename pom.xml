@@ -22,6 +22,7 @@
     <maven.compiler.release>21</maven.compiler.release>
     <springdoc.openapi.version>3.0.3</springdoc.openapi.version>
     <testcontainers.version>1.21.4</testcontainers.version>
+    <rest-assured.mock.version>6.0.1</rest-assured.mock.version>
   </properties>
 
   <dependencies>
@@ -88,6 +89,13 @@
       <groupId>org.testcontainers</groupId>
       <artifactId>postgresql</artifactId>
       <version>${testcontainers.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>io.rest-assured</groupId>
+      <artifactId>spring-mock-mvc</artifactId>
+      <version>${rest-assured.mock.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

@@ -42,7 +42,7 @@ public class UserController {
     }
 
     @Operation(summary = "Change a user's password", description = "Changes a specified user's password")
-    @ApiResponse(responseCode = "200", description = "OK")
+    @ApiResponse(responseCode = "200", description = "Changed password of the user")
     @PutMapping("/{id}/profile/password-change")
     @ResponseStatus(HttpStatus.OK)
     public void changePassword(
@@ -50,8 +50,8 @@ public class UserController {
             @PathVariable Long id,
             @Valid @RequestBody ChangePasswordRequest request,
             @Parameter(hidden = true)
-            @RequestAttribute("userCredentials") UserCredentials credentials){
+            @RequestAttribute UserCredentials userCredentials){
         log.info("PUT /api/v1/users/change-password endpoint called");
-        userService.changePassword(id, request, credentials);
+        userService.changePassword(id, request, userCredentials);
     }
 }
