@@ -19,6 +19,8 @@ import lombok.Setter;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.training.repository.TrainingEntity;
 import org.example.user.repository.UserEntity;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -41,6 +43,7 @@ public class TraineeEntity {
 
     @OneToOne(cascade = CascadeType.ALL)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private UserEntity user;
 
     @ManyToMany(fetch = FetchType.LAZY)

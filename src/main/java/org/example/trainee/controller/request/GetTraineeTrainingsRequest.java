@@ -1,43 +1,34 @@
 package org.example.trainee.controller.request;
 
-import io.swagger.v3.oas.annotations.Parameter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import jakarta.ws.rs.QueryParam;
-import lombok.Getter;
-import lombok.Setter;
 import org.example.trainingType.dto.TrainingType;
 
 import java.time.LocalDate;
 
-@Getter
-@Setter
-public class GetTraineeTrainingsRequest{
-
-        @Parameter(description = "Username of the trainee", example = "John.Doe")
-        @QueryParam("username")
+@Schema(description = "DTO for getting trainee's training", name = "GetTraineeTrainings")
+public record GetTraineeTrainingsRequest(
+        @Schema(description = "Username of the trainee", example = "John.Doe", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "Username cannot be blank")
-        String username;
+        String username,
 
-        @Parameter(description = "The start date of the search period (YYYY-MM-DD)", example = "2026-01-01")
-        @QueryParam("fromDate")
-        LocalDate fromDate;
+        @Schema(description = "The start date of the search period (YYYY-MM-DD)", example = "2026-01-01")
+        LocalDate fromDate,
 
-        @Parameter(description = "The end date of the search period (YYYY-MM-DD)", example = "2026-12-31")
-        @QueryParam("toDate")
-        LocalDate toDate;
+        @Schema(description = "The end date of the search period (YYYY-MM-DD)", example = "2026-12-31")
+        LocalDate toDate,
 
-        @Parameter(description = "The name of the trainer", example = "Smith")
-        @QueryParam("trainerName")
+        @Schema(description = "The name of the trainer", example = "Smith")
         @Size(max = 50, message = "Trainer name cannot exceed 50 characters")
-        String trainerName;
+        String trainerName,
 
-        @Parameter(description = "The type of the training")
-        @QueryParam("trainingType")
-        TrainingType trainingType;
-
-        @Parameter(hidden = true)
+        @Schema(description = "The type of the training")
+        TrainingType trainingType
+) {
+        @JsonIgnore
         @AssertTrue(message = "The 'from' date cannot be after the 'to' date")
         public boolean isDateRangeValid() {
                 if (fromDate == null || toDate == null) {

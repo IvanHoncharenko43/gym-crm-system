@@ -14,6 +14,8 @@ import lombok.Setter;
 import org.example.trainingType.repository.TrainingTypeEntity;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainer.repository.TrainerEntity;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDate;
 import java.util.Objects;
@@ -43,6 +45,7 @@ public class TrainingEntity {
 
     @ManyToOne
     @JoinColumn(name = "trainee_id", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private TraineeEntity trainee;
 
     @ManyToOne

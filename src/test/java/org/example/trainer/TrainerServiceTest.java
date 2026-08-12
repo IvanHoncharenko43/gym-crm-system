@@ -4,6 +4,7 @@ import org.example.TestUtils;
 import org.example.core.service.AuthenticationComponent;
 import org.example.exception.EntityNotFoundException;
 import org.example.exception.InvalidRequestDataException;
+import org.example.monitoring.GymCrmMetrics;
 import org.example.trainer.controller.request.CreateTrainerRequest;
 import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.request.UpdateTrainerRequest;
@@ -56,6 +57,9 @@ public class TrainerServiceTest {
     @Mock
     private AuthenticationComponent authenticator;
 
+    @Mock
+    private GymCrmMetrics gymCrmMetrics;
+
     @InjectMocks
     private TrainerService trainerService;
 
@@ -70,7 +74,7 @@ public class TrainerServiceTest {
         trainer.setId(TRAINER_ID);
         TrainerSummary expectedResponse = new TrainerSummary(5L, new UserProfile("John.Doe22"), TrainingType.YOGA);
 
-        when(trainingTypeRepository.findByName(request.specialization()))
+        when(trainingTypeRepository.findByTrainingTypeName(request.specialization()))
                 .thenReturn(Optional.of(trainingType));
         when(userRepository.findUsernamesByBaseNameForUpdate(anyString())).thenReturn(Collections.emptyList());
         when(gymMapper.toTrainerEntity(eq(request), eq(trainingType), anySet())).thenReturn(trainer);
@@ -80,7 +84,7 @@ public class TrainerServiceTest {
         TrainerSummary actualResponse = trainerService.create(request);
 
         assertEquals(expectedResponse, actualResponse);
-        verify(trainingTypeRepository, times(1)).findByName(
+        verify(trainingTypeRepository, times(1)).findByTrainingTypeName(
                 request.specialization()
         );
         verify(userRepository, times(1)).findUsernamesByBaseNameForUpdate(anyString());
@@ -95,13 +99,13 @@ public class TrainerServiceTest {
                 new FullName("John", "Doe"), TrainingType.YOGA
         );
 
-        when(trainingTypeRepository.findByName(request.specialization()))
+        when(trainingTypeRepository.findByTrainingTypeName(request.specialization()))
                 .thenReturn(Optional.empty());
 
         InvalidRequestDataException exception = assertThrows(InvalidRequestDataException.class,
                 () -> trainerService.create(request));
         assertTrue(exception.getMessage().contains("not found"));
-        verify(trainingTypeRepository, times(1)).findByName(
+        verify(trainingTypeRepository, times(1)).findByTrainingTypeName(
                 request.specialization()
         );
         verify(trainerRepository, never()).save(any());
@@ -123,7 +127,7 @@ public class TrainerServiceTest {
         );
 
         when(trainerRepository.findById(TRAINER_ID)).thenReturn(Optional.of(trainer));
-        when(trainingTypeRepository.findByName(request.specialization()))
+        when(trainingTypeRepository.findByTrainingTypeName(request.specialization()))
                 .thenReturn(Optional.of(trainingType));
         when(gymMapper.toTrainerEntity(request, trainer, trainingType))
                 .thenReturn(trainer);
@@ -136,7 +140,7 @@ public class TrainerServiceTest {
         verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(authenticator, times(1)).authorize(USERNAME, CREDENTIALS);
         verify(trainerRepository, times(1)).findById(TRAINER_ID);
-        verify(trainingTypeRepository, times(1)).findByName(
+        verify(trainingTypeRepository, times(1)).findByTrainingTypeName(
                 request.specialization()
         );
         verify(gymMapper, times(1)).toTrainerEntity(request, trainer, trainingType);
@@ -170,7 +174,7 @@ public class TrainerServiceTest {
         trainer.getUser().setUsername(USERNAME);
 
         when(trainerRepository.findById(TRAINER_ID)).thenReturn(Optional.of(trainer));
-        when(trainingTypeRepository.findByName(request.specialization()))
+        when(trainingTypeRepository.findByTrainingTypeName(request.specialization()))
                 .thenReturn(Optional.empty());
 
         InvalidRequestDataException exception = assertThrows(InvalidRequestDataException.class,
@@ -179,10 +183,56 @@ public class TrainerServiceTest {
         verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(authenticator, times(1)).authorize(USERNAME, CREDENTIALS);
         verify(trainerRepository, times(1)).findById(TRAINER_ID);
-        verify(trainingTypeRepository, times(1)).findByName(
+        verify(trainingTypeRepository, times(1)).findByTrainingTypeName(
                 request.specialization()
         );
         verify(trainerRepository, never()).save(any());
+    }
+
+    @Test
+    void getById_ReturnResponse_TrainerExists() {
+        TrainerEntity trainer = new TrainerEntity();
+        trainer.setUser(new UserEntity());
+        trainer.getUser().setIsActive(true);
+        TrainerSummary expectedResponse = new TrainerSummary(
+                TRAINER_ID, new UserProfile(USERNAME),
+                TrainingType.YOGA
+        );
+
+        when(trainerRepository.findById(TRAINER_ID)).thenReturn(Optional.of(trainer));
+        when(gymMapper.toTrainerSummary(trainer)).thenReturn(expectedResponse);
+
+        TrainerSummary actualResponse = trainerService.getById(TRAINER_ID, CREDENTIALS);
+        assertEquals(expectedResponse, actualResponse);
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
+        verify(trainerRepository, times(1)).findById(TRAINER_ID);
+        verify(gymMapper, times(1)).toTrainerSummary(trainer);
+    }
+
+    @Test
+    void getById_ThrowEntityNotFoundException_TrainerDoesNotExist() {
+        when(trainerRepository.findById(TRAINER_ID)).thenReturn(Optional.empty());
+
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> trainerService.getById(TRAINER_ID, CREDENTIALS));
+        assertTrue(exception.getMessage().contains("not found"));
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
+        verify(trainerRepository, times(1)).findById(TRAINER_ID);
+    }
+
+    @Test
+    void getById_ThrowEntityNotFoundException_TrainerInactive() {
+        TrainerEntity trainer = new TrainerEntity();
+        trainer.setUser(new UserEntity());
+        trainer.getUser().setIsActive(false);
+
+        when(trainerRepository.findById(TRAINER_ID)).thenReturn(Optional.of(trainer));
+
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> trainerService.getById(TRAINER_ID, CREDENTIALS));
+        assertTrue(exception.getMessage().contains("inactive"));
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
+        verify(trainerRepository, times(1)).findById(TRAINER_ID);
     }
 
     @Test

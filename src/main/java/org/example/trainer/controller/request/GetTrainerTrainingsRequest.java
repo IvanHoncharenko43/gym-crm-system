@@ -1,5 +1,6 @@
 package org.example.trainer.controller.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
@@ -24,7 +25,7 @@ public record GetTrainerTrainingsRequest(
         @Size(max = 50, message = "Trainee name cannot exceed 50 characters")
         String traineeName
 ) {
-        @Schema(hidden = true)
+        @JsonIgnore
         @AssertTrue(message = "The 'from' date cannot be after the 'to' date")
         public boolean isDateRangeValid() {
                 if (fromDate == null || toDate == null) {

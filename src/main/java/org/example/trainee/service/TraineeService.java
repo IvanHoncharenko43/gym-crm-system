@@ -1,5 +1,7 @@
 package org.example.trainee.service;
 
+import lombok.RequiredArgsConstructor;
+import org.example.monitoring.GymCrmMetrics;
 import org.example.trainer.controller.response.Trainers;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -24,21 +26,14 @@ import java.util.Set;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class TraineeService {
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
     private final UserRepository userRepository;
     private final GymMapper gymMapper;
     private final AuthenticationComponent authenticator;
-
-    public TraineeService(TraineeRepository traineeRepository, TrainerRepository trainerRepository, UserRepository userRepository,
-                          GymMapper gymMapper, AuthenticationComponent authenticator){
-        this.traineeRepository = traineeRepository;
-        this.trainerRepository = trainerRepository;
-        this.userRepository = userRepository;
-        this.gymMapper = gymMapper;
-        this.authenticator = authenticator;
-    }
+    private final GymCrmMetrics gymCrmMetrics;
 
     @Transactional
     public TraineeSummary create(CreateTraineeRequest request) {
@@ -47,13 +42,13 @@ public class TraineeService {
         TraineeEntity trainee = gymMapper.toTraineeEntity(request, existingUsernames);
         TraineeEntity savedTrainee = traineeRepository.save(trainee);
         log.info("Created trainee profile with ID: {}", savedTrainee.getId());
+        gymCrmMetrics.incrementTraineeCreation();
         return gymMapper.toTraineeSummary(savedTrainee);
     }
 
     @Transactional(readOnly = true)
     public TraineeSummary getById(Long id, UserCredentials credentials){
         authenticator.authenticate(credentials);
-        log.info("Selecting trainee by id started");
         return traineeRepository.findById(id)
                 .filter(trainee -> trainee.getUser().getIsActive())
                 .map(gymMapper::toTraineeSummary)
@@ -67,7 +62,6 @@ public class TraineeService {
     @Transactional(readOnly = true)
     public TraineeSummary getByUsername(String username, UserCredentials credentials){
         authenticator.authenticate(credentials);
-        log.info("Selecting trainee by username started");
         return traineeRepository.findByUsername(username)
                 .filter(trainee -> trainee.getUser().getIsActive())
                 .map(gymMapper::toTraineeSummary)
@@ -100,8 +94,8 @@ public class TraineeService {
         Optional<TraineeEntity> existingTrainee = traineeRepository.findByUsername(username);
         if(existingTrainee.isPresent()) {
             authenticator.authorize(existingTrainee.get().getUser().getUsername(), credentials);
-            traineeRepository.deleteByUsername(credentials.username());
-            log.info("Deleted trainee profile by username");
+            traineeRepository.deleteByUserUsername(credentials.username());
+            log.info("Deleted by username a trainee profile with ID: {}", existingTrainee.get().getId());
         }
     }
 
@@ -117,7 +111,7 @@ public class TraineeService {
         authenticator.authorize(trainee.getUser().getUsername(), credentials);
         trainee.getUser().setIsActive(!trainee.getUser().getIsActive());
         traineeRepository.save(trainee);
-        log.info("Activity status changed for a trainee");
+        log.info("Activity status changed for a trainee with ID: {}", id);
     }
 
     @Transactional
@@ -137,6 +131,8 @@ public class TraineeService {
         newTrainers.forEach(newTrainer -> newTrainer.getTrainees().add(trainee));
         trainee.getTrainers().addAll(newTrainers);
         traineeRepository.save(trainee);
+        gymCrmMetrics.incrementTrainerAssignment();
+        log.info("Updated trainers for a trainee ID: {}", id);
         return new Trainers(
                 newTrainers.stream()
                         .map(gymMapper::toTrainerSummary)

@@ -1,5 +1,7 @@
 package org.example.trainer.service;
 
+import lombok.RequiredArgsConstructor;
+import org.example.monitoring.GymCrmMetrics;
 import org.example.exception.InvalidRequestDataException;
 import org.example.trainer.controller.response.Trainers;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,25 +25,18 @@ import java.util.Set;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class TrainerService {
     private final TrainerRepository trainerRepository;
     private final TrainingTypeRepository trainingTypeRepository;
     private final UserRepository userRepository;
     private final GymMapper gymMapper;
     private final AuthenticationComponent authenticator;
-
-    public TrainerService(TrainerRepository trainerRepository, TrainingTypeRepository trainingTypeRepository, UserRepository userRepository,
-                          GymMapper gymMapper, AuthenticationComponent authenticator){
-        this.trainerRepository = trainerRepository;
-        this.trainingTypeRepository = trainingTypeRepository;
-        this.userRepository = userRepository;
-        this.gymMapper = gymMapper;
-        this.authenticator = authenticator;
-    }
+    private final GymCrmMetrics gymCrmMetrics;
 
     @Transactional
     public TrainerSummary create(CreateTrainerRequest request) {
-        TrainingTypeEntity trainingType = trainingTypeRepository.findByName(request.specialization())
+        TrainingTypeEntity trainingType = trainingTypeRepository.findByTrainingTypeName(request.specialization())
                 .orElseThrow(() -> {
                     String message = String.format("Training type %s not found", request.specialization().name());
                     log.warn(message);
@@ -52,13 +47,13 @@ public class TrainerService {
         TrainerEntity trainer = gymMapper.toTrainerEntity(request, trainingType, existingUsernames);
         TrainerEntity savedTrainer = trainerRepository.save(trainer);
         log.info("Created trainer profile with ID: {}", savedTrainer.getId());
+        gymCrmMetrics.incrementTrainerCreation();
         return gymMapper.toTrainerSummary(savedTrainer);
     }
 
     @Transactional(readOnly = true)
     public TrainerSummary getById(Long id, UserCredentials credentials){
         authenticator.authenticate(credentials);
-        log.info("Selecting trainer by ID started");
         return trainerRepository.findById(id)
                 .filter(trainer -> trainer.getUser().getIsActive())
                 .map(gymMapper::toTrainerSummary)
@@ -72,7 +67,6 @@ public class TrainerService {
     @Transactional(readOnly = true)
     public TrainerSummary getByUsername(String username, UserCredentials credentials){
         authenticator.authenticate(credentials);
-        log.info("Selecting trainer by username started");
         return trainerRepository.findByUsername(username)
                 .filter(trainer -> trainer.getUser().getIsActive())
                 .map(gymMapper::toTrainerSummary)
@@ -93,7 +87,7 @@ public class TrainerService {
                     return new EntityNotFoundException(message);
                 });
         authenticator.authorize(existingTrainer.getUser().getUsername(), credentials);
-        TrainingTypeEntity trainingType = trainingTypeRepository.findByName(request.specialization())
+        TrainingTypeEntity trainingType = trainingTypeRepository.findByTrainingTypeName(request.specialization())
                 .orElseThrow(() -> {
                     String message = String.format("Training type %s not found", request.specialization().name());
                     log.warn(message);
@@ -117,12 +111,13 @@ public class TrainerService {
         authenticator.authorize(trainer.getUser().getUsername(), credentials);
         trainer.getUser().setIsActive(!trainer.getUser().getIsActive());
         trainerRepository.save(trainer);
-        log.info(String.format("Activity status changed for a trainer with ID %s", id));
+        log.info("Activity status changed for a trainer with ID: {}", id);
     }
 
     @Transactional(readOnly = true)
     public Trainers getUnassignedTrainersByTraineeList(String traineeUsername, UserCredentials credentials){
         authenticator.authenticate(credentials);
+        log.debug("Getting unassigned trainers by trainee");
         return new Trainers(
                 trainerRepository.findUnassignedTrainersByTraineeUsername(traineeUsername).stream()
                         .filter(trainer -> trainer.getUser().getIsActive())

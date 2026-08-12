@@ -3,6 +3,7 @@ package org.example.trainee;
 import org.example.TestUtils;
 import org.example.core.service.AuthenticationComponent;
 import org.example.exception.EntityNotFoundException;
+import org.example.monitoring.GymCrmMetrics;
 import org.example.trainee.controller.request.UpdateTraineeTrainersRequest;
 import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.response.Trainers;
@@ -54,6 +55,9 @@ public class TraineeServiceTest {
 
     @Mock
     private AuthenticationComponent authenticator;
+
+    @Mock
+    private GymCrmMetrics gymCrmMetrics;
 
     @InjectMocks
     private TraineeService traineeService;
@@ -132,6 +136,52 @@ public class TraineeServiceTest {
     }
 
     @Test
+    void getById_ReturnResponse_TraineeExists() {
+        TraineeEntity trainee = new TraineeEntity();
+        trainee.setUser(new UserEntity());
+        trainee.getUser().setIsActive(true);
+        TraineeSummary expectedResponse = new TraineeSummary(
+                TRAINEE_ID, new UserProfile(USERNAME),
+                LocalDate.of(2007, 3, 25), "Home 21 Street"
+        );
+
+        when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
+        when(gymMapper.toTraineeSummary(trainee)).thenReturn(expectedResponse);
+
+        TraineeSummary actualResponse = traineeService.getById(TRAINEE_ID, CREDENTIALS);
+        assertEquals(expectedResponse, actualResponse);
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
+        verify(traineeRepository, times(1)).findById(TRAINEE_ID);
+        verify(gymMapper, times(1)).toTraineeSummary(trainee);
+    }
+
+    @Test
+    void getById_ThrowEntityNotFoundException_TraineeDoesNotExist() {
+        when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.empty());
+
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> traineeService.getById(TRAINEE_ID, CREDENTIALS));
+        assertTrue(exception.getMessage().contains("not found"));
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
+        verify(traineeRepository, times(1)).findById(TRAINEE_ID);
+    }
+
+    @Test
+    void getById_ThrowEntityNotFoundException_TraineeInactive() {
+        TraineeEntity trainee = new TraineeEntity();
+        trainee.setUser(new UserEntity());
+        trainee.getUser().setIsActive(false);
+
+        when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
+
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> traineeService.getById(TRAINEE_ID, CREDENTIALS));
+        assertTrue(exception.getMessage().contains("inactive"));
+        verify(authenticator, times(1)).authenticate(CREDENTIALS);
+        verify(traineeRepository, times(1)).findById(TRAINEE_ID);
+    }
+
+    @Test
     void getByUsername_ReturnResponse_TraineeExists() {
         TraineeEntity trainee = new TraineeEntity();
         trainee.setUser(new UserEntity());
@@ -189,7 +239,7 @@ public class TraineeServiceTest {
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
         verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(authenticator, times(1)).authorize(USERNAME, CREDENTIALS);
-        verify(traineeRepository, times(1)).deleteByUsername(USERNAME);
+        verify(traineeRepository, times(1)).deleteByUserUsername(USERNAME);
     }
 
     @Test

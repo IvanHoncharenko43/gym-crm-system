@@ -5,6 +5,7 @@ import org.example.core.service.AuthenticationComponent;
 import org.example.exception.EntityNotFoundException;
 import org.example.core.service.GymMapper;
 import org.example.exception.InvalidRequestDataException;
+import org.example.monitoring.GymCrmMetrics;
 import org.example.trainee.controller.request.GetTraineeTrainingsRequest;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainee.repository.TraineeRepository;
@@ -18,6 +19,7 @@ import org.example.training.controller.response.Trainings;
 import org.example.training.repository.TrainingEntity;
 import org.example.training.repository.TrainingRepository;
 import org.example.training.service.TrainingService;
+import org.example.trainingType.repository.TrainingTypeEntity;
 import org.example.user.controller.dto.UserCredentials;
 import org.example.user.repository.UserEntity;
 import org.junit.jupiter.api.Test;
@@ -58,6 +60,9 @@ public class TrainingServiceTest {
     @Mock
     private AuthenticationComponent authenticator;
 
+    @Mock
+    private GymCrmMetrics gymCrmMetrics;
+
     @InjectMocks
     private TrainingService trainingService;
 
@@ -75,6 +80,9 @@ public class TrainingServiceTest {
         trainer.getUser().setIsActive(true);
         TrainingEntity training = new TrainingEntity();
         training.setId(TRAINING_ID);
+        TrainingTypeEntity trainingType = new TrainingTypeEntity();
+        trainingType.setTrainingTypeName(TrainingType.YOGA);
+        training.setTrainingType(trainingType);
         TrainingSummary expectedResponse = new TrainingSummary(
                 TRAINING_ID,
                 TestUtils.getTrainerSummary(TRAINER_USERNAME),
@@ -232,12 +240,9 @@ public class TrainingServiceTest {
 
     @Test
     void getTraineeTrainingList_ReturnTrainingsList_RequestIsValid(){
-        GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest();
-        request.setUsername(TRAINEE_USERNAME);
-        request.setFromDate(LocalDate.of(2023, 12, 3));
-        request.setToDate(LocalDate.of(2026, 5, 12));
-        request.setTrainerName("Doe");
-        request.setTrainingType(TrainingType.CARDIO);
+        GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
+                TRAINEE_USERNAME, LocalDate.of(2023, 12, 3),
+                LocalDate.of(2026, 5, 12), "Doe", TrainingType.CARDIO);
         TraineeEntity trainee1 = new TraineeEntity();
         trainee1.setId(TRAINEE_ID);
         TrainerEntity trainer1 = new TrainerEntity();
@@ -271,25 +276,18 @@ public class TrainingServiceTest {
         );
         List<TrainingSummary> mappedTrainings = List.of(trainingSummary1, trainingSummary2);
 
-        when(trainingRepository.findTraineeTrainingsByCriteria(
-                request.getUsername(),
-                request.getFromDate(),
-                request.getToDate(),
-                request.getTrainerName(),
-                request.getTrainingType().name()
-        )).thenReturn(trainings);
+        when(trainingRepository.findTraineeTrainings(request.username(), request.fromDate(),
+                request.toDate(), request.trainerName(), request.trainingType().name()))
+                .thenReturn(trainings);
         when(gymMapper.toTrainingSummary(training1, trainee1, trainer1)).thenReturn(trainingSummary1);
         when(gymMapper.toTrainingSummary(training2, trainee1, trainer2)).thenReturn(trainingSummary2);
 
         Trainings result = trainingService.getTraineeTrainingList(request, TRAINEE_CREDENTIALS);
         assertEquals(mappedTrainings, result.trainings());
         verify(authenticator, times(1)).authenticate(TRAINEE_CREDENTIALS);
-        verify(trainingRepository, times(1)).findTraineeTrainingsByCriteria(
-                request.getUsername(),
-                request.getFromDate(),
-                request.getToDate(),
-                request.getTrainerName(),
-                request.getTrainingType().name());
+        verify(trainingRepository, times(1)).findTraineeTrainings(
+                request.username(), request.fromDate(), request.toDate(),
+                request.trainerName(), request.trainingType().name());
         verify(gymMapper, times(1)).toTrainingSummary(training1, trainee1, trainer1);
         verify(gymMapper, times(1)).toTrainingSummary(training2, trainee1, trainer2);
     }
@@ -334,23 +332,17 @@ public class TrainingServiceTest {
         );
         List<TrainingSummary> mappedTrainings = List.of(trainingSummary1, trainingSummary2);
 
-        when(trainingRepository.findTrainerTrainingsByCriteria(
-                request.username(),
-                request.fromDate(),
-                request.toDate(),
-                request.traineeName()
-        )).thenReturn(trainings);
+        when(trainingRepository.findTrainerTrainings(request.username(), request.fromDate(),
+                request.toDate(), request.traineeName()))
+                .thenReturn(trainings);
         when(gymMapper.toTrainingSummary(training1, trainee1, trainer1)).thenReturn(trainingSummary1);
         when(gymMapper.toTrainingSummary(training2, trainee2, trainer1)).thenReturn(trainingSummary2);
 
         Trainings result = trainingService.getTrainerTrainingList(request, TRAINEE_CREDENTIALS);
         assertEquals(mappedTrainings, result.trainings());
         verify(authenticator, times(1)).authenticate(TRAINEE_CREDENTIALS);
-        verify(trainingRepository, times(1)).findTrainerTrainingsByCriteria(
-                request.username(),
-                request.fromDate(),
-                request.toDate(),
-                request.traineeName());
+        verify(trainingRepository, times(1)).findTrainerTrainings(
+                request.username(), request.fromDate(), request.toDate(), request.traineeName());
         verify(gymMapper, times(1)).toTrainingSummary(training1, trainee1, trainer1);
         verify(gymMapper, times(1)).toTrainingSummary(training2, trainee2, trainer1);
     }
