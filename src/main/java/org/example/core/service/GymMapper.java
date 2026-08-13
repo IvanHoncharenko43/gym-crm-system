@@ -1,5 +1,6 @@
 package org.example.core.service;
 
+import lombok.RequiredArgsConstructor;
 import org.example.trainee.controller.request.CreateTraineeRequest;
 import org.example.trainee.controller.response.TraineeSummary;
 import org.example.trainee.controller.request.UpdateTraineeRequest;
@@ -17,20 +18,18 @@ import org.example.user.controller.dto.UserProfile;
 import org.example.user.repository.UserEntity;
 import org.example.utils.PasswordGenerator;
 import org.example.utils.UsernameGenerator;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.Set;
 
 @Component
+@RequiredArgsConstructor
 public class GymMapper {
 
     private final UsernameGenerator usernameGenerator;
     private final PasswordGenerator passwordGenerator;
-
-    public GymMapper(UsernameGenerator usernameGenerator, PasswordGenerator passwordGenerator){
-        this.usernameGenerator = usernameGenerator;
-        this.passwordGenerator = passwordGenerator;
-    }
+    private final PasswordEncoder passwordEncoder;
 
     public TraineeEntity toTraineeEntity(CreateTraineeRequest request, Set<String> existingUsernames) {
         TraineeEntity trainee = new TraineeEntity();
@@ -120,7 +119,7 @@ public class GymMapper {
         newUser.setFirstName(firstName);
         newUser.setLastName(lastName);
         newUser.setUsername(usernameGenerator.generate(firstName, lastName, existingUsernames));
-        newUser.setPassword(passwordGenerator.generate());
+        newUser.setPassword(passwordEncoder.encode(passwordGenerator.generate()));
         newUser.setIsActive(true);
         return newUser;
     }
