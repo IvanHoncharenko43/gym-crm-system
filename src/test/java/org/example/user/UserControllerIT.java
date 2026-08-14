@@ -2,6 +2,7 @@ package org.example.user;
 
 import org.example.config.SecurityConfig;
 import org.example.core.dto.ChangePasswordRequest;
+import org.example.exception.AccessForbiddenException;
 import org.example.exception.EntityNotFoundException;
 import org.example.security.service.JwtService;
 import org.example.security.service.TokenBlackListService;
@@ -14,6 +15,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -98,6 +100,36 @@ class UserControllerIT {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.invalidFields").isNotEmpty());
+    }
+
+    @Test
+    @WithAnonymousUser
+    void changePassword_Return401AndProblemDetail_UserIsUnauthenticated() throws Exception {
+        ChangePasswordRequest request = new ChangePasswordRequest(TRAINEE_PASSWORD, "newPassword1234!");
+
+        mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", TRAINEE_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.title").value("Authentication Failure"))
+                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+    }
+
+    @Test
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
+    void changePassword_Return403AndProblemDetail_UserIsNotOwner() throws Exception {
+        Long id = 99L;
+        ChangePasswordRequest request = new ChangePasswordRequest(TRAINEE_PASSWORD, "newPassword1234!");
+        doThrow(new AccessForbiddenException("Authorization failed"))
+                .when(userService).changePassword(id, request, USER_DETAILS);
+
+        mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.title").value("Authorization Failure"))
+                .andExpect(jsonPath("$.detail").value("Authorization failed"));
+        verify(userService, times(1)).changePassword(id, request, USER_DETAILS);
     }
 
     @Test

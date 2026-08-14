@@ -1,6 +1,6 @@
 package org.example.security;
 
-import org.example.exception.AccessDeniedException;
+import org.example.exception.AccessForbiddenException;
 import org.example.security.service.OwnershipVerifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,8 +28,8 @@ public class OwnershipVerifierTest {
     }
 
     @Test
-    void verifyOwnershipByUsername_ThrowAccessDeniedException_UsernamesAreNotMatching(){
-        assertThrows(AccessDeniedException.class,
+    void verifyOwnershipByUsername_ThrowAccessForbiddenException_UsernamesAreNotMatching(){
+        assertThrows(AccessForbiddenException.class,
                 () -> ownershipVerifier.verifyOwnershipByUsername(TARGET_USERNAME, "John.Doe1"));
     }
 }

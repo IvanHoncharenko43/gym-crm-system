@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -239,6 +240,25 @@ class TrainingControllerIT {
     }
 
     @Test
+    @WithAnonymousUser
+    void addTraining_Return401AndProblemDetail_UserIsUnauthenticated() {
+        CreateTrainingRequest request = new CreateTrainingRequest(
+                TRAINER_USERNAME, TRAINEE_USERNAME, "Morning Cardio",
+                LocalDate.now().plusDays(7), 45
+        );
+
+        given()
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(request)
+                .when()
+                .post("/api/v1/trainings")
+                .then()
+                .status(HttpStatus.UNAUTHORIZED)
+                .body("title", equalTo("Authentication Failure"))
+                .body("detail", equalTo("Authentication failed during accessing the resource"));
+    }
+
+    @Test
     @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
     void getTrainingTypes_Returns200AndTrainingTypes() {
         TrainingTypes types = new TrainingTypes(List.of(TrainingType.YOGA, TrainingType.CARDIO));
@@ -254,5 +274,17 @@ class TrainingControllerIT {
 
         assertThat(result.trainingTypes()).containsExactly(TrainingType.YOGA, TrainingType.CARDIO);
         verify(trainingTypeService, times(1)).getAllTrainingTypes();
+    }
+
+    @Test
+    @WithAnonymousUser
+    void getTrainingTypes_Return401AndProblemDetail_UserIsUnauthenticated() {
+        given()
+                .when()
+                .get("/api/v1/trainings/training-types")
+                .then()
+                .status(HttpStatus.UNAUTHORIZED)
+                .body("title", equalTo("Authentication Failure"))
+                .body("detail", equalTo("Authentication failed during accessing the resource"));
     }
 }

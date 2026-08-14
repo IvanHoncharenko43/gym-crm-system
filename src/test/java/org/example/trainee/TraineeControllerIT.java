@@ -25,6 +25,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -175,7 +176,7 @@ class TraineeControllerIT {
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD)
     void getTrainee_Return200AndTraineeSummary_IdIsValid() throws Exception {
         TraineeSummary expectedResponse = getTraineeSummary();
         when(traineeService.getById(TRAINEE_ID)).thenReturn(expectedResponse);
@@ -190,7 +191,16 @@ class TraineeControllerIT {
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
+    @WithAnonymousUser
+    void getTrainee_Return401AndProblemDetail_UserIsUnauthenticated() throws Exception {
+        mockMvc.perform(get("/api/v1/trainees/{id}", TRAINEE_ID))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.title").value("Authentication Failure"))
+                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+    }
+
+    @Test
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD)
     void getTrainee_Return404AndProblemDetail_TraineeNotFound() throws Exception {
         Long id = 99L;
         when(traineeService.getById(id))
@@ -316,6 +326,35 @@ class TraineeControllerIT {
     }
 
     @Test
+    @WithAnonymousUser
+    void updateTrainee_Return401AndProblemDetail_UserIsUnauthenticated() throws Exception {
+        UpdateTraineeRequest request = new UpdateTraineeRequest(
+                new FullName("John", "Doe"), LocalDate.of(2000, 1, 1), "Home");
+
+        mockMvc.perform(put("/api/v1/trainees/{id}", TRAINEE_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.title").value("Authentication Failure"))
+                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+    }
+
+    @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = {"TRAINER"})
+    void updateTrainee_Return403AndProblemDetail_UserRoleIsInvalid() throws Exception {
+        UpdateTraineeRequest request = new UpdateTraineeRequest(
+                new FullName("John", "Doe"), LocalDate.of(2000, 1, 1), "Home");
+
+        mockMvc.perform(put("/api/v1/trainees/{id}", TRAINEE_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.title").value("Authorization Failure"))
+                .andExpect(jsonPath("$.detail").value("Authorization failed during accessing the resource"));
+        verify(traineeService, never()).update(anyLong(), any(), any());
+    }
+
+    @Test
     @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
     void updateTrainee_Return404AndProblemDetail_TraineeNotFound() throws Exception {
         Long id = 99L;
@@ -339,6 +378,27 @@ class TraineeControllerIT {
                         .param("username", TRAINEE_USERNAME))
                 .andExpect(status().isOk());
         verify(traineeService, times(1)).deleteByUsername(TRAINEE_USERNAME, USER_DETAILS);
+    }
+
+    @Test
+    @WithAnonymousUser
+    void deleteTrainee_Return401AndProblemDetail_UserIsUnauthenticated() throws Exception {
+        mockMvc.perform(delete("/api/v1/trainees")
+                        .param("username", TRAINEE_USERNAME))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.title").value("Authentication Failure"))
+                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+    }
+
+    @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = {"TRAINER"})
+    void deleteTrainee_Return403AndProblemDetail_UserRoleIsInvalid() throws Exception {
+        mockMvc.perform(delete("/api/v1/trainees")
+                        .param("username", TRAINEE_USERNAME))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.title").value("Authorization Failure"))
+                .andExpect(jsonPath("$.detail").value("Authorization failed during accessing the resource"));
+        verify(traineeService, never()).deleteByUsername(any(), any());
     }
 
     @Test
@@ -385,6 +445,33 @@ class TraineeControllerIT {
     }
 
     @Test
+    @WithAnonymousUser
+    void updateTrainersList_Return401AndProblemDetail_UserIsUnauthenticated() throws Exception {
+        UpdateTraineeTrainersRequest request = new UpdateTraineeTrainersRequest(List.of(TRAINER_USERNAME));
+
+        mockMvc.perform(put("/api/v1/trainees/{id}/trainers-update", TRAINEE_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.title").value("Authentication Failure"))
+                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+    }
+
+    @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = {"TRAINER"})
+    void updateTrainersList_Return403AndProblemDetail_UserRoleIsInvalid() throws Exception {
+        UpdateTraineeTrainersRequest request = new UpdateTraineeTrainersRequest(List.of(TRAINER_USERNAME));
+
+        mockMvc.perform(put("/api/v1/trainees/{id}/trainers-update", TRAINEE_ID)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.title").value("Authorization Failure"))
+                .andExpect(jsonPath("$.detail").value("Authorization failed during accessing the resource"));
+        verify(traineeService, never()).updateTrainersList(anyLong(), any(), any());
+    }
+
+    @Test
     @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
     void updateTrainersList_Return404AndProblemDetail_TraineeNotFound() throws Exception {
         Long id = 99L;
@@ -409,6 +496,25 @@ class TraineeControllerIT {
     }
 
     @Test
+    @WithAnonymousUser
+    void changeTraineeActivity_Return401AndProblemDetail_UserIsUnauthenticated() throws Exception {
+        mockMvc.perform(patch("/api/v1/trainees/{id}/profile/active-status/change", TRAINER_ID))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.title").value("Authentication Failure"))
+                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+    }
+
+    @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = {"TRAINER"})
+    void changeTraineeActivity_Return403AndProblemDetail_UserRoleIsInvalid() throws Exception {
+        mockMvc.perform(patch("/api/v1/trainees/{id}/profile/active-status/change", TRAINER_ID))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.title").value("Authorization Failure"))
+                .andExpect(jsonPath("$.detail").value("Authorization failed during accessing the resource"));
+        verify(traineeService, never()).changeActivity(anyLong(), any());
+    }
+
+    @Test
     @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
     void changeTraineeActivity_Return404AndProblemDetail_TraineeNotFound() throws Exception {
         Long id = 99L;
@@ -422,7 +528,7 @@ class TraineeControllerIT {
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD)
     void getTraineeTrainings_Return200AndTrainings_AllParametersProvidedAndValid() throws Exception {
         GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
                 TRAINEE_USERNAME, LocalDate.of(2026, 1, 1),
@@ -441,7 +547,7 @@ class TraineeControllerIT {
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD)
     void getTraineeTrainings_Return200AndTrainings_OnlyRequiredParametersProvidedAndValid() throws Exception {
         GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
                 TRAINEE_USERNAME, null, null, null, null
@@ -459,7 +565,7 @@ class TraineeControllerIT {
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD)
     void getTraineeTrainings_Return200AndTrainings_ToDateAbsent() throws Exception {
         GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
                 TRAINEE_USERNAME, LocalDate.of(2026, 1, 1), null, null, null
@@ -477,7 +583,7 @@ class TraineeControllerIT {
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD)
     void getTraineeTrainings_Return200AndTrainings_FromDateAbsent() throws Exception {
         GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
                 TRAINEE_USERNAME, null, LocalDate.of(2026, 12, 1), null, null
@@ -495,8 +601,8 @@ class TraineeControllerIT {
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
-    void getTraineeTrainings_Return400_UsernameIsBlank() throws Exception {
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD)
+    void getTraineeTrainings_Return400AndProblemDetail_UsernameIsBlank() throws Exception {
         GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
                 "  ", LocalDate.of(2026, 1, 1),
                 LocalDate.of(2026, 12, 31), TRAINER_USERNAME, TrainingType.YOGA
@@ -510,8 +616,8 @@ class TraineeControllerIT {
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
-    void getTraineeTrainings_Return400_FromDateAfterToDate() throws Exception {
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD)
+    void getTraineeTrainings_Return400AndProblemDetail_FromDateAfterToDate() throws Exception {
         GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
                 TRAINEE_USERNAME, LocalDate.of(2026, 12, 31),
                 LocalDate.of(2026, 1, 31), TRAINER_USERNAME, TrainingType.YOGA
@@ -525,8 +631,8 @@ class TraineeControllerIT {
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
-    void getTraineeTrainings_Return400_TrainerNameIsTooLong() throws Exception {
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD)
+    void getTraineeTrainings_Return400AndProblemDetail_TrainerNameIsTooLong() throws Exception {
         String trainerName = "A".repeat(51);
         GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
                 TRAINEE_USERNAME, LocalDate.of(2026, 1, 1),
@@ -538,5 +644,20 @@ class TraineeControllerIT {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.invalidFields").isNotEmpty());;
+    }
+
+    @Test
+    @WithAnonymousUser
+    void getTraineeTrainings_Return401AndProblemDetail_UserIsUnauthenticated() throws Exception {
+        GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
+                TRAINEE_USERNAME, LocalDate.of(2026, 1, 1),
+                LocalDate.of(2026, 12, 31), "Doe", TrainingType.YOGA
+        );
+        mockMvc.perform(post("/api/v1/trainees/trainings/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(jsonMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.title").value("Authentication Failure"))
+                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
     }
 }

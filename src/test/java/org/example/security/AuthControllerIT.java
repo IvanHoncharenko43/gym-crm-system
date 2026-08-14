@@ -19,6 +19,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -26,7 +27,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.example.TestUtils.*;
 import static io.restassured.module.mockmvc.RestAssuredMockMvc.given;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.mockito.Mockito.*;
@@ -170,14 +170,16 @@ class AuthControllerIT {
     }
 
     @Test
-    void logout_Return401_UserIsNotAuthenticated() {
+    @WithAnonymousUser
+    void logout_Return401AndProblemDetail_UserIsUnauthenticated() {
         given()
                 .header("Authorization", "Bearer some-token")
                 .when()
                 .post("/api/v1/auth/logout")
                 .then()
                 .status(HttpStatus.UNAUTHORIZED)
-                .body(containsString("Unauthorized"));
+                .body("title", equalTo("Authentication Failure"))
+                .body("detail", equalTo("Authentication failed during accessing the resource"));
         verify(authService, never()).logout(any());
     }
 }
