@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -12,12 +13,12 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class TokenBlackListService {
     private final static int HOUR = 3600000;
-    private final Map<String, Date> blackList = new ConcurrentHashMap<>();
+    private final Map<String, Instant> blackList = new ConcurrentHashMap<>();
     private final JwtService jwtService;
 
     public void blackListToken(String token){
-        Date expirationDate = jwtService.extractExpiration(token);
-        if(expirationDate.after(new Date())){
+        Instant expirationDate = jwtService.extractExpiration(token);
+        if(expirationDate.isAfter(Instant.now())){
             blackList.put(token, expirationDate);
         }
     }
@@ -28,7 +29,6 @@ public class TokenBlackListService {
 
     @Scheduled(fixedRate = HOUR)
     public void cleanExpiredTokens(){
-        Date now = new Date();
-        blackList.entrySet().removeIf(dateEntry -> dateEntry.getValue().before(now));
+        blackList.entrySet().removeIf(dateEntry -> dateEntry.getValue().isBefore(Instant.now()));
     }
 }

@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -85,6 +86,15 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     public ProblemDetail handleDisabledException(DisabledException exception){
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.UNAUTHORIZED, "The account is inactive"
+        );
+        problemDetail.setTitle("Authentication Failure");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(LockedException.class)
+    public ProblemDetail handleLockedException(LockedException exception){
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNAUTHORIZED, "Account is temporarily locked due to too many failed login attempts"
         );
         problemDetail.setTitle("Authentication Failure");
         return problemDetail;

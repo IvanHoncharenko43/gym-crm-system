@@ -1,6 +1,7 @@
 package org.example.user.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.security.service.BruteForceProtectionService;
 import org.example.trainee.repository.TraineeRepository;
 import org.example.trainer.repository.TrainerRepository;
 import org.example.user.controller.dto.UserRole;
@@ -24,6 +25,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
+    private final BruteForceProtectionService bruteForceProtectionService;
 
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
@@ -43,7 +45,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 userEntity.getIsActive(),
                 true,
                 true,
-                true,                     // Account non-locked (tie this to the Brute Force logic later)
+                !bruteForceProtectionService.isLocked(username),
                 authorities
         );
     }
