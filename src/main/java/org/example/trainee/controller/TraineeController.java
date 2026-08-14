@@ -21,6 +21,7 @@ import org.example.training.controller.response.Trainings;
 import org.example.training.service.TrainingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
@@ -92,6 +93,7 @@ public class TraineeController {
             @ApiResponse(responseCode = "404", description = "Trainee Not Found", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasRole('TRAINEE')")
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public TraineeSummary updateTrainee(
@@ -112,6 +114,7 @@ public class TraineeController {
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasRole('TRAINEE')")
     @DeleteMapping(params = "username")
     @ResponseStatus(HttpStatus.OK)
     public void deleteTrainee(
@@ -133,6 +136,7 @@ public class TraineeController {
             @ApiResponse(responseCode = "404", description = "Trainee Not Found", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasRole('TRAINEE')")
     @PutMapping(value = "/{id}/trainers-update")
     @ResponseStatus(HttpStatus.OK)
     public Trainers updateTrainersList(
@@ -155,6 +159,7 @@ public class TraineeController {
             @ApiResponse(responseCode = "404", description = "Trainee Not Found", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasRole('TRAINEE')")
     @PatchMapping(value = "/{id}/profile/active-status/change")
     @ResponseStatus(HttpStatus.OK)
     public void changeTraineeActivity(

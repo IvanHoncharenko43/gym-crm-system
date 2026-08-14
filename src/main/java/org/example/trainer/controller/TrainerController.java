@@ -21,6 +21,7 @@ import org.example.training.controller.response.Trainings;
 import org.example.training.service.TrainingService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
@@ -90,6 +91,7 @@ public class TrainerController {
             @ApiResponse(responseCode = "404", description = "Trainer Not Found", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasRole('TRAINER')")
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public TrainerSummary updateTrainer(
@@ -127,6 +129,7 @@ public class TrainerController {
             @ApiResponse(responseCode = "404", description = "Trainer Not Found", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasRole('TRAINER')")
     @PatchMapping(value = "/{id}/profile/active-status/change")
     @ResponseStatus(HttpStatus.OK)
     public void changeTrainerActivity(
