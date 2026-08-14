@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.example.security.service.TokenBlackListService;
 import org.example.security.service.JwtService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,7 +21,7 @@ import java.io.IOException;
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-
+    private final static String BEARER_PREFIX = "Bearer ";
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
     private final TokenBlackListService tokenBlackListService;
@@ -28,18 +29,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        String header = request.getHeader("Authorization");
-        if(header == null || !header.startsWith("Bearer ")){  // extarct Bearer in a var
+        String header = request.getHeader(HttpHeaders.AUTHORIZATION);
+        if(header == null || !header.startsWith(BEARER_PREFIX)){
             filterChain.doFilter(request, response);
             return;
         }
-        String jwt = header.substring(7); // extract 7 in a var
+        String jwt = header.substring(BEARER_PREFIX.length());
         if(tokenBlackListService.isBlackListed(jwt)){
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
         String username = jwtService.extractUsername(jwt);
-        if(username != null){  // check SecurityContextHolder.authenticated
+        if(username != null){
             UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
             if(jwtService.isTokenValid(jwt, userDetails)){

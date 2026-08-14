@@ -3,11 +3,15 @@ package org.example.security.service;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
+import org.example.config.JwtConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.time.Instant;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -15,11 +19,11 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Service
+@RequiredArgsConstructor
+@EnableConfigurationProperties(JwtConfigurationProperties.class)
 public class JwtService {
 
-    private String secret;
-
-    private Long expiration;
+    private final JwtConfigurationProperties jwtProperties;
 
     public String extractUsername(String jwt){
         return extractClaim(jwt, Claims::getSubject);
@@ -44,7 +48,7 @@ public class JwtService {
                 .claims(extraClaims)
                 .subject(userDetails.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + expiration))
+                .expiration(new Date(System.currentTimeMillis() + jwtProperties.expiration()))
                 .signWith(getSignInKey(), Jwts.SIG.HS256)
                 .compact();
     }
@@ -55,11 +59,11 @@ public class JwtService {
     }
 
     public boolean isTokenExpired(String token){
-        return extractExpiration(token).before(new Date());
+        return extractExpiration(token).isBefore(Instant.now());
     }
 
-    public Date extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration);
+    public Instant extractExpiration(String token) {
+        return extractClaim(token, Claims::getExpiration).toInstant();
     }
 
     private Claims extractAllClaims(String token) {
@@ -70,7 +74,7 @@ public class JwtService {
                 .getPayload();
     }
     private SecretKey getSignInKey() {
-        byte[] keyBytes = io.jsonwebtoken.io.Decoders.BASE64.decode(secret);
+        byte[] keyBytes = io.jsonwebtoken.io.Decoders.BASE64.decode(jwtProperties.secretKey());
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

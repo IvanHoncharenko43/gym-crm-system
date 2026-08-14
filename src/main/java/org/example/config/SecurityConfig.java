@@ -3,6 +3,7 @@ package org.example.config;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.example.security.filter.JwtAuthenticationFilter;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -21,15 +22,15 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
-
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
+@EnableConfigurationProperties(CorsConfigurationProperties.class)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final CorsConfigurationProperties corsConfigurationProperties;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http){
@@ -37,7 +38,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/v1/trainees").permitAll() // requestMatchers(HttpMethod method, String... patterns)
+                        .requestMatchers(HttpMethod.POST, "/api/v1/trainees").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/trainers").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
@@ -48,12 +49,12 @@ public class SecurityConfig {
                         .authenticationEntryPoint((request, response, authException) -> {
                             response.setContentType("application/json");
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                            response.getWriter().write("error: Unauthorized; message: " + authException.getMessage());
+                            response.getWriter().write("Unauthorized; message: " + authException.getMessage());
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             response.setContentType("application/json");
                             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-                            response.getWriter().write("error: Forbidden; message: " + accessDeniedException.getMessage());
+                            response.getWriter().write("Forbidden; message: " + accessDeniedException.getMessage());
                         }))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
         ;
@@ -73,10 +74,10 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource(){
         CorsConfiguration corsConfiguration = new CorsConfiguration();
-        corsConfiguration.setAllowedOrigins(List.of("*"));
-        corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE"));
-        corsConfiguration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Cache-Control"));
-        corsConfiguration.setExposedHeaders(List.of("Authorization"));
+        corsConfiguration.setAllowedOrigins(corsConfigurationProperties.allowedOrigins());
+        corsConfiguration.setAllowedMethods(corsConfigurationProperties.allowedMethods());
+        corsConfiguration.setAllowedHeaders(corsConfigurationProperties.allowedHeaders());
+        corsConfiguration.setExposedHeaders(corsConfigurationProperties.exposedHeaders());
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfiguration);
         return source;

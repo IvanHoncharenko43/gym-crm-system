@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class AuthService {
 
+    private final static String BEARER_PREFIX = "Bearer ";
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
     private final TokenBlackListService tokenBlackListService;
@@ -27,7 +28,7 @@ public class AuthService {
     }
 
     public void logout(String header){
-        String token = header.substring(7);
+        String token = header.substring(BEARER_PREFIX.length());
         tokenBlackListService.blackListToken(token);
     }
 }
