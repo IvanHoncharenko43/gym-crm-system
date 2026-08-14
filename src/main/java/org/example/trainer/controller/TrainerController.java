@@ -19,9 +19,10 @@ import org.example.trainer.controller.response.Trainers;
 import org.example.trainer.service.TrainerService;
 import org.example.training.controller.response.Trainings;
 import org.example.training.service.TrainingService;
-import org.example.user.controller.dto.UserCredentials;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,7 +34,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RequestAttribute;
 
 @Slf4j
 @Validated
@@ -75,11 +75,9 @@ public class TrainerController {
     @ResponseStatus(HttpStatus.OK)
     public TrainerSummary getTrainer(
             @Parameter(in = ParameterIn.PATH, description = "Trainer ID", example = "12")
-            @PathVariable Long id,
-            @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials){
+            @PathVariable Long id){
         log.info("GET /api/v1/trainers/{id} endpoint called");
-        return trainerService.getById(id, userCredentials);
+        return trainerService.getById(id);
     }
 
     @Operation(summary = "Update trainer", description = "Updates an existing trainer's profile")
@@ -99,9 +97,9 @@ public class TrainerController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateTrainerRequest request,
             @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials){
+            @AuthenticationPrincipal UserDetails userDetails){
         log.info("PUT /api/v1/trainers/{id} endpoint called");
-        return trainerService.update(id, request, userCredentials);
+        return trainerService.update(id, request, userDetails);
     }
 
     @Operation(summary = "Get not assigned trainers by trainee", description = "Returns a list of trainers that are not assigned to a specific trainee")
@@ -114,11 +112,9 @@ public class TrainerController {
     @ResponseStatus(HttpStatus.OK)
     public Trainers getNotAssignedOnTraineeActiveTrainersList(
             @NotBlank(message = "Trainee username cannot be blank")
-            @RequestParam("trainee-username") String traineeUsername,
-            @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials){
+            @RequestParam("trainee-username") String traineeUsername){
         log.info("GET /api/v1/trainers/not-assigned endpoint called");
-        return trainerService.getUnassignedTrainersByTraineeList(traineeUsername, userCredentials);
+        return trainerService.getUnassignedTrainersByTraineeList(traineeUsername);
     }
 
     @Operation(summary = "Change trainer activity", description = "Changes a trainer's activity status")
@@ -137,9 +133,9 @@ public class TrainerController {
             @Parameter(in = ParameterIn.PATH, description = "Trainer ID", example = "12")
             @PathVariable Long id,
             @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials){
+            @AuthenticationPrincipal UserDetails userDetails){
         log.info("PATCH /api/v1/trainers/{id}/profile/active-status/change endpoint called");
-        trainerService.changeActivity(id, userCredentials);
+        trainerService.changeActivity(id, userDetails);
     }
 
     @Operation(summary = "Get trainer's trainings", description = "Returns an existing trainer's trainings list")
@@ -151,11 +147,9 @@ public class TrainerController {
     @PostMapping(value = "/trainings/search")
     @ResponseStatus(HttpStatus.OK)
     public Trainings getTrainerTrainingList(
-            @Valid @RequestBody GetTrainerTrainingsRequest request,
-            @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials
+            @Valid @RequestBody GetTrainerTrainingsRequest request
     ){
         log.info("GET /api/v1/trainers/trainings/search endpoint called");
-        return trainingService.getTrainerTrainingList(request, userCredentials);
+        return trainingService.getTrainerTrainingList(request);
     }
 }

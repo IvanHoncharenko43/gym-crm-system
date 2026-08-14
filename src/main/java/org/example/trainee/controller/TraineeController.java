@@ -19,9 +19,10 @@ import org.example.trainee.service.TraineeService;
 import org.example.trainer.controller.response.Trainers;
 import org.example.training.controller.response.Trainings;
 import org.example.training.service.TrainingService;
-import org.example.user.controller.dto.UserCredentials;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,7 +35,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RequestAttribute;
 
 @Slf4j
 @Validated
@@ -77,11 +77,9 @@ public class TraineeController {
     @ResponseStatus(HttpStatus.OK)
     public TraineeSummary getTrainee(
             @Parameter(in = ParameterIn.PATH, description = "Trainee ID", example = "12")
-            @PathVariable Long id,
-            @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials){
+            @PathVariable Long id){
         log.info("GET /api/v1/trainees/{id} endpoint called");
-        return traineeService.getById(id, userCredentials);
+        return traineeService.getById(id);
     }
 
     @Operation(summary = "Update trainee", description = "Updates an existing trainee's profile")
@@ -101,9 +99,9 @@ public class TraineeController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateTraineeRequest request,
             @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials){
+            @AuthenticationPrincipal UserDetails userDetails){
         log.info("PUT /api/v1/trainees/{id} endpoint called with request");
-        return traineeService.update(id, request, userCredentials);
+        return traineeService.update(id, request, userDetails);
     }
 
     @Operation(summary = "Delete trainee", description = "Deletes a trainee's profile")
@@ -120,9 +118,9 @@ public class TraineeController {
             @Parameter(in = ParameterIn.QUERY, description = "Trainee's username", example = "John.Doe")
             @RequestParam String username,
             @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials){
+            @AuthenticationPrincipal UserDetails userDetails){
         log.info("DELETE /api/v1/trainees endpoint called");
-        traineeService.deleteByUsername(username, userCredentials);
+        traineeService.deleteByUsername(username, userDetails);
     }
 
     @Operation(summary = "Update trainee's trainers", description = "Updates a trainee's trainers list")
@@ -142,9 +140,9 @@ public class TraineeController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateTraineeTrainersRequest request,
             @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials){
+            @AuthenticationPrincipal UserDetails userDetails){
         log.info("PUT /api/v1/trainees/{id}/trainers-update endpoint called with request");
-        return traineeService.updateTrainersList(id, request, userCredentials);
+        return traineeService.updateTrainersList(id, request, userDetails);
     }
 
     @Operation(summary = "Change trainee activity", description = "Changes a trainee's activity status")
@@ -163,9 +161,9 @@ public class TraineeController {
             @Parameter(in = ParameterIn.PATH, description = "Trainee ID", example = "12")
             @PathVariable Long id,
             @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials){
+            @AuthenticationPrincipal UserDetails userDetails){
         log.info("PATCH /api/v1/trainees/{id}/profile/active-status/change endpoint called");
-        traineeService.changeActivity(id, userCredentials);
+        traineeService.changeActivity(id, userDetails);
     }
 
     @Operation(summary = "Get trainee's trainings", description = "Returns an existing trainee's trainings list")
@@ -177,11 +175,9 @@ public class TraineeController {
     @PostMapping(value = "/trainings/search")
     @ResponseStatus(HttpStatus.OK)
     public Trainings getTraineeTrainingList(
-            @Valid @RequestBody GetTraineeTrainingsRequest request,
-            @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials
+            @Valid @RequestBody GetTraineeTrainingsRequest request
     ){
         log.info("GET /api/v1/trainees/trainings/search endpoint called with request params");
-        return trainingService.getTraineeTrainingList(request, userCredentials);
+        return trainingService.getTraineeTrainingList(request);
     }
 }

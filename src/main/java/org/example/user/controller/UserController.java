@@ -11,17 +11,17 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.example.core.dto.ChangePasswordRequest;
-import org.example.user.controller.dto.UserCredentials;
 import org.example.user.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestAttribute;
 
 @Slf4j
 @Tag(name = "Users", description = "Operations related to gym users")
@@ -50,8 +50,8 @@ public class UserController {
             @PathVariable Long id,
             @Valid @RequestBody ChangePasswordRequest request,
             @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials){
+            @AuthenticationPrincipal UserDetails userDetails){
         log.info("PUT /api/v1/users/change-password endpoint called");
-        userService.changePassword(id, request, userCredentials);
+        userService.changePassword(id, request, userDetails);
     }
 }
