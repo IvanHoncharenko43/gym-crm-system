@@ -16,10 +16,15 @@ import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.request.UpdateTrainerRequest;
 import org.example.training.controller.request.CreateTrainingRequest;
 import org.example.training.repository.TrainingEntity;
+import org.example.user.controller.dto.UserRole;
 import org.example.user.repository.UserEntity;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class TestUtils {
@@ -179,6 +184,18 @@ public class TestUtils {
         return new UserCredentials(
                 TRAINER_USERNAME, TRAINER_PASSWORD
         );
+    }
+
+    public static UserDetails getTraineeUserDetails(){
+        return new User(TRAINEE_USERNAME, TRAINEE_PASSWORD, true, true,
+                true, true,
+                List.of(new SimpleGrantedAuthority(UserRole.TRAINEE.getAuthority())));
+    }
+
+    public static UserDetails getTrainerUserDetails(){
+        return new User(TRAINER_USERNAME, TRAINER_PASSWORD, true, true,
+                true, true,
+                List.of(new SimpleGrantedAuthority(UserRole.TRAINER.getAuthority())));
     }
 
     public static Set<String> getExistingUsernamesSet(){

@@ -1,7 +1,7 @@
 package org.example.trainee;
 
 import org.example.TestUtils;
-import org.example.core.service.AuthenticationComponent;
+import org.example.security.service.OwnershipVerifier;
 import org.example.exception.EntityNotFoundException;
 import org.example.monitoring.GymCrmMetrics;
 import org.example.trainee.controller.request.UpdateTraineeTrainersRequest;
@@ -9,7 +9,6 @@ import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.response.Trainers;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.trainer.repository.TrainerRepository;
-import org.example.user.controller.dto.UserCredentials;
 import org.example.user.controller.dto.FullName;
 import org.example.core.service.GymMapper;
 import org.example.user.controller.dto.UserProfile;
@@ -26,6 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -39,7 +39,7 @@ public class TraineeServiceTest {
     private static final Long TRAINEE_ID = 1L;
     private static final String USERNAME = "John.Doe";
     private static final String PASSWORD = "122333test";
-    private static final UserCredentials CREDENTIALS = new UserCredentials(USERNAME, PASSWORD);
+    private static final UserDetails USER_DETAILS = TestUtils.getTraineeUserDetails();
 
     @Mock
     private TraineeRepository traineeRepository;
@@ -54,7 +54,7 @@ public class TraineeServiceTest {
     private GymMapper gymMapper;
 
     @Mock
-    private AuthenticationComponent authenticator;
+    private OwnershipVerifier ownershipVerifier;
 
     @Mock
     private GymCrmMetrics gymCrmMetrics;
@@ -108,11 +108,10 @@ public class TraineeServiceTest {
         when(traineeRepository.save(trainee)).thenReturn(trainee);
         when(gymMapper.toTraineeSummary(trainee)).thenReturn(expectedResponse);
 
-        TraineeSummary actualResponse = traineeService.update(TRAINEE_ID, request, CREDENTIALS);
+        TraineeSummary actualResponse = traineeService.update(TRAINEE_ID, request, USER_DETAILS);
 
         assertEquals(expectedResponse, actualResponse);
-        verify(authenticator, times(1)).authenticate(CREDENTIALS);
-        verify(authenticator, times(1)).authorize(USERNAME, CREDENTIALS);
+        verify(ownershipVerifier, times(1)).verifyOwnershipByUsername(USERNAME, USER_DETAILS.getUsername());
         verify(traineeRepository, times(1)).findById(TRAINEE_ID);
         verify(gymMapper, times(1)).toTraineeEntity(request, trainee);
         verify(traineeRepository, times(1)).save(trainee);
@@ -128,9 +127,8 @@ public class TraineeServiceTest {
         when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> traineeService.update(TRAINEE_ID, request, CREDENTIALS));
+                () -> traineeService.update(TRAINEE_ID, request, USER_DETAILS));
         assertTrue(exception.getMessage().contains("not found"));
-        verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(traineeRepository, times(1)).findById(TRAINEE_ID);
         verify(traineeRepository, never()).save(any());
     }
@@ -148,9 +146,8 @@ public class TraineeServiceTest {
         when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
         when(gymMapper.toTraineeSummary(trainee)).thenReturn(expectedResponse);
 
-        TraineeSummary actualResponse = traineeService.getById(TRAINEE_ID, CREDENTIALS);
+        TraineeSummary actualResponse = traineeService.getById(TRAINEE_ID);
         assertEquals(expectedResponse, actualResponse);
-        verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(traineeRepository, times(1)).findById(TRAINEE_ID);
         verify(gymMapper, times(1)).toTraineeSummary(trainee);
     }
@@ -160,9 +157,8 @@ public class TraineeServiceTest {
         when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> traineeService.getById(TRAINEE_ID, CREDENTIALS));
+                () -> traineeService.getById(TRAINEE_ID));
         assertTrue(exception.getMessage().contains("not found"));
-        verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(traineeRepository, times(1)).findById(TRAINEE_ID);
     }
 
@@ -175,9 +171,8 @@ public class TraineeServiceTest {
         when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.of(trainee));
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> traineeService.getById(TRAINEE_ID, CREDENTIALS));
+                () -> traineeService.getById(TRAINEE_ID));
         assertTrue(exception.getMessage().contains("inactive"));
-        verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(traineeRepository, times(1)).findById(TRAINEE_ID);
     }
 
@@ -194,9 +189,8 @@ public class TraineeServiceTest {
         when(traineeRepository.findByUsername(USERNAME)).thenReturn(Optional.of(trainee));
         when(gymMapper.toTraineeSummary(trainee)).thenReturn(expectedResponse);
 
-        TraineeSummary actualResponse = traineeService.getByUsername(USERNAME, CREDENTIALS);
+        TraineeSummary actualResponse = traineeService.getByUsername(USERNAME);
         assertEquals(expectedResponse, actualResponse);
-        verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
         verify(gymMapper, times(1)).toTraineeSummary(trainee);
     }
@@ -206,9 +200,8 @@ public class TraineeServiceTest {
         when(traineeRepository.findByUsername(USERNAME)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> traineeService.getByUsername(USERNAME, CREDENTIALS));
+                () -> traineeService.getByUsername(USERNAME));
         assertTrue(exception.getMessage().contains("not found"));
-        verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
     }
 
@@ -221,9 +214,8 @@ public class TraineeServiceTest {
         when(traineeRepository.findByUsername(USERNAME)).thenReturn(Optional.of(trainee));
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> traineeService.getByUsername(USERNAME, CREDENTIALS));
+                () -> traineeService.getByUsername(USERNAME));
         assertTrue(exception.getMessage().contains("inactive"));
-        verify(authenticator, times(1)).authenticate(CREDENTIALS);
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
     }
 
@@ -235,10 +227,9 @@ public class TraineeServiceTest {
 
         when(traineeRepository.findByUsername(USERNAME)).thenReturn(Optional.of(trainee));
 
-        traineeService.deleteByUsername(USERNAME, CREDENTIALS);
+        traineeService.deleteByUsername(USERNAME, USER_DETAILS);
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
-        verify(authenticator, times(1)).authenticate(CREDENTIALS);
-        verify(authenticator, times(1)).authorize(USERNAME, CREDENTIALS);
+        verify(ownershipVerifier, times(1)).verifyOwnershipByUsername(USERNAME, USER_DETAILS.getUsername());
         verify(traineeRepository, times(1)).deleteByUserUsername(USERNAME);
     }
 
@@ -251,9 +242,8 @@ public class TraineeServiceTest {
 
         when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.of(existingTrainee));
 
-        traineeService.changeActivity(TRAINEE_ID, CREDENTIALS);
-        verify(authenticator, times(1)).authenticate(CREDENTIALS);
-        verify(authenticator, times(1)).authorize(USERNAME, CREDENTIALS);
+        traineeService.changeActivity(TRAINEE_ID, USER_DETAILS);
+        verify(ownershipVerifier, times(1)).verifyOwnershipByUsername(USERNAME, USER_DETAILS.getUsername());
         verify(traineeRepository, times(1)).findById(TRAINEE_ID);
         verify(traineeRepository, times(1)).save(existingTrainee);
     }
@@ -263,9 +253,9 @@ public class TraineeServiceTest {
         when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> traineeService.changeActivity(TRAINEE_ID, CREDENTIALS));
+                () -> traineeService.changeActivity(TRAINEE_ID, USER_DETAILS));
         assertTrue(exception.getMessage().contains("not found"));
-        verify(authenticator, times(1)).authenticate(CREDENTIALS);
+        verify(ownershipVerifier, times(1)).verifyOwnershipByUsername(USERNAME, USER_DETAILS.getUsername());
         verify(traineeRepository, times(1)).findById(TRAINEE_ID);
     }
 
@@ -307,11 +297,10 @@ public class TraineeServiceTest {
         when(gymMapper.toTrainerSummary(newTrainer1)).thenReturn(newTrainersSummary.get(0));
         when(gymMapper.toTrainerSummary(newTrainer2)).thenReturn(newTrainersSummary.get(1));
 
-        Trainers result = traineeService.updateTrainersList(TRAINEE_ID, request, CREDENTIALS);
+        Trainers result = traineeService.updateTrainersList(TRAINEE_ID, request, USER_DETAILS);
         assertEquals(2, result.trainers().size());
         assertEquals(newTrainersSummary, result.trainers());
-        verify(authenticator, times(1)).authenticate(CREDENTIALS);
-        verify(authenticator, times(1)).authorize(USERNAME, CREDENTIALS);
+        verify(ownershipVerifier, times(1)).verifyOwnershipByUsername(USERNAME, USER_DETAILS.getUsername());
         verify(traineeRepository, times(1)).findById(TRAINEE_ID);
         verify(trainerRepository, times(1)).findByUsernames(newTrainersUsernames);
         verify(gymMapper, times(1)).toTrainerSummary(newTrainer1);
