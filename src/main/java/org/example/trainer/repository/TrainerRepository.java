@@ -26,4 +26,7 @@ public interface TrainerRepository extends JpaRepository<TrainerEntity, Long> {
             JOIN FETCH tr.specialization
             WHERE NOT EXISTS (SELECT 1 FROM tr.trainees t WHERE t.user.username = :traineeUsername)""")
     List<TrainerEntity> findUnassignedTrainersByTraineeUsername(String traineeUsername);
+
+    @Query("SELECT COUNT(t)>0 FROM TrainerEntity t WHERE t.user.id = :userId")
+    boolean existsByUser_Id(Long userId);
 }

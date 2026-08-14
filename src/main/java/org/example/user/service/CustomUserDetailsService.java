@@ -31,10 +31,10 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("User not found in the database"));
 
         List<GrantedAuthority> authorities = new ArrayList<>();
-        if (trainerRepository.existsByUser((userEntity))){
+        if (trainerRepository.existsByUser_Id(userEntity.getId())){
             authorities.add(new SimpleGrantedAuthority(UserRole.TRAINER.getAuthority()));
         }
-        else if (traineeRepository.existsByUser((userEntity))){
+        else if (traineeRepository.existsByUser_Id(userEntity.getId())){
             authorities.add(new SimpleGrantedAuthority(UserRole.TRAINEE.getAuthority()));
         }
         return new User(
