@@ -10,7 +10,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.security.controller.dto.LoginRequest;
-import org.example.security.controller.dto.LoginResponse;
+import org.example.security.controller.dto.LoginDetails;
 import org.example.security.service.AuthService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -33,7 +33,7 @@ public class AuthController {
     @ApiResponse(responseCode = "200", description = "Logged into a user's account")
     @PostMapping("/login")
     @ResponseStatus(HttpStatus.OK)
-    public LoginResponse login(@Valid @RequestBody LoginRequest request){
+    public LoginDetails login(@Valid @RequestBody LoginRequest request){
         log.info("POST /api/v1/auth/login endpoint called");
         return authService.login(request);
     }

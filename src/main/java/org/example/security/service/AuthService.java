@@ -2,7 +2,7 @@ package org.example.security.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.security.controller.dto.LoginRequest;
-import org.example.security.controller.dto.LoginResponse;
+import org.example.security.controller.dto.LoginDetails;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -17,13 +17,13 @@ public class AuthService {
     private final AuthenticationManager authenticationManager;
     private final TokenBlackListService tokenBlackListService;
 
-    public LoginResponse login(LoginRequest request){
+    public LoginDetails login(LoginRequest request){
         Authentication authentication = authenticationManager.authenticate(
                 UsernamePasswordAuthenticationToken.unauthenticated(request.username(), request.password())
         );
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String token = jwtService.generateToken(userDetails);
-        return new LoginResponse(token);
+        return new LoginDetails(token);
     }
 
     public void logout(String header){

@@ -1,11 +1,14 @@
 package org.example.trainer;
 
 import org.example.TestUtils;
+import org.example.security.controller.dto.LoginDetails;
+import org.example.security.service.JwtService;
 import org.example.security.service.OwnershipVerifier;
 import org.example.exception.EntityNotFoundException;
 import org.example.exception.InvalidRequestDataException;
 import org.example.monitoring.GymCrmMetrics;
 import org.example.trainer.controller.request.CreateTrainerRequest;
+import org.example.trainer.controller.response.TrainerRegistrationResponse;
 import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.request.UpdateTrainerRequest;
 import org.example.trainer.controller.response.Trainers;
@@ -26,6 +29,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 
 import java.util.Collections;
 import java.util.List;
@@ -59,6 +63,12 @@ public class TrainerServiceTest {
     @Mock
     private GymCrmMetrics gymCrmMetrics;
 
+    @Mock
+    private UserDetailsService userDetailsService;
+
+    @Mock
+    private JwtService jwtService;
+
     @InjectMocks
     private TrainerService trainerService;
 
@@ -71,16 +81,21 @@ public class TrainerServiceTest {
         TrainerEntity trainer = new TrainerEntity();
         trainer.setUser(new UserEntity());
         trainer.setId(TRAINER_ID);
-        TrainerSummary expectedResponse = new TrainerSummary(5L, new UserProfile("John.Doe22"), TrainingType.YOGA);
+        trainer.getUser().setUsername(USERNAME);
+        TrainerSummary trainerSummary = new TrainerSummary(5L, new UserProfile("John.Doe22"), TrainingType.YOGA);
+        String token = "token";
+        TrainerRegistrationResponse expectedResponse = new TrainerRegistrationResponse(trainerSummary, new LoginDetails(token));
 
         when(trainingTypeRepository.findByTrainingTypeName(request.specialization()))
                 .thenReturn(Optional.of(trainingType));
         when(userRepository.findUsernamesByBaseNameForUpdate(anyString())).thenReturn(Collections.emptyList());
         when(gymMapper.toTrainerEntity(eq(request), eq(trainingType), anySet())).thenReturn(trainer);
         when(trainerRepository.save(trainer)).thenReturn(trainer);
-        when(gymMapper.toTrainerSummary(trainer)).thenReturn(expectedResponse);
+        when(userDetailsService.loadUserByUsername(USERNAME)).thenReturn(USER_DETAILS);
+        when(jwtService.generateToken(USER_DETAILS)).thenReturn(token);
+        when(gymMapper.toTrainerSummary(trainer)).thenReturn(trainerSummary);
 
-        TrainerSummary actualResponse = trainerService.create(request);
+        TrainerRegistrationResponse actualResponse = trainerService.create(request);
 
         assertEquals(expectedResponse, actualResponse);
         verify(trainingTypeRepository, times(1)).findByTrainingTypeName(
@@ -89,6 +104,8 @@ public class TrainerServiceTest {
         verify(userRepository, times(1)).findUsernamesByBaseNameForUpdate(anyString());
         verify(gymMapper, times(1)).toTrainerEntity(eq(request), eq(trainingType), anySet());
         verify(trainerRepository, times(1)).save(trainer);
+        verify(userDetailsService, times(1)).loadUserByUsername(USERNAME);
+        verify(jwtService, times(1)).generateToken(USER_DETAILS);
         verify(gymMapper, times(1)).toTrainerSummary(trainer);
     }
 

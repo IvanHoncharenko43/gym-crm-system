@@ -2,12 +2,14 @@ package org.example.trainer;
 
 import org.example.config.SecurityConfig;
 import org.example.exception.EntityNotFoundException;
+import org.example.security.controller.dto.LoginDetails;
 import org.example.security.service.JwtService;
 import org.example.security.service.TokenBlackListService;
 import org.example.trainer.controller.TrainerController;
 import org.example.trainer.controller.request.CreateTrainerRequest;
 import org.example.trainer.controller.request.GetTrainerTrainingsRequest;
 import org.example.trainer.controller.request.UpdateTrainerRequest;
+import org.example.trainer.controller.response.TrainerRegistrationResponse;
 import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.response.Trainers;
 import org.example.trainer.service.TrainerService;
@@ -70,7 +72,7 @@ class TrainerControllerIT {
         CreateTrainerRequest request = new CreateTrainerRequest(
                 new FullName("John", "Doe"), TrainingType.YOGA
         );
-        TrainerSummary expectedTrainer = getTrainerSummary();
+        TrainerRegistrationResponse expectedTrainer = new TrainerRegistrationResponse(getTrainerSummary(), new LoginDetails("token"));
         when(trainerService.create(request)).thenReturn(expectedTrainer);
 
         MvcResult result = mockMvc.perform(post("/api/v1/trainers")
@@ -79,10 +81,11 @@ class TrainerControllerIT {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        TrainerSummary response = jsonMapper.readValue(result.getResponse().getContentAsString(), TrainerSummary.class);
-        assertThat(response.id()).isEqualTo(expectedTrainer.id());
-        assertThat(response.profile().username()).isEqualTo(expectedTrainer.profile().username());
-        assertThat(response.specialization()).isEqualTo(expectedTrainer.specialization());
+        TrainerRegistrationResponse response = jsonMapper.readValue(result.getResponse().getContentAsString(), TrainerRegistrationResponse.class);
+        assertThat(response.trainerSummary().id()).isEqualTo(expectedTrainer.trainerSummary().id());
+        assertThat(response.trainerSummary().profile().username()).isEqualTo(expectedTrainer.trainerSummary().profile().username());
+        assertThat(response.trainerSummary().specialization()).isEqualTo(expectedTrainer.trainerSummary().specialization());
+        assertThat(response.loginDetails().token()).isEqualTo(expectedTrainer.loginDetails().token());
         verify(trainerService, times(1)).create(request);
     }
 

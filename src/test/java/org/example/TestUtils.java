@@ -3,7 +3,6 @@ package org.example;
 import org.example.training.controller.response.TrainingSummary;
 import org.example.trainingType.dto.TrainingType;
 import org.example.trainingType.repository.TrainingTypeEntity;
-import org.example.user.controller.dto.UserCredentials;
 import org.example.user.controller.dto.FullName;
 import org.example.user.controller.dto.UserProfile;
 import org.example.trainee.controller.request.CreateTraineeRequest;
@@ -171,18 +170,6 @@ public class TestUtils {
         return new TrainingSummary(
                 TRAINING_ID, getTrainerSummary(), getTraineeSummary(), "Morning Cardio",
                 TrainingType.YOGA, LocalDate.of(2026, 5, 15), 60
-        );
-    }
-
-    public static UserCredentials getTraineeCredentials(){
-        return new UserCredentials(
-                TRAINEE_USERNAME, TRAINEE_PASSWORD
-        );
-    }
-
-    public static UserCredentials getTrainerCredentials(){
-        return new UserCredentials(
-                TRAINER_USERNAME, TRAINER_PASSWORD
         );
     }
 

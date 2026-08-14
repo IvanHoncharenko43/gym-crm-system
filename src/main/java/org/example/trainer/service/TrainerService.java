@@ -3,8 +3,12 @@ package org.example.trainer.service;
 import lombok.RequiredArgsConstructor;
 import org.example.monitoring.GymCrmMetrics;
 import org.example.exception.InvalidRequestDataException;
+import org.example.security.controller.dto.LoginDetails;
+import org.example.security.service.JwtService;
+import org.example.trainer.controller.response.TrainerRegistrationResponse;
 import org.example.trainer.controller.response.Trainers;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.security.service.OwnershipVerifier;
@@ -33,9 +37,11 @@ public class TrainerService {
     private final GymMapper gymMapper;
     private final OwnershipVerifier ownershipVerifier;
     private final GymCrmMetrics gymCrmMetrics;
+    private final JwtService jwtService;
+    private final UserDetailsService userDetailsService;
 
     @Transactional
-    public TrainerSummary create(CreateTrainerRequest request) {
+    public TrainerRegistrationResponse create(CreateTrainerRequest request) {
         TrainingTypeEntity trainingType = trainingTypeRepository.findByTrainingTypeName(request.specialization())
                 .orElseThrow(() -> {
                     String message = String.format("Training type %s not found", request.specialization().name());
@@ -46,9 +52,11 @@ public class TrainerService {
         Set<String> existingUsernames = new HashSet<>(userRepository.findUsernamesByBaseNameForUpdate(baseName));
         TrainerEntity trainer = gymMapper.toTrainerEntity(request, trainingType, existingUsernames);
         TrainerEntity savedTrainer = trainerRepository.save(trainer);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(savedTrainer.getUser().getUsername());
+        String token = jwtService.generateToken(userDetails);
         log.info("Created trainer profile with ID: {}", savedTrainer.getId());
         gymCrmMetrics.incrementTrainerCreation();
-        return gymMapper.toTrainerSummary(savedTrainer);
+        return new TrainerRegistrationResponse(gymMapper.toTrainerSummary(savedTrainer), new LoginDetails(token));
     }
 
     @Transactional(readOnly = true)

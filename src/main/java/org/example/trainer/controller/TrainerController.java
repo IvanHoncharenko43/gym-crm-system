@@ -13,6 +13,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.extern.slf4j.Slf4j;
 import org.example.trainer.controller.request.CreateTrainerRequest;
 import org.example.trainer.controller.request.GetTrainerTrainingsRequest;
+import org.example.trainer.controller.response.TrainerRegistrationResponse;
 import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.request.UpdateTrainerRequest;
 import org.example.trainer.controller.response.Trainers;
@@ -59,7 +60,7 @@ public class TrainerController {
     @ApiResponse(responseCode = "201", description = "Registered a new trainer")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TrainerSummary registerTrainer(@Valid @RequestBody CreateTrainerRequest request){
+    public TrainerRegistrationResponse registerTrainer(@Valid @RequestBody CreateTrainerRequest request){
         log.info("POST /api/v1/trainers endpoint called");
         return trainerService.create(request);
     }

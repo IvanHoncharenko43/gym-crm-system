@@ -1,10 +1,13 @@
 package org.example.trainee;
 
 import org.example.TestUtils;
+import org.example.security.controller.dto.LoginDetails;
+import org.example.security.service.JwtService;
 import org.example.security.service.OwnershipVerifier;
 import org.example.exception.EntityNotFoundException;
 import org.example.monitoring.GymCrmMetrics;
 import org.example.trainee.controller.request.UpdateTraineeTrainersRequest;
+import org.example.trainee.controller.response.TraineeRegistrationResponse;
 import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.response.Trainers;
 import org.example.trainer.repository.TrainerEntity;
@@ -26,6 +29,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -59,6 +63,12 @@ public class TraineeServiceTest {
     @Mock
     private GymCrmMetrics gymCrmMetrics;
 
+    @Mock
+    private UserDetailsService userDetailsService;
+
+    @Mock
+    private JwtService jwtService;
+
     @InjectMocks
     private TraineeService traineeService;
 
@@ -70,20 +80,27 @@ public class TraineeServiceTest {
         TraineeEntity trainee = new TraineeEntity();
         trainee.setUser(new UserEntity());
         trainee.setId(TRAINEE_ID);
-        TraineeSummary expectedResponse = new TraineeSummary(TRAINEE_ID, new UserProfile(USERNAME),
+        trainee.getUser().setUsername(USERNAME);
+        TraineeSummary traineeSummary = new TraineeSummary(TRAINEE_ID, new UserProfile(USERNAME),
                 LocalDate.of(2007, 3, 25), "Home 21 Street");
+        String token = "token";
+        TraineeRegistrationResponse expectedResponse = new TraineeRegistrationResponse(traineeSummary, new LoginDetails(token));
 
         when(userRepository.findUsernamesByBaseNameForUpdate(anyString())).thenReturn(Collections.emptyList());
         when(gymMapper.toTraineeEntity(eq(request), anySet())).thenReturn(trainee);
         when(traineeRepository.save(trainee)).thenReturn(trainee);
-        when(gymMapper.toTraineeSummary(trainee)).thenReturn(expectedResponse);
+        when(userDetailsService.loadUserByUsername(USERNAME)).thenReturn(USER_DETAILS);
+        when(jwtService.generateToken(USER_DETAILS)).thenReturn(token);
+        when(gymMapper.toTraineeSummary(trainee)).thenReturn(traineeSummary);
 
-        TraineeSummary actualResponse = traineeService.create(request);
+        TraineeRegistrationResponse actualResponse = traineeService.create(request);
 
         assertEquals(expectedResponse, actualResponse);
         verify(userRepository, times(1)).findUsernamesByBaseNameForUpdate(anyString());
         verify(gymMapper, times(1)).toTraineeEntity(eq(request), anySet());
         verify(traineeRepository, times(1)).save(trainee);
+        verify(userDetailsService, times(1)).loadUserByUsername(USERNAME);
+        verify(jwtService, times(1)).generateToken(USER_DETAILS);
         verify(gymMapper, times(1)).toTraineeSummary(trainee);
     }
 

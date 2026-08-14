@@ -2,8 +2,12 @@ package org.example.trainee.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.monitoring.GymCrmMetrics;
+import org.example.security.controller.dto.LoginDetails;
+import org.example.security.service.JwtService;
+import org.example.trainee.controller.response.TraineeRegistrationResponse;
 import org.example.trainer.controller.response.Trainers;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.security.service.OwnershipVerifier;
@@ -34,16 +38,20 @@ public class TraineeService {
     private final GymMapper gymMapper;
     private final OwnershipVerifier ownershipVerifier;
     private final GymCrmMetrics gymCrmMetrics;
+    private final JwtService jwtService;
+    private final UserDetailsService userDetailsService;
 
     @Transactional
-    public TraineeSummary create(CreateTraineeRequest request) {
+    public TraineeRegistrationResponse create(CreateTraineeRequest request) {
         String baseName = request.fullName().firstName() + "." + request.fullName().lastName();
         Set<String> existingUsernames = new HashSet<>(userRepository.findUsernamesByBaseNameForUpdate(baseName));
         TraineeEntity trainee = gymMapper.toTraineeEntity(request, existingUsernames);
         TraineeEntity savedTrainee = traineeRepository.save(trainee);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(savedTrainee.getUser().getUsername());
+        String token = jwtService.generateToken(userDetails);
         log.info("Created trainee profile with ID: {}", savedTrainee.getId());
         gymCrmMetrics.incrementTraineeCreation();
-        return gymMapper.toTraineeSummary(savedTrainee);
+        return new TraineeRegistrationResponse(gymMapper.toTraineeSummary(savedTrainee), new LoginDetails(token));
     }
 
     @Transactional(readOnly = true)

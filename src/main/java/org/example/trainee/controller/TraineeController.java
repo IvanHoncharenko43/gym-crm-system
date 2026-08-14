@@ -12,6 +12,7 @@ import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
 import org.example.trainee.controller.request.CreateTraineeRequest;
 import org.example.trainee.controller.request.GetTraineeTrainingsRequest;
+import org.example.trainee.controller.response.TraineeRegistrationResponse;
 import org.example.trainee.controller.response.TraineeSummary;
 import org.example.trainee.controller.request.UpdateTraineeRequest;
 import org.example.trainee.controller.request.UpdateTraineeTrainersRequest;
@@ -60,7 +61,7 @@ public class TraineeController {
     @ApiResponse(responseCode = "201", description = "Registered the trainee")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TraineeSummary registerTrainee(
+    public TraineeRegistrationResponse registerTrainee(
             @Valid @RequestBody CreateTraineeRequest request){
         log.info("POST /api/v1/trainees endpoint called with request");
         return traineeService.create(request);

@@ -2,6 +2,7 @@ package org.example.trainee;
 
 import org.example.config.SecurityConfig;
 import org.example.exception.EntityNotFoundException;
+import org.example.security.controller.dto.LoginDetails;
 import org.example.security.service.JwtService;
 import org.example.security.service.TokenBlackListService;
 import org.example.trainee.controller.TraineeController;
@@ -9,6 +10,7 @@ import org.example.trainee.controller.request.CreateTraineeRequest;
 import org.example.trainee.controller.request.GetTraineeTrainingsRequest;
 import org.example.trainee.controller.request.UpdateTraineeRequest;
 import org.example.trainee.controller.request.UpdateTraineeTrainersRequest;
+import org.example.trainee.controller.response.TraineeRegistrationResponse;
 import org.example.trainee.controller.response.TraineeSummary;
 import org.example.trainee.service.TraineeService;
 import org.example.trainer.controller.response.Trainers;
@@ -68,17 +70,18 @@ class TraineeControllerIT {
         CreateTraineeRequest request = new CreateTraineeRequest(
                 new FullName("John", "Doe"), LocalDate.of(2007, 3, 5), "Home"
         );
-        TraineeSummary expectedResponse = getTraineeSummary();
+        TraineeRegistrationResponse expectedResponse = new TraineeRegistrationResponse(getTraineeSummary(), new LoginDetails("token"));
         when(traineeService.create(request)).thenReturn(expectedResponse);
 
         mockMvc.perform(post("/api/v1/trainees")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(expectedResponse.id()))
-                .andExpect(jsonPath("$.profile.username").value(expectedResponse.profile().username()))
-                .andExpect(jsonPath("$.dateOfBirth").value(expectedResponse.dateOfBirth().toString()))
-                .andExpect(jsonPath("$.address").value(expectedResponse.address()));
+                .andExpect(jsonPath("$.traineeSummary.id").value(expectedResponse.traineeSummary().id()))
+                .andExpect(jsonPath("$.traineeSummary.profile.username").value(expectedResponse.traineeSummary().profile().username()))
+                .andExpect(jsonPath("$.traineeSummary.dateOfBirth").value(expectedResponse.traineeSummary().dateOfBirth().toString()))
+                .andExpect(jsonPath("$.traineeSummary.address").value(expectedResponse.traineeSummary().address()))
+                .andExpect(jsonPath("$.loginDetails.token").value(expectedResponse.loginDetails().token()));
         verify(traineeService, times(1)).create(request);
     }
 
@@ -87,15 +90,16 @@ class TraineeControllerIT {
         CreateTraineeRequest request = new CreateTraineeRequest(
                 new FullName("John", "Doe"), null, null
         );
-        TraineeSummary expectedResponse = getTraineeSummaryWithNoOptional();
+        TraineeRegistrationResponse expectedResponse = new TraineeRegistrationResponse(getTraineeSummaryWithNoOptional(), new LoginDetails("token"));
         when(traineeService.create(request)).thenReturn(expectedResponse);
 
         mockMvc.perform(post("/api/v1/trainees")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(expectedResponse.id()))
-                .andExpect(jsonPath("$.profile.username").value(expectedResponse.profile().username()));
+                .andExpect(jsonPath("$.traineeSummary.id").value(expectedResponse.traineeSummary().id()))
+                .andExpect(jsonPath("$.traineeSummary.profile.username").value(expectedResponse.traineeSummary().profile().username()))
+                .andExpect(jsonPath("$.loginDetails.token").value(expectedResponse.loginDetails().token()));;
         verify(traineeService, times(1)).create(request);
     }
 
