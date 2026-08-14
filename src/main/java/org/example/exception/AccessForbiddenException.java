@@ -1,7 +1,7 @@
 package org.example.exception;
 
-public class AccessDeniedException extends RuntimeException {
-    public AccessDeniedException(String message) {
+public class AccessForbiddenException extends RuntimeException {
+    public AccessForbiddenException(String message) {
         super(message);
     }
 }
