@@ -15,6 +15,7 @@ import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.request.UpdateTrainerRequest;
 import org.example.training.controller.request.CreateTrainingRequest;
 import org.example.training.repository.TrainingEntity;
+import org.example.security.controller.dto.LoginRequest;
 import org.example.user.controller.dto.UserRole;
 import org.example.user.repository.UserEntity;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -68,6 +69,10 @@ public class TestUtils {
         return new UpdateTrainerRequest(
                 new FullName("John", "Doe"), TrainingType.YOGA
         );
+    }
+
+    public static LoginRequest getLoginRequest(){
+        return new LoginRequest(TRAINEE_USERNAME, TRAINEE_PASSWORD);
     }
 
     public static UserEntity getUser(){
