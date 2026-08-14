@@ -1,41 +1,34 @@
 package org.example.user;
 
-import org.example.config.AuthInterceptor;
-import org.example.config.InterceptorConfigurationProperties;
+import org.example.config.SecurityConfig;
 import org.example.core.dto.ChangePasswordRequest;
 import org.example.exception.EntityNotFoundException;
+import org.example.security.service.JwtService;
+import org.example.security.service.TokenBlackListService;
 import org.example.user.controller.UserController;
-import org.example.user.controller.dto.UserCredentials;
 import org.example.user.service.UserService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.databind.json.JsonMapper;
 
 import static org.example.TestUtils.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = UserController.class)
+@Import(SecurityConfig.class)
 class UserControllerIT {
 
-    @TestConfiguration
-    static class TestConfig {
-        @Bean
-        InterceptorConfigurationProperties interceptorConfigurationProperties() {
-            return new InterceptorConfigurationProperties("/**");
-        }
-    }
-
-    private final static UserCredentials CREDENTIALS = getTraineeCredentials();
+    private final static UserDetails USER_DETAILS = getTraineeUserDetails();
 
     @Autowired
     private MockMvc mockMvc;
@@ -47,78 +40,79 @@ class UserControllerIT {
     private UserService userService;
 
     @MockitoBean
-    private AuthInterceptor authInterceptor;
+    private JwtService jwtService;
 
-    @BeforeEach
-    void setUp(){
-        when(authInterceptor.preHandle(any(), any(), any())).thenReturn(true);
-    }
+    @MockitoBean
+    private UserDetailsService userDetailsService;
+
+    @MockitoBean
+    private TokenBlackListService tokenBlackListService;
 
     @Test
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
     void changePassword_Return200_RequestIsValid() throws Exception {
         ChangePasswordRequest request = new ChangePasswordRequest(TRAINEE_PASSWORD, "newPassword1234!");
-        doNothing().when(userService).changePassword(TRAINEE_ID, request, CREDENTIALS);
+        doNothing().when(userService).changePassword(TRAINEE_ID, request, USER_DETAILS);
 
         mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", TRAINEE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
-        verify(userService, times(1)).changePassword(TRAINEE_ID, request, CREDENTIALS);
+        verify(userService, times(1)).changePassword(TRAINEE_ID, request, USER_DETAILS);
     }
 
     @Test
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
     void changePassword_Return400AndProblemDetail_OldPasswordIsBlank() throws Exception {
         ChangePasswordRequest request = new ChangePasswordRequest("", "newPassword1234!");
 
         mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", TRAINEE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.invalidFields").isNotEmpty());
     }
 
     @Test
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
     void changePassword_Return400AndProblemDetail_NewPasswordIsBlank() throws Exception {
         ChangePasswordRequest request = new ChangePasswordRequest("oldPassword1234", "");
 
         mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", TRAINEE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.invalidFields").isNotEmpty());
     }
 
     @Test
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
     void changePassword_Return400AndProblemDetail_NewPasswordIsInvalid() throws Exception {
         ChangePasswordRequest request = new ChangePasswordRequest(TRAINEE_PASSWORD, "short");
 
         mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", TRAINEE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.invalidFields").isNotEmpty());
     }
 
     @Test
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
     void changePassword_Return404AndProblemDetail_UserNotFound() throws Exception {
         ChangePasswordRequest request = new ChangePasswordRequest(TRAINEE_PASSWORD, "newPassword1234!");
         doThrow(new EntityNotFoundException("User not found"))
-                .when(userService).changePassword(TRAINEE_ID, request, CREDENTIALS);
+                .when(userService).changePassword(TRAINEE_ID, request, USER_DETAILS);
 
         mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", TRAINEE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Entity Not Found"))
                 .andExpect(jsonPath("$.detail").value("User not found"));
-        verify(userService, times(1)).changePassword(TRAINEE_ID, request, CREDENTIALS);
+        verify(userService, times(1)).changePassword(TRAINEE_ID, request, USER_DETAILS);
     }
 }

@@ -1,8 +1,9 @@
 package org.example.trainer;
 
-import org.example.config.AuthInterceptor;
-import org.example.config.InterceptorConfigurationProperties;
+import org.example.config.SecurityConfig;
 import org.example.exception.EntityNotFoundException;
+import org.example.security.service.JwtService;
+import org.example.security.service.TokenBlackListService;
 import org.example.trainer.controller.TrainerController;
 import org.example.trainer.controller.request.CreateTrainerRequest;
 import org.example.trainer.controller.request.GetTrainerTrainingsRequest;
@@ -14,14 +15,14 @@ import org.example.training.controller.response.Trainings;
 import org.example.training.service.TrainingService;
 import org.example.trainingType.dto.TrainingType;
 import org.example.user.controller.dto.FullName;
-import org.example.user.controller.dto.UserCredentials;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -33,23 +34,15 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.example.TestUtils.*;
 import static org.hamcrest.Matchers.hasKey;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(controllers = TrainerController.class)
+@Import(SecurityConfig.class)
 class TrainerControllerIT {
 
-    @TestConfiguration
-    static class TestConfig {
-        @Bean
-        InterceptorConfigurationProperties interceptorConfigurationProperties() {
-            return new InterceptorConfigurationProperties("/**");
-        }
-    }
-
-    private static final UserCredentials CREDENTIALS = getTrainerCredentials();
+    private static final UserDetails USER_DETAILS = getTrainerUserDetails();
 
     @Autowired
     private MockMvc mockMvc;
@@ -64,12 +57,13 @@ class TrainerControllerIT {
     private TrainingService trainingService;
 
     @MockitoBean
-    private AuthInterceptor authInterceptor;
+    private JwtService jwtService;
 
-    @BeforeEach
-    void setUp() {
-        when(authInterceptor.preHandle(any(), any(), any())).thenReturn(true);
-    }
+    @MockitoBean
+    private UserDetailsService userDetailsService;
+
+    @MockitoBean
+    private TokenBlackListService tokenBlackListService;
 
     @Test
     void registerTrainer_Return201AndTrainerSummary_AllParametersProvidedAndValid() throws Exception {
@@ -149,12 +143,12 @@ class TrainerControllerIT {
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void getTrainer_Return200AndTrainerSummary_IdIsValid() throws Exception {
         TrainerSummary expectedTrainer = getTrainerSummary();
-        when(trainerService.getById(TRAINER_ID, CREDENTIALS)).thenReturn(expectedTrainer);
+        when(trainerService.getById(TRAINER_ID)).thenReturn(expectedTrainer);
 
-        MvcResult result = mockMvc.perform(get("/api/v1/trainers/{id}", TRAINER_ID)
-                        .requestAttr("userCredentials", CREDENTIALS))
+        MvcResult result = mockMvc.perform(get("/api/v1/trainers/{id}", TRAINER_ID))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -162,32 +156,32 @@ class TrainerControllerIT {
         assertThat(response.id()).isEqualTo(expectedTrainer.id());
         assertThat(response.profile().username()).isEqualTo(expectedTrainer.profile().username());
         assertThat(response.specialization()).isEqualTo(expectedTrainer.specialization());
-        verify(trainerService, times(1)).getById(TRAINER_ID, CREDENTIALS);
+        verify(trainerService, times(1)).getById(TRAINER_ID);
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void getTrainer_Return404AndProblemDetail_TrainerNotFound() throws Exception {
-        when(trainerService.getById(99L, CREDENTIALS))
+        when(trainerService.getById(99L))
                 .thenThrow(new EntityNotFoundException("Trainer not found"));
 
-        mockMvc.perform(get("/api/v1/trainers/{id}", 99L)
-                        .requestAttr("userCredentials", CREDENTIALS))
+        mockMvc.perform(get("/api/v1/trainers/{id}", 99L))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Entity Not Found"));
-        verify(trainerService, times(1)).getById(99L, CREDENTIALS);
+        verify(trainerService, times(1)).getById(99L);
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void updateTrainer_Return200AndTrainerSummary_AllParametersProvidedAndValid() throws Exception {
         UpdateTrainerRequest request = new UpdateTrainerRequest(
                 new FullName("John", "Doe"), TrainingType.YOGA);
         TrainerSummary expectedTrainer = getTrainerSummary();
-        when(trainerService.update(TRAINER_ID, request, CREDENTIALS)).thenReturn(expectedTrainer);
+        when(trainerService.update(TRAINER_ID, request, USER_DETAILS)).thenReturn(expectedTrainer);
 
         MvcResult result = mockMvc.perform(put("/api/v1/trainers/{id}", TRAINER_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -195,10 +189,11 @@ class TrainerControllerIT {
         assertThat(response.id()).isEqualTo(expectedTrainer.id());
         assertThat(response.profile().username()).isEqualTo(expectedTrainer.profile().username());
         assertThat(response.specialization()).isEqualTo(expectedTrainer.specialization());
-        verify(trainerService, times(1)).update(TRAINER_ID, request, CREDENTIALS);
+        verify(trainerService, times(1)).update(TRAINER_ID, request, USER_DETAILS);
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void updateTrainer_Return400AndProblemDetail_FullNameIsNull() throws Exception {
         UpdateTrainerRequest request = new UpdateTrainerRequest(
                 null, TrainingType.YOGA
@@ -206,14 +201,14 @@ class TrainerControllerIT {
 
         mockMvc.perform(put("/api/v1/trainers/{id}", TRAINER_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.invalidFields", hasKey("fullName")));
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void updateTrainer_Return400AndProblemDetail_FirstNameIsBlank() throws Exception {
         UpdateTrainerRequest request = new UpdateTrainerRequest(
                 new FullName("  ", "Doe"), TrainingType.YOGA
@@ -221,14 +216,14 @@ class TrainerControllerIT {
 
         mockMvc.perform(put("/api/v1/trainers/{id}", TRAINER_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.invalidFields").isNotEmpty());
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void updateTrainer_Return400AndProblemDetail_LastNameIsBlank() throws Exception {
         UpdateTrainerRequest request = new UpdateTrainerRequest(
                 new FullName("John", ""), TrainingType.YOGA
@@ -236,14 +231,14 @@ class TrainerControllerIT {
 
         mockMvc.perform(put("/api/v1/trainers/{id}", TRAINER_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.invalidFields").isNotEmpty());
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void updateTrainer_Return400AndProblemDetail_SpecializationIsNull() throws Exception {
         UpdateTrainerRequest request = new UpdateTrainerRequest(
                 new FullName("John", "Doe"), null
@@ -251,156 +246,156 @@ class TrainerControllerIT {
 
         mockMvc.perform(put("/api/v1/trainers/{id}", TRAINER_ID)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.invalidFields").isNotEmpty());
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void updateTrainer_Return404AndProblemDetail_TrainerNotFound() throws Exception {
         Long id = 99L;
         UpdateTrainerRequest request = new UpdateTrainerRequest(
                 new FullName("John", "Doe"), TrainingType.YOGA);
-        when(trainerService.update(id, request, CREDENTIALS))
+        when(trainerService.update(id, request, USER_DETAILS))
                 .thenThrow(new EntityNotFoundException("Trainer not found"));
 
         mockMvc.perform(put("/api/v1/trainers/{id}", id)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Entity Not Found"));
-        verify(trainerService, times(1)).update(id, request, CREDENTIALS);
+        verify(trainerService, times(1)).update(id, request, USER_DETAILS);
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void getNotAssignedTrainers_Return200AndTrainers_RequestIsValid() throws Exception {
         Trainers trainers = new Trainers(List.of(getTrainerSummary()));
-        when(trainerService.getUnassignedTrainersByTraineeList(TRAINEE_USERNAME, CREDENTIALS))
+        when(trainerService.getUnassignedTrainersByTraineeList(TRAINEE_USERNAME))
                 .thenReturn(trainers);
 
         MvcResult result = mockMvc.perform(get("/api/v1/trainers/not-assigned")
-                        .param("trainee-username", TRAINEE_USERNAME)
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .param("trainee-username", TRAINEE_USERNAME))
                 .andExpect(status().isOk())
                 .andReturn();
 
         Trainers response = jsonMapper.readValue(result.getResponse().getContentAsString(), Trainers.class);
         assertThat(response.trainers()).hasSize(1);
         assertThat(response.trainers().get(0).profile().username()).isEqualTo(TRAINER_USERNAME);
-        verify(trainerService, times(1)).getUnassignedTrainersByTraineeList(TRAINEE_USERNAME, CREDENTIALS);
+        verify(trainerService, times(1)).getUnassignedTrainersByTraineeList(TRAINEE_USERNAME);
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void getNotAssignedTrainers_Return400AndProblemDetail_TraineeUsernameIsBlank() throws Exception {
         mockMvc.perform(get("/api/v1/trainers/not-assigned")
-                        .param("trainee-username", "  ")
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .param("trainee-username", "  "))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.violations").isNotEmpty());
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void changeTrainerActivity_Return200_RequestIsValid() throws Exception {
-        mockMvc.perform(patch("/api/v1/trainers/{id}/profile/active-status/change", TRAINER_ID)
-                        .requestAttr("userCredentials", CREDENTIALS))
+        mockMvc.perform(patch("/api/v1/trainers/{id}/profile/active-status/change", TRAINER_ID))
                 .andExpect(status().isOk());
-        verify(trainerService, times(1)).changeActivity(TRAINER_ID, CREDENTIALS);
+        verify(trainerService, times(1)).changeActivity(TRAINER_ID, USER_DETAILS);
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void changeTrainerActivity_Return404AndProblemDetail_TraineeNotFound() throws Exception {
         Long id = 99L;
         doThrow(new EntityNotFoundException("Trainer not found"))
-                .when(trainerService).changeActivity(id, CREDENTIALS);
+                .when(trainerService).changeActivity(id, USER_DETAILS);
 
-        mockMvc.perform(patch("/api/v1/trainers/{id}/profile/active-status/change", id)
-                        .requestAttr("userCredentials", CREDENTIALS))
+        mockMvc.perform(patch("/api/v1/trainers/{id}/profile/active-status/change", id))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Entity Not Found"));
-        verify(trainerService, times(1)).changeActivity(id, CREDENTIALS);
+        verify(trainerService, times(1)).changeActivity(id, USER_DETAILS);
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void getTrainerTrainings_Return200AndTrainings_AllParametersProvidedAndValid() throws Exception {
         GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
                 TRAINER_USERNAME, LocalDate.of(2026, 1, 1),
                 LocalDate.of(2026, 12, 31), TRAINEE_USERNAME
         );
         Trainings trainings = new Trainings(List.of(getTrainingSummary()));
-        when(trainingService.getTrainerTrainingList(request, CREDENTIALS)).thenReturn(trainings);
+        when(trainingService.getTrainerTrainingList(request)).thenReturn(trainings);
 
         MvcResult result = mockMvc.perform(post("/api/v1/trainers/trainings/search")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andReturn();
 
         Trainings response = jsonMapper.readValue(result.getResponse().getContentAsString(), Trainings.class);
         assertThat(response.trainings()).hasSize(1);
         assertThat(response.trainings().get(0).trainingName()).isEqualTo("Morning Cardio");
-        verify(trainingService, times(1)).getTrainerTrainingList(request, CREDENTIALS);
+        verify(trainingService, times(1)).getTrainerTrainingList(request);
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void getTrainerTrainings_Return200AndTrainings_OnlyRequiredParametersProvidedAndValid() throws Exception {
         GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
                 TRAINEE_USERNAME, null, null, null
         );
         Trainings trainings = new Trainings(List.of(getTrainingSummary()));
-        when(trainingService.getTrainerTrainingList(request, CREDENTIALS)).thenReturn(trainings);
+        when(trainingService.getTrainerTrainingList(request)).thenReturn(trainings);
 
         mockMvc.perform(post("/api/v1/trainers/trainings/search")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trainings").isArray())
                 .andExpect(jsonPath("$.trainings[0].trainingName").value("Morning Cardio"));
-        verify(trainingService, times(1)).getTrainerTrainingList(request, CREDENTIALS);
+        verify(trainingService, times(1)).getTrainerTrainingList(request);
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void getTrainerTrainings_Return200AndTrainings_ToDateAbsent() throws Exception {
         GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
                 TRAINEE_USERNAME, LocalDate.of(2026, 1, 1), null, null
         );
         Trainings trainings = new Trainings(List.of(getTrainingSummary()));
-        when(trainingService.getTrainerTrainingList(request, CREDENTIALS)).thenReturn(trainings);
+        when(trainingService.getTrainerTrainingList(request)).thenReturn(trainings);
 
         mockMvc.perform(post("/api/v1/trainers/trainings/search")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trainings").isArray())
                 .andExpect(jsonPath("$.trainings[0].trainingName").value("Morning Cardio"));
-        verify(trainingService, times(1)).getTrainerTrainingList(request, CREDENTIALS);
+        verify(trainingService, times(1)).getTrainerTrainingList(request);
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void getTrainerTrainings_Return200AndTrainings_FromDateAbsent() throws Exception {
         GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
                 TRAINEE_USERNAME, null, LocalDate.of(2026, 12, 1), null
         );
         Trainings trainings = new Trainings(List.of(getTrainingSummary()));
-        when(trainingService.getTrainerTrainingList(request, CREDENTIALS)).thenReturn(trainings);
+        when(trainingService.getTrainerTrainingList(request)).thenReturn(trainings);
 
         mockMvc.perform(post("/api/v1/trainers/trainings/search")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trainings").isArray())
                 .andExpect(jsonPath("$.trainings[0].trainingName").value("Morning Cardio"));
-        verify(trainingService, times(1)).getTrainerTrainingList(request, CREDENTIALS);
+        verify(trainingService, times(1)).getTrainerTrainingList(request);
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void getTrainerTrainings_Return400_UsernameIsBlank() throws Exception {
         GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
                 "  ", LocalDate.of(2026, 1, 1),
@@ -408,14 +403,14 @@ class TrainerControllerIT {
         );
         mockMvc.perform(post("/api/v1/trainers/trainings/search")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.invalidFields").isNotEmpty());
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void getTrainerTrainings_Return400_FromDateAfterToDate() throws Exception {
         GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
                 TRAINEE_USERNAME, LocalDate.of(2026, 12, 31),
@@ -423,14 +418,14 @@ class TrainerControllerIT {
         );
         mockMvc.perform(post("/api/v1/trainers/trainings/search")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.invalidFields").isNotEmpty());
     }
 
     @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void getTrainerTrainings_Return400_TraineeNameIsTooLong() throws Exception {
         String traineeName = "A".repeat(51);
         GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
@@ -439,8 +434,7 @@ class TrainerControllerIT {
         );
         mockMvc.perform(post("/api/v1/trainers/trainings/search")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(request))
-                        .requestAttr("userCredentials", CREDENTIALS))
+                        .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.title").value("Bad Request"))
                 .andExpect(jsonPath("$.invalidFields").isNotEmpty());
