@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
@@ -36,6 +37,9 @@ public class UserServiceTest {
     @Mock
     private OwnershipVerifier ownershipVerifier;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     @InjectMocks
     private UserService userService;
 
@@ -50,11 +54,14 @@ public class UserServiceTest {
         existingUser.setUsername(USERNAME);
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
+        when(passwordEncoder.matches(PASSWORD, PASSWORD)).thenReturn(true);
 
         userService.changePassword(userId, request, USER_DETAILS);
 
         verify(ownershipVerifier, times(1)).verifyOwnershipByUsername(USERNAME, USER_DETAILS.getUsername());
         verify(userRepository, times(1)).findById(userId);
+        verify(passwordEncoder, times(1)).matches(PASSWORD, PASSWORD);
+        verify(passwordEncoder, times(1)).encode(newPassword);
         verify(userRepository, times(1)).save(existingUser);
     }
 

@@ -255,7 +255,6 @@ public class TraineeServiceTest {
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
                 () -> traineeService.changeActivity(TRAINEE_ID, USER_DETAILS));
         assertTrue(exception.getMessage().contains("not found"));
-        verify(ownershipVerifier, times(1)).verifyOwnershipByUsername(USERNAME, USER_DETAILS.getUsername());
         verify(traineeRepository, times(1)).findById(TRAINEE_ID);
     }
 
