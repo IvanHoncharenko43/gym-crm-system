@@ -3,6 +3,7 @@ package org.example.security.service;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.authentication.event.AuthenticationFailureBadCredentialsEvent;
 import org.springframework.security.authentication.event.AuthenticationSuccessEvent;
 import org.springframework.stereotype.Service;
@@ -69,6 +70,8 @@ public class BruteForceProtectionService {
 
     @EventListener
     public void onSuccess(AuthenticationSuccessEvent event) {
-        reset(event.getAuthentication().getName());
+        if (event.getAuthentication() instanceof UsernamePasswordAuthenticationToken) {
+            reset(event.getAuthentication().getName());
+        }
     }
 }

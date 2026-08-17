@@ -3,15 +3,9 @@ package org.example.trainer.service;
 import lombok.RequiredArgsConstructor;
 import org.example.monitoring.GymCrmMetrics;
 import org.example.exception.InvalidRequestDataException;
-import org.example.security.controller.dto.LoginDetails;
-import org.example.security.service.JwtService;
-import org.example.trainer.controller.response.TrainerRegistrationResponse;
 import org.example.trainer.controller.response.Trainers;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.example.security.service.OwnershipVerifier;
 import org.example.exception.EntityNotFoundException;
 import org.example.trainingType.repository.TrainingTypeEntity;
 import org.example.trainingType.repository.TrainingTypeRepository;
@@ -35,13 +29,10 @@ public class TrainerService {
     private final TrainingTypeRepository trainingTypeRepository;
     private final UserRepository userRepository;
     private final GymMapper gymMapper;
-    private final OwnershipVerifier ownershipVerifier;
     private final GymCrmMetrics gymCrmMetrics;
-    private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
 
     @Transactional
-    public TrainerRegistrationResponse create(CreateTrainerRequest request) {
+    public TrainerSummary create(CreateTrainerRequest request) {
         TrainingTypeEntity trainingType = trainingTypeRepository.findByTrainingTypeName(request.specialization())
                 .orElseThrow(() -> {
                     String message = String.format("Training type %s not found", request.specialization().name());
@@ -52,11 +43,9 @@ public class TrainerService {
         Set<String> existingUsernames = new HashSet<>(userRepository.findUsernamesByBaseNameForUpdate(baseName));
         TrainerEntity trainer = gymMapper.toTrainerEntity(request, trainingType, existingUsernames);
         TrainerEntity savedTrainer = trainerRepository.save(trainer);
-        UserDetails userDetails = userDetailsService.loadUserByUsername(savedTrainer.getUser().getUsername());
-        String token = jwtService.generateToken(userDetails);
         log.info("Created trainer profile with ID: {}", savedTrainer.getId());
         gymCrmMetrics.incrementTrainerCreation();
-        return new TrainerRegistrationResponse(gymMapper.toTrainerSummary(savedTrainer), new LoginDetails(token));
+        return gymMapper.toTrainerSummary(savedTrainer);
     }
 
     @Transactional(readOnly = true)
@@ -84,14 +73,13 @@ public class TrainerService {
     }
 
     @Transactional
-    public TrainerSummary update(Long id, UpdateTrainerRequest request, UserDetails userDetails) {
+    public TrainerSummary update(Long id, UpdateTrainerRequest request) {
         TrainerEntity existingTrainer = trainerRepository.findById(id)
                 .orElseThrow(() -> {
                     String message = String.format("Trainer with ID %s not found", id);
                     log.warn(message);
                     return new EntityNotFoundException(message);
                 });
-        ownershipVerifier.verifyOwnershipByUsername(existingTrainer.getUser().getUsername(), userDetails.getUsername());
         TrainingTypeEntity trainingType = trainingTypeRepository.findByTrainingTypeName(request.specialization())
                 .orElseThrow(() -> {
                     String message = String.format("Training type %s not found", request.specialization().name());
@@ -105,14 +93,13 @@ public class TrainerService {
     }
 
     @Transactional
-    public void changeActivity(Long id, UserDetails userDetails){
+    public void changeActivity(Long id){
         TrainerEntity trainer = trainerRepository.findById(id)
                 .orElseThrow(() -> {
                     String message = String.format("Trainer with ID %s not found", id);
                     log.warn(message);
                     return new EntityNotFoundException(message);
                 });
-        ownershipVerifier.verifyOwnershipByUsername(trainer.getUser().getUsername(), userDetails.getUsername());
         trainer.getUser().setIsActive(!trainer.getUser().getIsActive());
         trainerRepository.save(trainer);
         log.info("Activity status changed for a trainer with ID: {}", id);

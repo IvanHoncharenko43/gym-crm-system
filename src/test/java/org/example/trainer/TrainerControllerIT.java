@@ -2,14 +2,13 @@ package org.example.trainer;
 
 import org.example.config.SecurityConfig;
 import org.example.exception.EntityNotFoundException;
-import org.example.security.controller.dto.LoginDetails;
 import org.example.security.service.JwtService;
+import org.example.security.service.OwnershipVerifier;
 import org.example.security.service.TokenBlackListService;
 import org.example.trainer.controller.TrainerController;
 import org.example.trainer.controller.request.CreateTrainerRequest;
 import org.example.trainer.controller.request.GetTrainerTrainingsRequest;
 import org.example.trainer.controller.request.UpdateTrainerRequest;
-import org.example.trainer.controller.response.TrainerRegistrationResponse;
 import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.response.Trainers;
 import org.example.trainer.service.TrainerService;
@@ -60,6 +59,9 @@ class TrainerControllerIT {
     private TrainingService trainingService;
 
     @MockitoBean
+    private OwnershipVerifier ownershipVerifier;
+
+    @MockitoBean
     private JwtService jwtService;
 
     @MockitoBean
@@ -73,7 +75,7 @@ class TrainerControllerIT {
         CreateTrainerRequest request = new CreateTrainerRequest(
                 new FullName("John", "Doe"), TrainingType.YOGA
         );
-        TrainerRegistrationResponse expectedTrainer = new TrainerRegistrationResponse(getTrainerSummary(), new LoginDetails("token"));
+        TrainerSummary expectedTrainer = getTrainerSummary();
         when(trainerService.create(request)).thenReturn(expectedTrainer);
 
         MvcResult result = mockMvc.perform(post("/api/v1/trainers")
@@ -82,11 +84,10 @@ class TrainerControllerIT {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        TrainerRegistrationResponse response = jsonMapper.readValue(result.getResponse().getContentAsString(), TrainerRegistrationResponse.class);
-        assertThat(response.trainerSummary().id()).isEqualTo(expectedTrainer.trainerSummary().id());
-        assertThat(response.trainerSummary().profile().username()).isEqualTo(expectedTrainer.trainerSummary().profile().username());
-        assertThat(response.trainerSummary().specialization()).isEqualTo(expectedTrainer.trainerSummary().specialization());
-        assertThat(response.loginDetails().token()).isEqualTo(expectedTrainer.loginDetails().token());
+        TrainerSummary response = jsonMapper.readValue(result.getResponse().getContentAsString(), TrainerSummary.class);
+        assertThat(response.id()).isEqualTo(expectedTrainer.id());
+        assertThat(response.profile().username()).isEqualTo(expectedTrainer.profile().username());
+        assertThat(response.specialization()).isEqualTo(expectedTrainer.specialization());
         verify(trainerService, times(1)).create(request);
     }
 
@@ -147,7 +148,7 @@ class TrainerControllerIT {
     }
 
     @Test
-    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD)
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = {"TRAINER"})
     void getTrainer_Return200AndTrainerSummary_IdIsValid() throws Exception {
         TrainerSummary expectedTrainer = getTrainerSummary();
         when(trainerService.getById(TRAINER_ID)).thenReturn(expectedTrainer);
@@ -160,6 +161,7 @@ class TrainerControllerIT {
         assertThat(response.id()).isEqualTo(expectedTrainer.id());
         assertThat(response.profile().username()).isEqualTo(expectedTrainer.profile().username());
         assertThat(response.specialization()).isEqualTo(expectedTrainer.specialization());
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINER_ID, USER_DETAILS, OwnershipVerifier.ResourceType.TRAINER);
         verify(trainerService, times(1)).getById(TRAINER_ID);
     }
 
@@ -169,19 +171,21 @@ class TrainerControllerIT {
         mockMvc.perform(get("/api/v1/trainers/{id}", TRAINER_ID))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.title").value("Authentication Failure"))
-                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+                .andExpect(jsonPath("$.detail").value("Authentication token is missing"));
     }
 
     @Test
-    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD)
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = {"TRAINER"})
     void getTrainer_Return404AndProblemDetail_TrainerNotFound() throws Exception {
-        when(trainerService.getById(99L))
+        Long id = 99L;
+        when(trainerService.getById(id))
                 .thenThrow(new EntityNotFoundException("Trainer not found"));
 
-        mockMvc.perform(get("/api/v1/trainers/{id}", 99L))
+        mockMvc.perform(get("/api/v1/trainers/{id}", id))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Entity Not Found"));
-        verify(trainerService, times(1)).getById(99L);
+        verify(ownershipVerifier, times(1)).verifyOwnership(id, USER_DETAILS, OwnershipVerifier.ResourceType.TRAINER);
+        verify(trainerService, times(1)).getById(id);
     }
 
     @Test
@@ -190,7 +194,7 @@ class TrainerControllerIT {
         UpdateTrainerRequest request = new UpdateTrainerRequest(
                 new FullName("John", "Doe"), TrainingType.YOGA);
         TrainerSummary expectedTrainer = getTrainerSummary();
-        when(trainerService.update(TRAINER_ID, request, USER_DETAILS)).thenReturn(expectedTrainer);
+        when(trainerService.update(TRAINER_ID, request)).thenReturn(expectedTrainer);
 
         MvcResult result = mockMvc.perform(put("/api/v1/trainers/{id}", TRAINER_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -202,7 +206,8 @@ class TrainerControllerIT {
         assertThat(response.id()).isEqualTo(expectedTrainer.id());
         assertThat(response.profile().username()).isEqualTo(expectedTrainer.profile().username());
         assertThat(response.specialization()).isEqualTo(expectedTrainer.specialization());
-        verify(trainerService, times(1)).update(TRAINER_ID, request, USER_DETAILS);
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINER_ID, USER_DETAILS, OwnershipVerifier.ResourceType.TRAINER);
+        verify(trainerService, times(1)).update(TRAINER_ID, request);
     }
 
     @Test
@@ -276,11 +281,11 @@ class TrainerControllerIT {
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.title").value("Authentication Failure"))
-                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+                .andExpect(jsonPath("$.detail").value("Authentication token is missing"));
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD, roles = {"TRAINEE"})
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
     void updateTrainer_Return403AndProblemDetail_UserRoleIsInvalid() throws Exception {
         UpdateTrainerRequest request = new UpdateTrainerRequest(
                 new FullName("John", "Doe"), TrainingType.YOGA);
@@ -290,29 +295,29 @@ class TrainerControllerIT {
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.title").value("Authorization Failure"))
-                .andExpect(jsonPath("$.detail").value("Authorization failed during accessing the resource"));
-        verify(trainerService, never()).update(anyLong(), any(), any());
+                .andExpect(jsonPath("$.detail").value("Not enough rights to access the resource"));
+        verify(trainerService, never()).update(anyLong(), any());
     }
 
     @Test
     @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void updateTrainer_Return404AndProblemDetail_TrainerNotFound() throws Exception {
-        Long id = 99L;
         UpdateTrainerRequest request = new UpdateTrainerRequest(
                 new FullName("John", "Doe"), TrainingType.YOGA);
-        when(trainerService.update(id, request, USER_DETAILS))
+        when(trainerService.update(TRAINER_ID, request))
                 .thenThrow(new EntityNotFoundException("Trainer not found"));
 
-        mockMvc.perform(put("/api/v1/trainers/{id}", id)
+        mockMvc.perform(put("/api/v1/trainers/{id}", TRAINER_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Entity Not Found"));
-        verify(trainerService, times(1)).update(id, request, USER_DETAILS);
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINER_ID, USER_DETAILS, OwnershipVerifier.ResourceType.TRAINER);
+        verify(trainerService, times(1)).update(TRAINER_ID, request);
     }
 
     @Test
-    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD)
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD, roles = {"TRAINEE"})
     void getNotAssignedTrainers_Return200AndTrainers_RequestIsValid() throws Exception {
         Trainers trainers = new Trainers(List.of(getTrainerSummary()));
         when(trainerService.getUnassignedTrainersByTraineeList(TRAINEE_USERNAME))
@@ -326,11 +331,12 @@ class TrainerControllerIT {
         Trainers response = jsonMapper.readValue(result.getResponse().getContentAsString(), Trainers.class);
         assertThat(response.trainers()).hasSize(1);
         assertThat(response.trainers().get(0).profile().username()).isEqualTo(TRAINER_USERNAME);
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINEE_USERNAME, getTraineeUserDetails());
         verify(trainerService, times(1)).getUnassignedTrainersByTraineeList(TRAINEE_USERNAME);
     }
 
     @Test
-    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD)
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = {"TRAINEE"})
     void getNotAssignedTrainers_Return400AndProblemDetail_TraineeUsernameIsBlank() throws Exception {
         mockMvc.perform(get("/api/v1/trainers/not-assigned")
                         .param("trainee-username", "  "))
@@ -346,7 +352,7 @@ class TrainerControllerIT {
                         .param("trainee-username", TRAINEE_USERNAME))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.title").value("Authentication Failure"))
-                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+                .andExpect(jsonPath("$.detail").value("Authentication token is missing"));
     }
 
     @Test
@@ -354,7 +360,8 @@ class TrainerControllerIT {
     void changeTrainerActivity_Return200_RequestIsValid() throws Exception {
         mockMvc.perform(patch("/api/v1/trainers/{id}/profile/active-status/change", TRAINER_ID))
                 .andExpect(status().isOk());
-        verify(trainerService, times(1)).changeActivity(TRAINER_ID, USER_DETAILS);
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINER_ID, USER_DETAILS, OwnershipVerifier.ResourceType.TRAINER);
+        verify(trainerService, times(1)).changeActivity(TRAINER_ID);
     }
 
     @Test
@@ -363,7 +370,7 @@ class TrainerControllerIT {
         mockMvc.perform(patch("/api/v1/trainers/{id}/profile/active-status/change", TRAINER_ID))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.title").value("Authentication Failure"))
-                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+                .andExpect(jsonPath("$.detail").value("Authentication token is missing"));
     }
 
     @Test
@@ -372,25 +379,25 @@ class TrainerControllerIT {
         mockMvc.perform(patch("/api/v1/trainers/{id}/profile/active-status/change", TRAINER_ID))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.title").value("Authorization Failure"))
-                .andExpect(jsonPath("$.detail").value("Authorization failed during accessing the resource"));
-        verify(trainerService, never()).changeActivity(anyLong(), any());
+                .andExpect(jsonPath("$.detail").value("Not enough rights to access the resource"));
+        verify(trainerService, never()).changeActivity(anyLong());
     }
 
     @Test
     @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD , roles = {"TRAINER"})
     void changeTrainerActivity_Return404AndProblemDetail_TraineeNotFound() throws Exception {
-        Long id = 99L;
         doThrow(new EntityNotFoundException("Trainer not found"))
-                .when(trainerService).changeActivity(id, USER_DETAILS);
+                .when(trainerService).changeActivity(TRAINER_ID);
 
-        mockMvc.perform(patch("/api/v1/trainers/{id}/profile/active-status/change", id))
+        mockMvc.perform(patch("/api/v1/trainers/{id}/profile/active-status/change", TRAINER_ID))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Entity Not Found"));
-        verify(trainerService, times(1)).changeActivity(id, USER_DETAILS);
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINER_ID, USER_DETAILS, OwnershipVerifier.ResourceType.TRAINER);
+        verify(trainerService, times(1)).changeActivity(TRAINER_ID);
     }
 
     @Test
-    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD)
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = {"TRAINER"})
     void getTrainerTrainings_Return200AndTrainings_AllParametersProvidedAndValid() throws Exception {
         GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
                 TRAINER_USERNAME, LocalDate.of(2026, 1, 1),
@@ -408,14 +415,15 @@ class TrainerControllerIT {
         Trainings response = jsonMapper.readValue(result.getResponse().getContentAsString(), Trainings.class);
         assertThat(response.trainings()).hasSize(1);
         assertThat(response.trainings().get(0).trainingName()).isEqualTo("Morning Cardio");
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINER_USERNAME, USER_DETAILS);
         verify(trainingService, times(1)).getTrainerTrainingList(request);
     }
 
     @Test
-    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD)
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = {"TRAINER"})
     void getTrainerTrainings_Return200AndTrainings_OnlyRequiredParametersProvidedAndValid() throws Exception {
         GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
-                TRAINEE_USERNAME, null, null, null
+                TRAINER_USERNAME, null, null, null
         );
         Trainings trainings = new Trainings(List.of(getTrainingSummary()));
         when(trainingService.getTrainerTrainingList(request)).thenReturn(trainings);
@@ -426,14 +434,15 @@ class TrainerControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trainings").isArray())
                 .andExpect(jsonPath("$.trainings[0].trainingName").value("Morning Cardio"));
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINER_USERNAME, USER_DETAILS);
         verify(trainingService, times(1)).getTrainerTrainingList(request);
     }
 
     @Test
-    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD)
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = {"TRAINER"})
     void getTrainerTrainings_Return200AndTrainings_ToDateAbsent() throws Exception {
         GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
-                TRAINEE_USERNAME, LocalDate.of(2026, 1, 1), null, null
+                TRAINER_USERNAME, LocalDate.of(2026, 1, 1), null, null
         );
         Trainings trainings = new Trainings(List.of(getTrainingSummary()));
         when(trainingService.getTrainerTrainingList(request)).thenReturn(trainings);
@@ -444,14 +453,15 @@ class TrainerControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trainings").isArray())
                 .andExpect(jsonPath("$.trainings[0].trainingName").value("Morning Cardio"));
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINER_USERNAME, USER_DETAILS);
         verify(trainingService, times(1)).getTrainerTrainingList(request);
     }
 
     @Test
-    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD)
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = {"TRAINER"})
     void getTrainerTrainings_Return200AndTrainings_FromDateAbsent() throws Exception {
         GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
-                TRAINEE_USERNAME, null, LocalDate.of(2026, 12, 1), null
+                TRAINER_USERNAME, null, LocalDate.of(2026, 12, 1), null
         );
         Trainings trainings = new Trainings(List.of(getTrainingSummary()));
         when(trainingService.getTrainerTrainingList(request)).thenReturn(trainings);
@@ -462,11 +472,12 @@ class TrainerControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trainings").isArray())
                 .andExpect(jsonPath("$.trainings[0].trainingName").value("Morning Cardio"));
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINER_USERNAME, USER_DETAILS);
         verify(trainingService, times(1)).getTrainerTrainingList(request);
     }
 
     @Test
-    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD)
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = "TRAINER")
     void getTrainerTrainings_Return400AndProblemDetail_UsernameIsBlank() throws Exception {
         GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
                 "  ", LocalDate.of(2026, 1, 1),
@@ -481,7 +492,7 @@ class TrainerControllerIT {
     }
 
     @Test
-    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD)
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = "TRAINER")
     void getTrainerTrainings_Return400AndProblemDetail_FromDateAfterToDate() throws Exception {
         GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
                 TRAINEE_USERNAME, LocalDate.of(2026, 12, 31),
@@ -496,7 +507,7 @@ class TrainerControllerIT {
     }
 
     @Test
-    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD)
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = "TRAINER")
     void getTrainerTrainings_Return400AndProblemDetail_TraineeNameIsTooLong() throws Exception {
         String traineeName = "A".repeat(51);
         GetTrainerTrainingsRequest request = new GetTrainerTrainingsRequest(
@@ -523,6 +534,6 @@ class TrainerControllerIT {
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.title").value("Authentication Failure"))
-                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+                .andExpect(jsonPath("$.detail").value("Authentication token is missing"));
     }
 }

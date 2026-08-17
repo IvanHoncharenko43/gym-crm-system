@@ -2,6 +2,7 @@ package org.example.security;
 
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import org.example.config.SecurityConfig;
+import org.example.exception.TooManyLoginAttemptsException;
 import org.example.security.controller.AuthController;
 import org.example.security.controller.dto.LoginDetails;
 import org.example.security.controller.dto.LoginRequest;
@@ -107,7 +108,7 @@ class AuthControllerIT {
     }
 
     @Test
-    void login_Return401AndProblemDetail_CredentialsAreInvalid() {
+    void login_Return400AndProblemDetail_CredentialsAreInvalid() {
         LoginRequest request = getLoginRequest();
         when(authService.login(request)).thenThrow(new BadCredentialsException("Bad credentials"));
 
@@ -117,15 +118,15 @@ class AuthControllerIT {
                 .when()
                 .post("/api/v1/auth/login")
                 .then()
-                .status(HttpStatus.UNAUTHORIZED)
+                .status(HttpStatus.BAD_REQUEST)
                 .body("title", equalTo("Authentication Failure"))
                 .body("detail", equalTo("Invalid username or password"));
     }
 
     @Test
-    void login_Return401AndProblemDetail_AccountIsLocked() {
+    void login_Return429AndProblemDetail_AccountIsLocked() {
         LoginRequest request = getLoginRequest();
-        when(authService.login(request)).thenThrow(new LockedException("Account locked"));
+        when(authService.login(request)).thenThrow(new TooManyLoginAttemptsException("Account is temporarily locked due to too many failed login attempts"));
 
         given()
                 .contentType(MediaType.APPLICATION_JSON)
@@ -133,7 +134,7 @@ class AuthControllerIT {
                 .when()
                 .post("/api/v1/auth/login")
                 .then()
-                .status(HttpStatus.UNAUTHORIZED)
+                .status(HttpStatus.TOO_MANY_REQUESTS)
                 .body("title", equalTo("Authentication Failure"))
                 .body("detail", equalTo("Account is temporarily locked due to too many failed login attempts"));
     }
@@ -179,7 +180,7 @@ class AuthControllerIT {
                 .then()
                 .status(HttpStatus.UNAUTHORIZED)
                 .body("title", equalTo("Authentication Failure"))
-                .body("detail", equalTo("Authentication failed during accessing the resource"));
+                .body("detail", equalTo("Authentication token is missing"));
         verify(authService, never()).logout(any());
     }
 }

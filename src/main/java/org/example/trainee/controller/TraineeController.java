@@ -9,10 +9,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.security.service.OwnershipVerifier;
 import org.example.trainee.controller.request.CreateTraineeRequest;
 import org.example.trainee.controller.request.GetTraineeTrainingsRequest;
-import org.example.trainee.controller.response.TraineeRegistrationResponse;
 import org.example.trainee.controller.response.TraineeSummary;
 import org.example.trainee.controller.request.UpdateTraineeRequest;
 import org.example.trainee.controller.request.UpdateTraineeTrainersRequest;
@@ -46,22 +47,21 @@ import org.springframework.web.bind.annotation.ResponseStatus;
                 implementation = ProblemDetail.class))),
 })
 @RestController
-@RequestMapping("/api/v1/trainees")
+@RequestMapping(TraineeController.BASE_PATH)
+@RequiredArgsConstructor
 public class TraineeController {
+
+    public static final String BASE_PATH = "/api/v1/trainees";
 
     private final TraineeService traineeService;
     private final TrainingService trainingService;
-
-    public TraineeController(TraineeService traineeService, TrainingService trainingService){
-        this.traineeService = traineeService;
-        this.trainingService = trainingService;
-    }
+    private final OwnershipVerifier ownershipVerifier;
 
     @Operation(summary = "Register a new trainee", description = "Creates a new trainee profile and returns their summary")
     @ApiResponse(responseCode = "201", description = "Registered the trainee")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TraineeRegistrationResponse registerTrainee(
+    public TraineeSummary registerTrainee(
             @Valid @RequestBody CreateTraineeRequest request){
         log.info("POST /api/v1/trainees endpoint called with request");
         return traineeService.create(request);
@@ -72,15 +72,22 @@ public class TraineeController {
             @ApiResponse(responseCode = "200", description = "Retrieved a new trainee"),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Trainee Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TRAINEE', 'ADMIN')")
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public TraineeSummary getTrainee(
             @Parameter(in = ParameterIn.PATH, description = "Trainee ID", example = "12")
-            @PathVariable Long id){
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails){
         log.info("GET /api/v1/trainees/{id} endpoint called");
+        ownershipVerifier.verifyOwnership(id, userDetails, OwnershipVerifier.ResourceType.TRAINEE);
         return traineeService.getById(id);
     }
 
@@ -92,9 +99,11 @@ public class TraineeController {
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Trainee Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
-    @PreAuthorize("hasRole('TRAINEE')")
+    @PreAuthorize("hasAnyRole('TRAINEE', 'ADMIN')")
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public TraineeSummary updateTrainee(
@@ -104,7 +113,8 @@ public class TraineeController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal UserDetails userDetails){
         log.info("PUT /api/v1/trainees/{id} endpoint called with request");
-        return traineeService.update(id, request, userDetails);
+        ownershipVerifier.verifyOwnership(id, userDetails, OwnershipVerifier.ResourceType.TRAINEE);
+        return traineeService.update(id, request);
     }
 
     @Operation(summary = "Delete trainee", description = "Deletes a trainee's profile")
@@ -113,9 +123,11 @@ public class TraineeController {
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
-    @PreAuthorize("hasRole('TRAINEE')")
+    @PreAuthorize("hasAnyRole('TRAINEE', 'ADMIN')")
     @DeleteMapping(params = "username")
     @ResponseStatus(HttpStatus.OK)
     public void deleteTrainee(
@@ -124,7 +136,8 @@ public class TraineeController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal UserDetails userDetails){
         log.info("DELETE /api/v1/trainees endpoint called");
-        traineeService.deleteByUsername(username, userDetails);
+        ownershipVerifier.verifyOwnership(username, userDetails);
+        traineeService.deleteByUsername(username);
     }
 
     @Operation(summary = "Update trainee's trainers", description = "Updates a trainee's trainers list")
@@ -135,9 +148,11 @@ public class TraineeController {
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Trainee Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
-    @PreAuthorize("hasRole('TRAINEE')")
+    @PreAuthorize("hasAnyRole('TRAINEE', 'ADMIN')")
     @PutMapping(value = "/{id}/trainers-update")
     @ResponseStatus(HttpStatus.OK)
     public Trainers updateTrainersList(
@@ -147,7 +162,8 @@ public class TraineeController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal UserDetails userDetails){
         log.info("PUT /api/v1/trainees/{id}/trainers-update endpoint called with request");
-        return traineeService.updateTrainersList(id, request, userDetails);
+        ownershipVerifier.verifyOwnership(id, userDetails, OwnershipVerifier.ResourceType.TRAINEE);
+        return traineeService.updateTrainersList(id, request);
     }
 
     @Operation(summary = "Change trainee activity", description = "Changes a trainee's activity status")
@@ -158,9 +174,11 @@ public class TraineeController {
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Trainee Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
-    @PreAuthorize("hasRole('TRAINEE')")
+    @PreAuthorize("hasAnyRole('TRAINEE', 'ADMIN')")
     @PatchMapping(value = "/{id}/profile/active-status/change")
     @ResponseStatus(HttpStatus.OK)
     public void changeTraineeActivity(
@@ -169,21 +187,29 @@ public class TraineeController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal UserDetails userDetails){
         log.info("PATCH /api/v1/trainees/{id}/profile/active-status/change endpoint called");
-        traineeService.changeActivity(id, userDetails);
+        ownershipVerifier.verifyOwnership(id, userDetails, OwnershipVerifier.ResourceType.TRAINEE);
+        traineeService.changeActivity(id);
     }
 
     @Operation(summary = "Get trainee's trainings", description = "Returns an existing trainee's trainings list")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Retrieved trainee's trainings"),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TRAINEE', 'ADMIN')")
     @PostMapping(value = "/trainings/search")
     @ResponseStatus(HttpStatus.OK)
     public Trainings getTraineeTrainingList(
-            @Valid @RequestBody GetTraineeTrainingsRequest request
+            @Valid @RequestBody GetTraineeTrainingsRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
     ){
         log.info("GET /api/v1/trainees/trainings/search endpoint called with request params");
+        ownershipVerifier.verifyOwnership(request.username(), userDetails);
         return trainingService.getTraineeTrainingList(request);
     }
 }

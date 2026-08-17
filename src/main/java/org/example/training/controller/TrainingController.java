@@ -7,7 +7,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.security.service.OwnershipVerifier;
 import org.example.training.controller.request.CreateTrainingRequest;
 import org.example.training.controller.response.TrainingSummary;
 import org.example.trainingType.dto.TrainingTypes;
@@ -15,6 +17,9 @@ import org.example.training.service.TrainingService;
 import org.example.trainingType.service.TrainingTypeService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -28,31 +33,38 @@ import org.springframework.web.bind.annotation.RequestBody;
         @ApiResponse(responseCode = "400", description = "Invalid Request", content = @Content(schema = @Schema(
                 implementation = ProblemDetail.class))),
         @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
+                implementation = ProblemDetail.class))),
+        @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                implementation = ProblemDetail.class))),
+        @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                 implementation = ProblemDetail.class)))
 })
 @RestController
-@RequestMapping("/api/v1/trainings")
+@RequestMapping(TrainingController.BASE_PATH)
+@RequiredArgsConstructor
 public class TrainingController {
+
+    public static final String BASE_PATH = "/api/v1/trainings";
 
     private final TrainingService trainingService;
     private final TrainingTypeService trainingTypeService;
-
-    public TrainingController(TrainingService trainingService, TrainingTypeService trainingTypeService){
-        this.trainingService = trainingService;
-        this.trainingTypeService = trainingTypeService;
-    }
+    private final OwnershipVerifier ownershipVerifier;
 
     @Operation(summary = "Add a new training", description = "Creates a new training and returns its summary")
     @ApiResponse(responseCode = "200", description = "Added a new training")
+    @PreAuthorize("hasAnyRole('TRAINER', 'ADMIN')")
     @PostMapping
     @ResponseStatus(HttpStatus.OK)
-    public TrainingSummary addTraining(@Valid @RequestBody CreateTrainingRequest request){
+    public TrainingSummary addTraining(@Valid @RequestBody CreateTrainingRequest request,
+                                       @AuthenticationPrincipal UserDetails userDetails){
         log.info("POST /api/v1/trainings endpoint called");
+        ownershipVerifier.verifyOwnership(request.trainerUsername(), userDetails);
         return trainingService.create(request);
     }
 
     @Operation(summary = "Get training types", description = "Returns a list of all training types")
     @ApiResponse(responseCode = "200", description = "Retrieved all training types")
+    @PreAuthorize("isAuthenticated()")
     @GetMapping("/training-types")
     @ResponseStatus(HttpStatus.OK)
     public TrainingTypes getTrainingTypes(){

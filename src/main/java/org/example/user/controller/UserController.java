@@ -9,11 +9,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.core.dto.ChangePasswordRequest;
+import org.example.security.service.OwnershipVerifier;
 import org.example.user.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.RestController;
@@ -28,21 +31,26 @@ import org.springframework.web.bind.annotation.RequestBody;
 @ApiResponses(value = {
         @ApiResponse(responseCode = "400", description = "Invalid Request", content = @Content(schema = @Schema(
                 implementation = ProblemDetail.class))),
+        @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
+                implementation = ProblemDetail.class))),
         @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                implementation = ProblemDetail.class))),
+        @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                 implementation = ProblemDetail.class)))
 })
 @RestController
-@RequestMapping("/api/v1/users")
+@RequestMapping(UserController.BASE_PATH)
+@RequiredArgsConstructor
 public class UserController {
 
-    private final UserService userService;
+    public static final String BASE_PATH = "/api/v1/users";
 
-    public UserController(UserService userService){
-        this.userService = userService;
-    }
+    private final UserService userService;
+    private final OwnershipVerifier ownershipVerifier;
 
     @Operation(summary = "Change a user's password", description = "Changes a specified user's password")
     @ApiResponse(responseCode = "200", description = "Changed password of the user")
+    @PreAuthorize("hasAnyRole('TRAINEE', 'TRAINER', 'ADMIN')")
     @PutMapping("/{id}/profile/password-change")
     @ResponseStatus(HttpStatus.OK)
     public void changePassword(
@@ -52,6 +60,7 @@ public class UserController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal UserDetails userDetails){
         log.info("PUT /api/v1/users/change-password endpoint called");
-        userService.changePassword(id, request, userDetails);
+        ownershipVerifier.verifyOwnership(id, userDetails, OwnershipVerifier.ResourceType.USER);
+        userService.changePassword(id, request);
     }
 }

@@ -2,15 +2,14 @@ package org.example.trainee;
 
 import org.example.config.SecurityConfig;
 import org.example.exception.EntityNotFoundException;
-import org.example.security.controller.dto.LoginDetails;
 import org.example.security.service.JwtService;
+import org.example.security.service.OwnershipVerifier;
 import org.example.security.service.TokenBlackListService;
 import org.example.trainee.controller.TraineeController;
 import org.example.trainee.controller.request.CreateTraineeRequest;
 import org.example.trainee.controller.request.GetTraineeTrainingsRequest;
 import org.example.trainee.controller.request.UpdateTraineeRequest;
 import org.example.trainee.controller.request.UpdateTraineeTrainersRequest;
-import org.example.trainee.controller.response.TraineeRegistrationResponse;
 import org.example.trainee.controller.response.TraineeSummary;
 import org.example.trainee.service.TraineeService;
 import org.example.trainer.controller.response.Trainers;
@@ -18,6 +17,7 @@ import org.example.training.controller.response.Trainings;
 import org.example.training.service.TrainingService;
 import org.example.trainingType.dto.TrainingType;
 import org.example.user.controller.dto.FullName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -58,6 +58,9 @@ class TraineeControllerIT {
     private TrainingService trainingService;
 
     @MockitoBean
+    private OwnershipVerifier ownershipVerifier;
+
+    @MockitoBean
     private JwtService jwtService;
 
     @MockitoBean
@@ -66,23 +69,28 @@ class TraineeControllerIT {
     @MockitoBean
     private TokenBlackListService tokenBlackListService;
 
+    @BeforeEach
+    void setUp(){
+        when(userDetailsService.loadUserByUsername(TRAINEE_USERNAME))
+                .thenReturn(USER_DETAILS);
+    }
+
     @Test
     void registerTrainee_Return201AndTraineeSummary_AllParametersProvidedAndValid() throws Exception {
         CreateTraineeRequest request = new CreateTraineeRequest(
                 new FullName("John", "Doe"), LocalDate.of(2007, 3, 5), "Home"
         );
-        TraineeRegistrationResponse expectedResponse = new TraineeRegistrationResponse(getTraineeSummary(), new LoginDetails("token"));
+        TraineeSummary expectedResponse = getTraineeSummary();
         when(traineeService.create(request)).thenReturn(expectedResponse);
 
         mockMvc.perform(post("/api/v1/trainees")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.traineeSummary.id").value(expectedResponse.traineeSummary().id()))
-                .andExpect(jsonPath("$.traineeSummary.profile.username").value(expectedResponse.traineeSummary().profile().username()))
-                .andExpect(jsonPath("$.traineeSummary.dateOfBirth").value(expectedResponse.traineeSummary().dateOfBirth().toString()))
-                .andExpect(jsonPath("$.traineeSummary.address").value(expectedResponse.traineeSummary().address()))
-                .andExpect(jsonPath("$.loginDetails.token").value(expectedResponse.loginDetails().token()));
+                .andExpect(jsonPath("$.id").value(expectedResponse.id()))
+                .andExpect(jsonPath("$.profile.username").value(expectedResponse.profile().username()))
+                .andExpect(jsonPath("$.dateOfBirth").value(expectedResponse.dateOfBirth().toString()))
+                .andExpect(jsonPath("$.address").value(expectedResponse.address()));
         verify(traineeService, times(1)).create(request);
     }
 
@@ -91,16 +99,15 @@ class TraineeControllerIT {
         CreateTraineeRequest request = new CreateTraineeRequest(
                 new FullName("John", "Doe"), null, null
         );
-        TraineeRegistrationResponse expectedResponse = new TraineeRegistrationResponse(getTraineeSummaryWithNoOptional(), new LoginDetails("token"));
+        TraineeSummary expectedResponse = getTraineeSummaryWithNoOptional();
         when(traineeService.create(request)).thenReturn(expectedResponse);
 
         mockMvc.perform(post("/api/v1/trainees")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.traineeSummary.id").value(expectedResponse.traineeSummary().id()))
-                .andExpect(jsonPath("$.traineeSummary.profile.username").value(expectedResponse.traineeSummary().profile().username()))
-                .andExpect(jsonPath("$.loginDetails.token").value(expectedResponse.loginDetails().token()));;
+                .andExpect(jsonPath("$.id").value(expectedResponse.id()))
+                .andExpect(jsonPath("$.profile.username").value(expectedResponse.profile().username()));
         verify(traineeService, times(1)).create(request);
     }
 
@@ -176,7 +183,7 @@ class TraineeControllerIT {
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD)
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD, roles = {"TRAINEE"})
     void getTrainee_Return200AndTraineeSummary_IdIsValid() throws Exception {
         TraineeSummary expectedResponse = getTraineeSummary();
         when(traineeService.getById(TRAINEE_ID)).thenReturn(expectedResponse);
@@ -187,6 +194,7 @@ class TraineeControllerIT {
                 .andExpect(jsonPath("$.profile.username").value(expectedResponse.profile().username()))
                 .andExpect(jsonPath("$.dateOfBirth").value(expectedResponse.dateOfBirth().toString()))
                 .andExpect(jsonPath("$.address").value(expectedResponse.address()));
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINEE_ID, USER_DETAILS, OwnershipVerifier.ResourceType.TRAINEE);
         verify(traineeService, times(1)).getById(TRAINEE_ID);
     }
 
@@ -196,11 +204,11 @@ class TraineeControllerIT {
         mockMvc.perform(get("/api/v1/trainees/{id}", TRAINEE_ID))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.title").value("Authentication Failure"))
-                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+                .andExpect(jsonPath("$.detail").value("Authentication token is missing"));
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD)
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD, roles = {"TRAINEE"})
     void getTrainee_Return404AndProblemDetail_TraineeNotFound() throws Exception {
         Long id = 99L;
         when(traineeService.getById(id))
@@ -210,6 +218,7 @@ class TraineeControllerIT {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Entity Not Found"))
                 .andExpect(jsonPath("$.detail").value("Trainee not found"));
+        verify(ownershipVerifier, times(1)).verifyOwnership(id, USER_DETAILS, OwnershipVerifier.ResourceType.TRAINEE);
         verify(traineeService, times(1)).getById(id);
     }
 
@@ -219,7 +228,7 @@ class TraineeControllerIT {
         UpdateTraineeRequest request = new UpdateTraineeRequest(
                 new FullName("John", "Doe"), LocalDate.of(2000, 1, 1), "Home");
         TraineeSummary expectedResponse = getTraineeSummary();
-        when(traineeService.update(TRAINEE_ID, request, USER_DETAILS)).thenReturn(expectedResponse);
+        when(traineeService.update(TRAINEE_ID, request)).thenReturn(expectedResponse);
 
         mockMvc.perform(put("/api/v1/trainees/{id}", TRAINEE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -229,7 +238,8 @@ class TraineeControllerIT {
                 .andExpect(jsonPath("$.profile.username").value(expectedResponse.profile().username()))
                 .andExpect(jsonPath("$.dateOfBirth").value(expectedResponse.dateOfBirth().toString()))
                 .andExpect(jsonPath("$.address").value(expectedResponse.address()));
-        verify(traineeService, times(1)).update(TRAINEE_ID, request, USER_DETAILS);
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINEE_ID, USER_DETAILS, OwnershipVerifier.ResourceType.TRAINEE);
+        verify(traineeService, times(1)).update(TRAINEE_ID, request);
     }
 
     @Test
@@ -238,7 +248,7 @@ class TraineeControllerIT {
         UpdateTraineeRequest request = new UpdateTraineeRequest(
                 new FullName("John", "Doe"), null, null);
         TraineeSummary expectedResponse = getTraineeSummaryWithNoOptional();
-        when(traineeService.update(TRAINEE_ID, request, USER_DETAILS))
+        when(traineeService.update(TRAINEE_ID, request))
                 .thenReturn(expectedResponse);
 
         mockMvc.perform(put("/api/v1/trainees/{id}", TRAINEE_ID)
@@ -247,7 +257,8 @@ class TraineeControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(expectedResponse.id()))
                 .andExpect(jsonPath("$.profile.username").value(expectedResponse.profile().username()));
-        verify(traineeService, times(1)).update(TRAINEE_ID, request, USER_DETAILS);
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINEE_ID, USER_DETAILS, OwnershipVerifier.ResourceType.TRAINEE);
+        verify(traineeService, times(1)).update(TRAINEE_ID, request);
     }
 
     @Test
@@ -336,7 +347,7 @@ class TraineeControllerIT {
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.title").value("Authentication Failure"))
-                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+                .andExpect(jsonPath("$.detail").value("Authentication token is missing"));
     }
 
     @Test
@@ -350,8 +361,8 @@ class TraineeControllerIT {
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.title").value("Authorization Failure"))
-                .andExpect(jsonPath("$.detail").value("Authorization failed during accessing the resource"));
-        verify(traineeService, never()).update(anyLong(), any(), any());
+                .andExpect(jsonPath("$.detail").value("Not enough rights to access the resource"));
+        verify(traineeService, never()).update(anyLong(), any());
     }
 
     @Test
@@ -360,7 +371,7 @@ class TraineeControllerIT {
         Long id = 99L;
         UpdateTraineeRequest request = new UpdateTraineeRequest(
                 new FullName("John", "Doe"), LocalDate.of(2000, 1, 1), "Home");
-        when(traineeService.update(id, request, USER_DETAILS))
+        when(traineeService.update(id, request))
                 .thenThrow(new EntityNotFoundException("Trainee not found"));
 
         mockMvc.perform(put("/api/v1/trainees/{id}", id)
@@ -368,7 +379,7 @@ class TraineeControllerIT {
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Entity Not Found"));
-        verify(traineeService, times(1)).update(id, request, USER_DETAILS);
+        verify(traineeService, times(1)).update(id, request);
     }
 
     @Test
@@ -377,7 +388,8 @@ class TraineeControllerIT {
         mockMvc.perform(delete("/api/v1/trainees")
                         .param("username", TRAINEE_USERNAME))
                 .andExpect(status().isOk());
-        verify(traineeService, times(1)).deleteByUsername(TRAINEE_USERNAME, USER_DETAILS);
+        verify(traineeService, times(1)).deleteByUsername(TRAINEE_USERNAME);
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINEE_USERNAME, USER_DETAILS);
     }
 
     @Test
@@ -387,7 +399,7 @@ class TraineeControllerIT {
                         .param("username", TRAINEE_USERNAME))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.title").value("Authentication Failure"))
-                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+                .andExpect(jsonPath("$.detail").value("Authentication token is missing"));
     }
 
     @Test
@@ -397,8 +409,8 @@ class TraineeControllerIT {
                         .param("username", TRAINEE_USERNAME))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.title").value("Authorization Failure"))
-                .andExpect(jsonPath("$.detail").value("Authorization failed during accessing the resource"));
-        verify(traineeService, never()).deleteByUsername(any(), any());
+                .andExpect(jsonPath("$.detail").value("Not enough rights to access the resource"));
+        verify(traineeService, never()).deleteByUsername(any());
     }
 
     @Test
@@ -406,7 +418,7 @@ class TraineeControllerIT {
     void updateTrainersList_Return200AndTrainers_RequestIsValid() throws Exception {
         Trainers trainers = new Trainers(List.of(getTrainerSummary()));
         UpdateTraineeTrainersRequest request = new UpdateTraineeTrainersRequest(List.of(TRAINER_USERNAME));
-        when(traineeService.updateTrainersList(TRAINEE_ID, request, USER_DETAILS)).thenReturn(trainers);
+        when(traineeService.updateTrainersList(TRAINEE_ID, request)).thenReturn(trainers);
 
         mockMvc.perform(put("/api/v1/trainees/{id}/trainers-update", TRAINEE_ID)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -414,7 +426,8 @@ class TraineeControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trainers").isArray())
                 .andExpect(jsonPath("$.trainers[0].profile.username").value(TRAINER_USERNAME));
-        verify(traineeService, times(1)).updateTrainersList(TRAINEE_ID, request, USER_DETAILS);
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINEE_ID, USER_DETAILS, OwnershipVerifier.ResourceType.TRAINEE);
+        verify(traineeService, times(1)).updateTrainersList(TRAINEE_ID, request);
     }
 
     @Test
@@ -454,7 +467,7 @@ class TraineeControllerIT {
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.title").value("Authentication Failure"))
-                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+                .andExpect(jsonPath("$.detail").value("Authentication token is missing"));
     }
 
     @Test
@@ -467,8 +480,8 @@ class TraineeControllerIT {
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.title").value("Authorization Failure"))
-                .andExpect(jsonPath("$.detail").value("Authorization failed during accessing the resource"));
-        verify(traineeService, never()).updateTrainersList(anyLong(), any(), any());
+                .andExpect(jsonPath("$.detail").value("Not enough rights to access the resource"));
+        verify(traineeService, never()).updateTrainersList(anyLong(), any());
     }
 
     @Test
@@ -476,7 +489,7 @@ class TraineeControllerIT {
     void updateTrainersList_Return404AndProblemDetail_TraineeNotFound() throws Exception {
         Long id = 99L;
         UpdateTraineeTrainersRequest request = new UpdateTraineeTrainersRequest(List.of(TRAINER_USERNAME));
-        when(traineeService.updateTrainersList(id, request, USER_DETAILS))
+        when(traineeService.updateTrainersList(id, request))
                 .thenThrow(new EntityNotFoundException("Trainee not found"));
 
         mockMvc.perform(put("/api/v1/trainees/{id}/trainers-update", id)
@@ -484,7 +497,7 @@ class TraineeControllerIT {
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Entity Not Found"));
-        verify(traineeService, times(1)).updateTrainersList(id, request, USER_DETAILS);
+        verify(traineeService, times(1)).updateTrainersList(id, request);
     }
 
     @Test
@@ -492,7 +505,8 @@ class TraineeControllerIT {
     void changeTraineeActivity_Return200_RequestIsValid() throws Exception {
         mockMvc.perform(patch("/api/v1/trainees/{id}/profile/active-status/change", TRAINEE_ID))
                 .andExpect(status().isOk());
-        verify(traineeService, times(1)).changeActivity(TRAINEE_ID, USER_DETAILS);
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINEE_ID, USER_DETAILS, OwnershipVerifier.ResourceType.TRAINEE);
+        verify(traineeService, times(1)).changeActivity(TRAINEE_ID);
     }
 
     @Test
@@ -501,7 +515,7 @@ class TraineeControllerIT {
         mockMvc.perform(patch("/api/v1/trainees/{id}/profile/active-status/change", TRAINER_ID))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.title").value("Authentication Failure"))
-                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+                .andExpect(jsonPath("$.detail").value("Authentication token is missing"));
     }
 
     @Test
@@ -510,8 +524,8 @@ class TraineeControllerIT {
         mockMvc.perform(patch("/api/v1/trainees/{id}/profile/active-status/change", TRAINER_ID))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.title").value("Authorization Failure"))
-                .andExpect(jsonPath("$.detail").value("Authorization failed during accessing the resource"));
-        verify(traineeService, never()).changeActivity(anyLong(), any());
+                .andExpect(jsonPath("$.detail").value("Not enough rights to access the resource"));
+        verify(traineeService, never()).changeActivity(anyLong());
     }
 
     @Test
@@ -519,16 +533,16 @@ class TraineeControllerIT {
     void changeTraineeActivity_Return404AndProblemDetail_TraineeNotFound() throws Exception {
         Long id = 99L;
         doThrow(new EntityNotFoundException("Trainee not found"))
-                .when(traineeService).changeActivity(id, USER_DETAILS);
+                .when(traineeService).changeActivity(id);
 
         mockMvc.perform(patch("/api/v1/trainees/{id}/profile/active-status/change", id))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Entity Not Found"));
-        verify(traineeService, times(1)).changeActivity(id, USER_DETAILS);
+        verify(traineeService, times(1)).changeActivity(id);
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD)
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD, roles = "TRAINEE")
     void getTraineeTrainings_Return200AndTrainings_AllParametersProvidedAndValid() throws Exception {
         GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
                 TRAINEE_USERNAME, LocalDate.of(2026, 1, 1),
@@ -543,11 +557,12 @@ class TraineeControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trainings").isArray())
                 .andExpect(jsonPath("$.trainings[0].trainingName").value("Morning Cardio"));
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINEE_USERNAME, USER_DETAILS);
         verify(trainingService, times(1)).getTraineeTrainingList(request);
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD)
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD, roles = "TRAINEE")
     void getTraineeTrainings_Return200AndTrainings_OnlyRequiredParametersProvidedAndValid() throws Exception {
         GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
                 TRAINEE_USERNAME, null, null, null, null
@@ -561,11 +576,12 @@ class TraineeControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trainings").isArray())
                 .andExpect(jsonPath("$.trainings[0].trainingName").value("Morning Cardio"));
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINEE_USERNAME, USER_DETAILS);
         verify(trainingService, times(1)).getTraineeTrainingList(request);
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD)
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD, roles = "TRAINEE")
     void getTraineeTrainings_Return200AndTrainings_ToDateAbsent() throws Exception {
         GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
                 TRAINEE_USERNAME, LocalDate.of(2026, 1, 1), null, null, null
@@ -579,11 +595,12 @@ class TraineeControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trainings").isArray())
                 .andExpect(jsonPath("$.trainings[0].trainingName").value("Morning Cardio"));
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINEE_USERNAME, USER_DETAILS);
         verify(trainingService, times(1)).getTraineeTrainingList(request);
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD)
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD, roles = "TRAINEE")
     void getTraineeTrainings_Return200AndTrainings_FromDateAbsent() throws Exception {
         GetTraineeTrainingsRequest request = new GetTraineeTrainingsRequest(
                 TRAINEE_USERNAME, null, LocalDate.of(2026, 12, 1), null, null
@@ -597,6 +614,7 @@ class TraineeControllerIT {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.trainings").isArray())
                 .andExpect(jsonPath("$.trainings[0].trainingName").value("Morning Cardio"));
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINEE_USERNAME, USER_DETAILS);
         verify(trainingService, times(1)).getTraineeTrainingList(request);
     }
 
@@ -658,6 +676,6 @@ class TraineeControllerIT {
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.title").value("Authentication Failure"))
-                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+                .andExpect(jsonPath("$.detail").value("Authentication token is missing"));
     }
 }

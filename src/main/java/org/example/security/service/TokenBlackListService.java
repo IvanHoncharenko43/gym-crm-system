@@ -1,6 +1,6 @@
 package org.example.security.service;
 
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -9,17 +9,16 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
-@RequiredArgsConstructor
 public class TokenBlackListService {
     private final static int HOUR = 3600000;
     private final Map<String, Instant> blackList = new ConcurrentHashMap<>();
-    private final JwtService jwtService;
+
+    @Value("${jwt.expiration}")
+    private long jwtExpirationMs;
 
     public void blackListToken(String token){
-        Instant expirationDate = jwtService.extractExpiration(token);
-        if(expirationDate.isAfter(Instant.now())){
-            blackList.put(token, expirationDate);
-        }
+        Instant cleanUpTime = Instant.now().plusMillis(jwtExpirationMs);
+        blackList.put(token, cleanUpTime);
     }
 
     public boolean isBlackListed(String token){

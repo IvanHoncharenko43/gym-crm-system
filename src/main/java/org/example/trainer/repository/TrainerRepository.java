@@ -28,5 +28,8 @@ public interface TrainerRepository extends JpaRepository<TrainerEntity, Long> {
     List<TrainerEntity> findUnassignedTrainersByTraineeUsername(String traineeUsername);
 
     @Query("SELECT COUNT(t)>0 FROM TrainerEntity t WHERE t.user.id = :userId")
-    boolean existsByUser_Id(Long userId);
+    boolean existsByUserId(Long userId);
+
+    @Query("SELECT COUNT(t)>0 FROM TrainerEntity t WHERE t.id = :id AND t.user.username = :username")
+    boolean existsByIdAndUserUsername(Long id, String username);
 }

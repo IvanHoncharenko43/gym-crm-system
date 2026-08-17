@@ -1,13 +1,9 @@
 package org.example.trainee;
 
 import org.example.TestUtils;
-import org.example.security.controller.dto.LoginDetails;
-import org.example.security.service.JwtService;
-import org.example.security.service.OwnershipVerifier;
 import org.example.exception.EntityNotFoundException;
 import org.example.monitoring.GymCrmMetrics;
 import org.example.trainee.controller.request.UpdateTraineeTrainersRequest;
-import org.example.trainee.controller.response.TraineeRegistrationResponse;
 import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.response.Trainers;
 import org.example.trainer.repository.TrainerEntity;
@@ -28,8 +24,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -42,8 +36,6 @@ public class TraineeServiceTest {
 
     private static final Long TRAINEE_ID = 1L;
     private static final String USERNAME = "John.Doe";
-    private static final String PASSWORD = "122333test";
-    private static final UserDetails USER_DETAILS = TestUtils.getTraineeUserDetails();
 
     @Mock
     private TraineeRepository traineeRepository;
@@ -58,16 +50,7 @@ public class TraineeServiceTest {
     private GymMapper gymMapper;
 
     @Mock
-    private OwnershipVerifier ownershipVerifier;
-
-    @Mock
     private GymCrmMetrics gymCrmMetrics;
-
-    @Mock
-    private UserDetailsService userDetailsService;
-
-    @Mock
-    private JwtService jwtService;
 
     @InjectMocks
     private TraineeService traineeService;
@@ -81,26 +64,20 @@ public class TraineeServiceTest {
         trainee.setUser(new UserEntity());
         trainee.setId(TRAINEE_ID);
         trainee.getUser().setUsername(USERNAME);
-        TraineeSummary traineeSummary = new TraineeSummary(TRAINEE_ID, new UserProfile(USERNAME),
+        TraineeSummary expectedResponse = new TraineeSummary(TRAINEE_ID, new UserProfile(USERNAME),
                 LocalDate.of(2007, 3, 25), "Home 21 Street");
-        String token = "token";
-        TraineeRegistrationResponse expectedResponse = new TraineeRegistrationResponse(traineeSummary, new LoginDetails(token));
 
         when(userRepository.findUsernamesByBaseNameForUpdate(anyString())).thenReturn(Collections.emptyList());
         when(gymMapper.toTraineeEntity(eq(request), anySet())).thenReturn(trainee);
         when(traineeRepository.save(trainee)).thenReturn(trainee);
-        when(userDetailsService.loadUserByUsername(USERNAME)).thenReturn(USER_DETAILS);
-        when(jwtService.generateToken(USER_DETAILS)).thenReturn(token);
-        when(gymMapper.toTraineeSummary(trainee)).thenReturn(traineeSummary);
+        when(gymMapper.toTraineeSummary(trainee)).thenReturn(expectedResponse);
 
-        TraineeRegistrationResponse actualResponse = traineeService.create(request);
+        TraineeSummary actualResponse = traineeService.create(request);
 
         assertEquals(expectedResponse, actualResponse);
         verify(userRepository, times(1)).findUsernamesByBaseNameForUpdate(anyString());
         verify(gymMapper, times(1)).toTraineeEntity(eq(request), anySet());
         verify(traineeRepository, times(1)).save(trainee);
-        verify(userDetailsService, times(1)).loadUserByUsername(USERNAME);
-        verify(jwtService, times(1)).generateToken(USER_DETAILS);
         verify(gymMapper, times(1)).toTraineeSummary(trainee);
     }
 
@@ -125,10 +102,9 @@ public class TraineeServiceTest {
         when(traineeRepository.save(trainee)).thenReturn(trainee);
         when(gymMapper.toTraineeSummary(trainee)).thenReturn(expectedResponse);
 
-        TraineeSummary actualResponse = traineeService.update(TRAINEE_ID, request, USER_DETAILS);
+        TraineeSummary actualResponse = traineeService.update(TRAINEE_ID, request);
 
         assertEquals(expectedResponse, actualResponse);
-        verify(ownershipVerifier, times(1)).verifyOwnershipByUsername(USERNAME, USER_DETAILS.getUsername());
         verify(traineeRepository, times(1)).findById(TRAINEE_ID);
         verify(gymMapper, times(1)).toTraineeEntity(request, trainee);
         verify(traineeRepository, times(1)).save(trainee);
@@ -144,7 +120,7 @@ public class TraineeServiceTest {
         when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> traineeService.update(TRAINEE_ID, request, USER_DETAILS));
+                () -> traineeService.update(TRAINEE_ID, request));
         assertTrue(exception.getMessage().contains("not found"));
         verify(traineeRepository, times(1)).findById(TRAINEE_ID);
         verify(traineeRepository, never()).save(any());
@@ -244,9 +220,8 @@ public class TraineeServiceTest {
 
         when(traineeRepository.findByUsername(USERNAME)).thenReturn(Optional.of(trainee));
 
-        traineeService.deleteByUsername(USERNAME, USER_DETAILS);
+        traineeService.deleteByUsername(USERNAME);
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
-        verify(ownershipVerifier, times(1)).verifyOwnershipByUsername(USERNAME, USER_DETAILS.getUsername());
         verify(traineeRepository, times(1)).deleteByUserUsername(USERNAME);
     }
 
@@ -259,8 +234,7 @@ public class TraineeServiceTest {
 
         when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.of(existingTrainee));
 
-        traineeService.changeActivity(TRAINEE_ID, USER_DETAILS);
-        verify(ownershipVerifier, times(1)).verifyOwnershipByUsername(USERNAME, USER_DETAILS.getUsername());
+        traineeService.changeActivity(TRAINEE_ID);
         verify(traineeRepository, times(1)).findById(TRAINEE_ID);
         verify(traineeRepository, times(1)).save(existingTrainee);
     }
@@ -270,7 +244,7 @@ public class TraineeServiceTest {
         when(traineeRepository.findById(TRAINEE_ID)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> traineeService.changeActivity(TRAINEE_ID, USER_DETAILS));
+                () -> traineeService.changeActivity(TRAINEE_ID));
         assertTrue(exception.getMessage().contains("not found"));
         verify(traineeRepository, times(1)).findById(TRAINEE_ID);
     }
@@ -313,10 +287,9 @@ public class TraineeServiceTest {
         when(gymMapper.toTrainerSummary(newTrainer1)).thenReturn(newTrainersSummary.get(0));
         when(gymMapper.toTrainerSummary(newTrainer2)).thenReturn(newTrainersSummary.get(1));
 
-        Trainers result = traineeService.updateTrainersList(TRAINEE_ID, request, USER_DETAILS);
+        Trainers result = traineeService.updateTrainersList(TRAINEE_ID, request);
         assertEquals(2, result.trainers().size());
         assertEquals(newTrainersSummary, result.trainers());
-        verify(ownershipVerifier, times(1)).verifyOwnershipByUsername(USERNAME, USER_DETAILS.getUsername());
         verify(traineeRepository, times(1)).findById(TRAINEE_ID);
         verify(trainerRepository, times(1)).findByUsernames(newTrainersUsernames);
         verify(gymMapper, times(1)).toTrainerSummary(newTrainer1);

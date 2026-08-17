@@ -14,12 +14,13 @@ import org.springframework.context.annotation.Configuration;
                 version = "1.0.0",
                 description = "REST API documentation for managing trainees, trainers, and training sessions"
         ),
-        security = @SecurityRequirement(name = "basicAuth")
+        security = @SecurityRequirement(name = "bearerAuth")
 )
 @SecurityScheme(
-        name = "basicAuth",
+        name = "bearerAuth",
         type = SecuritySchemeType.HTTP,
-        scheme = "basic"
+        scheme = "bearer",
+        bearerFormat = "JWT"
 )
 public class OpenApiMetadataConfig {
 }

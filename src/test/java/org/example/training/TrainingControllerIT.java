@@ -4,6 +4,7 @@ import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import org.example.TestUtils;
 import org.example.config.SecurityConfig;
 import org.example.security.service.JwtService;
+import org.example.security.service.OwnershipVerifier;
 import org.example.security.service.TokenBlackListService;
 import org.example.training.controller.TrainingController;
 import org.example.training.controller.request.CreateTrainingRequest;
@@ -19,6 +20,7 @@ import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithAnonymousUser;
 import org.springframework.security.test.context.support.WithMockUser;
@@ -39,6 +41,8 @@ import static org.mockito.Mockito.*;
 @Import(SecurityConfig.class)
 class TrainingControllerIT {
 
+    private static final UserDetails USER_DETAILS = getTrainerUserDetails();
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -47,6 +51,9 @@ class TrainingControllerIT {
 
     @MockitoBean
     private TrainingTypeService trainingTypeService;
+
+    @MockitoBean
+    private OwnershipVerifier ownershipVerifier;
 
     @MockitoBean
     private JwtService jwtService;
@@ -63,7 +70,7 @@ class TrainingControllerIT {
     }
 
     @Test
-    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = {"TRAINER"})
     void addTraining_Return200AndTrainingSummary_RequestIsValid() {
         CreateTrainingRequest request = new CreateTrainingRequest(
                 TRAINER_USERNAME, TRAINEE_USERNAME, "Morning Cardio",
@@ -89,6 +96,7 @@ class TrainingControllerIT {
         assertThat(result.trainingType()).isEqualTo(expectedResult.trainingType());
         assertThat(result.trainee()).isEqualTo(expectedResult.trainee());
         assertThat(result.trainer()).isEqualTo(expectedResult.trainer());
+        verify(ownershipVerifier, times(1)).verifyOwnership(TRAINER_USERNAME, USER_DETAILS);
         verify(trainingService, times(1)).create(request);
     }
 
@@ -255,7 +263,7 @@ class TrainingControllerIT {
                 .then()
                 .status(HttpStatus.UNAUTHORIZED)
                 .body("title", equalTo("Authentication Failure"))
-                .body("detail", equalTo("Authentication failed during accessing the resource"));
+                .body("detail", equalTo("Authentication token is missing"));
     }
 
     @Test
@@ -285,6 +293,6 @@ class TrainingControllerIT {
                 .then()
                 .status(HttpStatus.UNAUTHORIZED)
                 .body("title", equalTo("Authentication Failure"))
-                .body("detail", equalTo("Authentication failed during accessing the resource"));
+                .body("detail", equalTo("Authentication token is missing"));
     }
 }

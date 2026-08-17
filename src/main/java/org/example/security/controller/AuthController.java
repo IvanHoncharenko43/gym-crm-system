@@ -1,6 +1,7 @@
 package org.example.security.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,19 +24,23 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Slf4j
 @Tag(name = "Auth", description = "Operations related to authentication")
-@ApiResponses(value = {
-        @ApiResponse(responseCode = "401", description = "Unauthorized",
-                content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-})
 @RestController
-@RequestMapping("/api/v1/auth")
+@RequestMapping(AuthController.BASE_PATH)
 @RequiredArgsConstructor
 public class AuthController {
+
+    public static final String BASE_PATH = "/api/v1/auth";
 
     private final AuthService authService;
 
     @Operation(summary = "Login", description = "Authenticates a user and returns a JWT bearer token")
-    @ApiResponse(responseCode = "200", description = "Logged into a user's account")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Logged into a user's account"),
+            @ApiResponse(responseCode = "400", description = "Bad Request",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "429", description = "Too Many Requests",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
     @PostMapping("/login")
     @ResponseStatus(HttpStatus.OK)
     public LoginDetails login(@Valid @RequestBody LoginRequest request){
@@ -44,10 +49,16 @@ public class AuthController {
     }
 
     @Operation(summary = "Logout", description = "Blacklists the current bearer token")
-    @ApiResponse(responseCode = "200", description = "Logged out of a user's account")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Logged out of a user's account"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
     @PostMapping("/logout")
     @ResponseStatus(HttpStatus.OK)
-    public void logout(@RequestHeader("Authorization") String header){
+    public void logout(@Parameter(hidden = true) @RequestHeader("Authorization") String header){
         log.info("POST /api/v1/auth/logout endpoint called");
         authService.logout(header);
     }

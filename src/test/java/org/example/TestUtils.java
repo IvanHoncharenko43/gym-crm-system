@@ -29,6 +29,7 @@ import java.util.Set;
 
 public class TestUtils {
 
+    public static final Long USER_ID = 25L;
     public static final Long TRAINEE_ID = 1L;
     public static final String TRAINEE_USERNAME = "John.Doe";
     public static final String TRAINEE_PASSWORD = "122333test";
@@ -180,8 +181,7 @@ public class TestUtils {
 
     public static UserDetails getTraineeUserDetails(){
         return new User(TRAINEE_USERNAME, TRAINEE_PASSWORD, true, true,
-                true, true,
-                List.of(new SimpleGrantedAuthority(UserRole.TRAINEE.getAuthority())));
+                true, true, List.of(new SimpleGrantedAuthority(UserRole.TRAINEE.getAuthority())));
     }
 
     public static UserDetails getTrainerUserDetails(){

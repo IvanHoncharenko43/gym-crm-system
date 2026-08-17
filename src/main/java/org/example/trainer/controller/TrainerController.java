@@ -10,10 +10,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.security.service.OwnershipVerifier;
 import org.example.trainer.controller.request.CreateTrainerRequest;
 import org.example.trainer.controller.request.GetTrainerTrainingsRequest;
-import org.example.trainer.controller.response.TrainerRegistrationResponse;
 import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.request.UpdateTrainerRequest;
 import org.example.trainer.controller.response.Trainers;
@@ -45,22 +46,21 @@ import org.springframework.web.bind.annotation.ResponseStatus;
                 implementation = ProblemDetail.class))),
 })
 @RestController
-@RequestMapping("/api/v1/trainers")
+@RequestMapping(TrainerController.BASE_PATH)
+@RequiredArgsConstructor
 public class TrainerController {
+
+    public static final String BASE_PATH = "/api/v1/trainers";
 
     private final TrainerService trainerService;
     private final TrainingService trainingService;
-
-    public TrainerController(TrainerService trainerService, TrainingService trainingService){
-        this.trainerService = trainerService;
-        this.trainingService = trainingService;
-    }
+    private final OwnershipVerifier ownershipVerifier;
 
     @Operation(summary = "Register a new trainer", description = "Creates a new trainer profile and returns their summary")
     @ApiResponse(responseCode = "201", description = "Registered a new trainer")
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public TrainerRegistrationResponse registerTrainer(@Valid @RequestBody CreateTrainerRequest request){
+    public TrainerSummary registerTrainer(@Valid @RequestBody CreateTrainerRequest request){
         log.info("POST /api/v1/trainers endpoint called");
         return trainerService.create(request);
     }
@@ -70,15 +70,22 @@ public class TrainerController {
             @ApiResponse(responseCode = "200", description = "Retrieved the trainer"),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Trainer Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TRAINER', 'ADMIN')")
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public TrainerSummary getTrainer(
             @Parameter(in = ParameterIn.PATH, description = "Trainer ID", example = "12")
-            @PathVariable Long id){
+            @PathVariable Long id,
+            @AuthenticationPrincipal UserDetails userDetails){
         log.info("GET /api/v1/trainers/{id} endpoint called");
+        ownershipVerifier.verifyOwnership(id, userDetails, OwnershipVerifier.ResourceType.TRAINER);
         return trainerService.getById(id);
     }
 
@@ -90,9 +97,11 @@ public class TrainerController {
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Trainer Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
-    @PreAuthorize("hasRole('TRAINER')")
+    @PreAuthorize("hasAnyRole('TRAINER', 'ADMIN')")
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public TrainerSummary updateTrainer(
@@ -102,21 +111,29 @@ public class TrainerController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal UserDetails userDetails){
         log.info("PUT /api/v1/trainers/{id} endpoint called");
-        return trainerService.update(id, request, userDetails);
+        ownershipVerifier.verifyOwnership(id, userDetails, OwnershipVerifier.ResourceType.TRAINER);
+        return trainerService.update(id, request);
     }
 
     @Operation(summary = "Get not assigned trainers by trainee", description = "Returns a list of trainers that are not assigned to a specific trainee")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Retrieved not assigned on the trainee trainers"),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TRAINEE', 'ADMIN')")
     @GetMapping(value = "/not-assigned", params = "trainee-username")
     @ResponseStatus(HttpStatus.OK)
     public Trainers getNotAssignedOnTraineeActiveTrainersList(
             @NotBlank(message = "Trainee username cannot be blank")
-            @RequestParam("trainee-username") String traineeUsername){
+            @RequestParam("trainee-username") String traineeUsername,
+            @AuthenticationPrincipal UserDetails userDetails){
         log.info("GET /api/v1/trainers/not-assigned endpoint called");
+        ownershipVerifier.verifyOwnership(traineeUsername, userDetails);
         return trainerService.getUnassignedTrainersByTraineeList(traineeUsername);
     }
 
@@ -128,9 +145,11 @@ public class TrainerController {
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Trainer Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
-    @PreAuthorize("hasRole('TRAINER')")
+    @PreAuthorize("hasAnyRole('TRAINER', 'ADMIN')")
     @PatchMapping(value = "/{id}/profile/active-status/change")
     @ResponseStatus(HttpStatus.OK)
     public void changeTrainerActivity(
@@ -139,21 +158,29 @@ public class TrainerController {
             @Parameter(hidden = true)
             @AuthenticationPrincipal UserDetails userDetails){
         log.info("PATCH /api/v1/trainers/{id}/profile/active-status/change endpoint called");
-        trainerService.changeActivity(id, userDetails);
+        ownershipVerifier.verifyOwnership(id, userDetails, OwnershipVerifier.ResourceType.TRAINER);
+        trainerService.changeActivity(id);
     }
 
     @Operation(summary = "Get trainer's trainings", description = "Returns an existing trainer's trainings list")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Retrieved trainee's trainings"),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TRAINER', 'ADMIN')")
     @PostMapping(value = "/trainings/search")
     @ResponseStatus(HttpStatus.OK)
     public Trainings getTrainerTrainingList(
-            @Valid @RequestBody GetTrainerTrainingsRequest request
+            @Valid @RequestBody GetTrainerTrainingsRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
     ){
         log.info("GET /api/v1/trainers/trainings/search endpoint called");
+        ownershipVerifier.verifyOwnership(request.username(), userDetails);
         return trainingService.getTrainerTrainingList(request);
     }
 }

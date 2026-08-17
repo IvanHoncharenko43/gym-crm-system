@@ -1,8 +1,6 @@
 package org.example.user;
 
-import org.example.TestUtils;
 import org.example.core.dto.ChangePasswordRequest;
-import org.example.security.service.OwnershipVerifier;
 import org.example.exception.EntityNotFoundException;
 import org.example.user.repository.UserEntity;
 import org.example.user.repository.UserRepository;
@@ -12,7 +10,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
@@ -29,13 +26,9 @@ public class UserServiceTest {
 
     private static final String USERNAME = "John.Doe";
     private static final String PASSWORD = "122333test";
-    private static final UserDetails USER_DETAILS = TestUtils.getTraineeUserDetails();
 
     @Mock
     private UserRepository userRepository;
-
-    @Mock
-    private OwnershipVerifier ownershipVerifier;
 
     @Mock
     private PasswordEncoder passwordEncoder;
@@ -56,9 +49,8 @@ public class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(existingUser));
         when(passwordEncoder.matches(PASSWORD, PASSWORD)).thenReturn(true);
 
-        userService.changePassword(userId, request, USER_DETAILS);
+        userService.changePassword(userId, request);
 
-        verify(ownershipVerifier, times(1)).verifyOwnershipByUsername(USERNAME, USER_DETAILS.getUsername());
         verify(userRepository, times(1)).findById(userId);
         verify(passwordEncoder, times(1)).matches(PASSWORD, PASSWORD);
         verify(passwordEncoder, times(1)).encode(newPassword);
@@ -74,7 +66,7 @@ public class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> userService.changePassword(userId, request, USER_DETAILS));
+                () -> userService.changePassword(userId, request));
         assertTrue(exception.getMessage().contains("not found"));
         verify(userRepository, times(1)).findById(userId);
         verify(userRepository, never()).save(any());
@@ -90,7 +82,7 @@ public class UserServiceTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(inactiveUser));
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> userService.changePassword(userId, request, USER_DETAILS));
+                () -> userService.changePassword(userId, request));
         assertTrue(exception.getMessage().contains("inactive"));
         verify(userRepository, times(1)).findById(userId);
         verify(userRepository, never()).save(any());

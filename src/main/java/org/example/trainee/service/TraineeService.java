@@ -2,15 +2,9 @@ package org.example.trainee.service;
 
 import lombok.RequiredArgsConstructor;
 import org.example.monitoring.GymCrmMetrics;
-import org.example.security.controller.dto.LoginDetails;
-import org.example.security.service.JwtService;
-import org.example.trainee.controller.response.TraineeRegistrationResponse;
 import org.example.trainer.controller.response.Trainers;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.example.security.service.OwnershipVerifier;
 import org.example.exception.EntityNotFoundException;
 import org.example.trainee.controller.response.TraineeSummary;
 import org.example.trainee.controller.request.UpdateTraineeRequest;
@@ -36,22 +30,17 @@ public class TraineeService {
     private final TrainerRepository trainerRepository;
     private final UserRepository userRepository;
     private final GymMapper gymMapper;
-    private final OwnershipVerifier ownershipVerifier;
     private final GymCrmMetrics gymCrmMetrics;
-    private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
 
     @Transactional
-    public TraineeRegistrationResponse create(CreateTraineeRequest request) {
+    public TraineeSummary create(CreateTraineeRequest request) {
         String baseName = request.fullName().firstName() + "." + request.fullName().lastName();
         Set<String> existingUsernames = new HashSet<>(userRepository.findUsernamesByBaseNameForUpdate(baseName));
         TraineeEntity trainee = gymMapper.toTraineeEntity(request, existingUsernames);
         TraineeEntity savedTrainee = traineeRepository.save(trainee);
-        UserDetails userDetails = userDetailsService.loadUserByUsername(savedTrainee.getUser().getUsername());
-        String token = jwtService.generateToken(userDetails);
         log.info("Created trainee profile with ID: {}", savedTrainee.getId());
         gymCrmMetrics.incrementTraineeCreation();
-        return new TraineeRegistrationResponse(gymMapper.toTraineeSummary(savedTrainee), new LoginDetails(token));
+        return gymMapper.toTraineeSummary(savedTrainee);
     }
 
     @Transactional(readOnly = true)
@@ -79,14 +68,13 @@ public class TraineeService {
     }
 
     @Transactional
-    public TraineeSummary update(Long id, UpdateTraineeRequest request, UserDetails userDetails) {
+    public TraineeSummary update(Long id, UpdateTraineeRequest request) {
         TraineeEntity existingTrainee = traineeRepository.findById(id)
                 .orElseThrow(() -> {
                     String message = String.format("Trainee with ID %s not found", id);
                     log.warn(message);
                     return new EntityNotFoundException(message);
                 });
-        ownershipVerifier.verifyOwnershipByUsername(existingTrainee.getUser().getUsername(), userDetails.getUsername());
         TraineeEntity trainee = gymMapper.toTraineeEntity(request, existingTrainee);
         TraineeEntity updatedTrainee = traineeRepository.save(trainee);
         log.info("Updated trainee profile with ID: {}", updatedTrainee.getId());
@@ -94,38 +82,35 @@ public class TraineeService {
     }
 
     @Transactional
-    public void deleteByUsername(String username, UserDetails userDetails){
+    public void deleteByUsername(String username){
         Optional<TraineeEntity> existingTrainee = traineeRepository.findByUsername(username);
         if(existingTrainee.isPresent()) {
-            ownershipVerifier.verifyOwnershipByUsername(existingTrainee.get().getUser().getUsername(), userDetails.getUsername());
             traineeRepository.deleteByUserUsername(existingTrainee.get().getUser().getUsername());
             log.info("Deleted by username a trainee profile with ID: {}", existingTrainee.get().getId());
         }
     }
 
     @Transactional
-    public void changeActivity(Long id, UserDetails userDetails){
+    public void changeActivity(Long id){
         TraineeEntity trainee = traineeRepository.findById(id)
                 .orElseThrow(() -> {
                     String message = String.format("Trainee with ID %s not found", id);
                     log.warn(message);
                     return new EntityNotFoundException(message);
                 });
-        ownershipVerifier.verifyOwnershipByUsername(trainee.getUser().getUsername(), userDetails.getUsername());
         trainee.getUser().setIsActive(!trainee.getUser().getIsActive());
         traineeRepository.save(trainee);
         log.info("Activity status changed for a trainee with ID: {}", id);
     }
 
     @Transactional
-    public Trainers updateTrainersList(Long id, UpdateTraineeTrainersRequest request, UserDetails userDetails){
+    public Trainers updateTrainersList(Long id, UpdateTraineeTrainersRequest request){
         TraineeEntity trainee = traineeRepository.findById(id)
                 .orElseThrow(() -> {
                     String message = String.format("Trainee with ID %s not found", id);
                     log.warn(message);
                     return new EntityNotFoundException(message);
                 });
-        ownershipVerifier.verifyOwnershipByUsername(trainee.getUser().getUsername(), userDetails.getUsername());
         Set<TrainerEntity> newTrainers = new HashSet<>(trainerRepository.findByUsernames(request.trainerUsernames()));
         trainee.getTrainers().stream()
                 .filter(oldTrainer -> !newTrainers.contains(oldTrainer))

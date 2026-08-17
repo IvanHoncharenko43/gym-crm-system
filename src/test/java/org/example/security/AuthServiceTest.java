@@ -1,9 +1,11 @@
 package org.example.security;
 
 import org.example.TestUtils;
+import org.example.exception.TooManyLoginAttemptsException;
 import org.example.security.controller.dto.LoginDetails;
 import org.example.security.controller.dto.LoginRequest;
 import org.example.security.service.AuthService;
+import org.example.security.service.BruteForceProtectionService;
 import org.example.security.service.JwtService;
 import org.example.security.service.TokenBlackListService;
 import org.junit.jupiter.api.Test;
@@ -75,22 +77,22 @@ public class AuthServiceTest {
     @Test
     void login_ThrowLockedException_AccountLocked() {
         when(authenticationManager.authenticate(any()))
-                .thenThrow(new LockedException("Account is temporarily locked due to too many failed login attempts"));
+                .thenThrow(new TooManyLoginAttemptsException("Account is temporarily locked due to too many failed login attempts"));
 
-        LockedException exception = assertThrows(LockedException.class,
+        TooManyLoginAttemptsException exception = assertThrows(TooManyLoginAttemptsException.class,
                 () -> authService.login(LOGIN_REQUEST));
         assertTrue(exception.getMessage().contains("locked"));
         verify(jwtService, never()).generateToken(any());
     }
 
     @Test
-    void login_ThrowDisabledException_AccountInactive() {
+    void login_ThrowBadCredentialsException_AccountInactive() {
         when(authenticationManager.authenticate(any()))
-                .thenThrow(new DisabledException("The account is inactive"));
+                .thenThrow(new BadCredentialsException("Invalid username or password"));
 
-        DisabledException exception = assertThrows(DisabledException.class,
+        BadCredentialsException exception = assertThrows(BadCredentialsException.class,
                 () -> authService.login(LOGIN_REQUEST));
-        assertTrue(exception.getMessage().contains("inactive"));
+        assertTrue(exception.getMessage().contains("Invalid"));
         verify(jwtService, never()).generateToken(any());
     }
 

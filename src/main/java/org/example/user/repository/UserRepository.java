@@ -17,4 +17,7 @@ public interface UserRepository extends JpaRepository<UserEntity, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT u.username FROM UserEntity u WHERE u.username LIKE CONCAT(:baseName, '%')")
     List<String> findUsernamesByBaseNameForUpdate(String baseName);
+
+    @Query("SELECT COUNT(u)>0 FROM UserEntity u WHERE u.id = :id AND u.username = :username")
+    boolean existsByIdAndUsername(Long id, String username);
 }

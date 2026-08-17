@@ -16,7 +16,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 @Service
 @RequiredArgsConstructor
@@ -26,12 +25,7 @@ public class JwtService {
     private final JwtConfigurationProperties jwtProperties;
 
     public String extractUsername(String jwt){
-        return extractClaim(jwt, Claims::getSubject);
-    }
-
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        Claims claims = extractAllClaims(token);
-        return claimsResolver.apply(claims);
+        return extractAllClaims(jwt).getSubject();
     }
 
     public String generateToken(UserDetails userDetails){
@@ -51,19 +45,6 @@ public class JwtService {
                 .expiration(new Date(System.currentTimeMillis() + jwtProperties.expiration()))
                 .signWith(getSignInKey(), Jwts.SIG.HS256)
                 .compact();
-    }
-
-    public boolean isTokenValid(String token, UserDetails userDetails){
-        String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
-    }
-
-    public boolean isTokenExpired(String token){
-        return extractExpiration(token).isBefore(Instant.now());
-    }
-
-    public Instant extractExpiration(String token) {
-        return extractClaim(token, Claims::getExpiration).toInstant();
     }
 
     private Claims extractAllClaims(String token) {

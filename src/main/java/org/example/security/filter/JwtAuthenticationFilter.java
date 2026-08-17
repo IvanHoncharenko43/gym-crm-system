@@ -1,53 +1,47 @@
 package org.example.security.filter;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.example.security.service.TokenBlackListService;
 import org.example.security.service.JwtService;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 
-import java.io.IOException;
-
-@Component
 @RequiredArgsConstructor
-public class JwtAuthenticationFilter extends OncePerRequestFilter {
+public class JwtAuthenticationFilter extends AbstractPreAuthenticatedProcessingFilter {
     private final static String BEARER_PREFIX = "Bearer ";
     private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
     private final TokenBlackListService tokenBlackListService;
 
+    @Override
+    protected @Nullable Object getPreAuthenticatedPrincipal(HttpServletRequest request) {
+        String token = extractToken(request);
+        if(token == null){
+            return null;
+        }
+        if(tokenBlackListService.isBlackListed(token)){
+            return null;
+        }
+        try {
+            return jwtService.extractUsername(token);
+        }
+        catch (JwtException e){
+            return null;
+        }
+    }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected @Nullable Object getPreAuthenticatedCredentials(HttpServletRequest request) {
+        return extractToken(request);
+    }
+
+    private String extractToken(HttpServletRequest request) {
         String header = request.getHeader(HttpHeaders.AUTHORIZATION);
-        if(header == null || !header.startsWith(BEARER_PREFIX)){
-            filterChain.doFilter(request, response);
-            return;
+        if (header == null || !header.startsWith(BEARER_PREFIX)) {
+            return null;
         }
-        String jwt = header.substring(BEARER_PREFIX.length());
-        if(!tokenBlackListService.isBlackListed(jwt)) {
-            String username = jwtService.extractUsername(jwt);
-            if (username != null) {
-                UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-                if (jwtService.isTokenValid(jwt, userDetails)) {
-                    UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
-                            userDetails, null, userDetails.getAuthorities()
-                    );
-                    authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-                }
-            }
-        }
-        filterChain.doFilter(request, response);
+        return header.substring(BEARER_PREFIX.length());
     }
 }

@@ -5,6 +5,7 @@ import org.example.core.dto.ChangePasswordRequest;
 import org.example.exception.AccessForbiddenException;
 import org.example.exception.EntityNotFoundException;
 import org.example.security.service.JwtService;
+import org.example.security.service.OwnershipVerifier;
 import org.example.security.service.TokenBlackListService;
 import org.example.user.controller.UserController;
 import org.example.user.service.UserService;
@@ -42,6 +43,9 @@ class UserControllerIT {
     private UserService userService;
 
     @MockitoBean
+    private OwnershipVerifier ownershipVerifier;
+
+    @MockitoBean
     private JwtService jwtService;
 
     @MockitoBean
@@ -54,13 +58,14 @@ class UserControllerIT {
     @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD , roles = {"TRAINEE"})
     void changePassword_Return200_RequestIsValid() throws Exception {
         ChangePasswordRequest request = new ChangePasswordRequest(TRAINEE_PASSWORD, "newPassword1234!");
-        doNothing().when(userService).changePassword(TRAINEE_ID, request, USER_DETAILS);
+        doNothing().when(userService).changePassword(USER_ID, request);
 
-        mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", TRAINEE_ID)
+        mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", USER_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
-        verify(userService, times(1)).changePassword(TRAINEE_ID, request, USER_DETAILS);
+        verify(ownershipVerifier, times(1)).verifyOwnership(USER_ID, USER_DETAILS, OwnershipVerifier.ResourceType.USER);
+        verify(userService, times(1)).changePassword(USER_ID, request);
     }
 
     @Test
@@ -112,7 +117,7 @@ class UserControllerIT {
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.title").value("Authentication Failure"))
-                .andExpect(jsonPath("$.detail").value("Authentication failed during accessing the resource"));
+                .andExpect(jsonPath("$.detail").value("Authentication token is missing"));
     }
 
     @Test
@@ -121,7 +126,7 @@ class UserControllerIT {
         Long id = 99L;
         ChangePasswordRequest request = new ChangePasswordRequest(TRAINEE_PASSWORD, "newPassword1234!");
         doThrow(new AccessForbiddenException("Authorization failed"))
-                .when(userService).changePassword(id, request, USER_DETAILS);
+                .when(userService).changePassword(id, request);
 
         mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", id)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -129,7 +134,8 @@ class UserControllerIT {
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.title").value("Authorization Failure"))
                 .andExpect(jsonPath("$.detail").value("Authorization failed"));
-        verify(userService, times(1)).changePassword(id, request, USER_DETAILS);
+        verify(ownershipVerifier, times(1)).verifyOwnership(id, USER_DETAILS, OwnershipVerifier.ResourceType.USER);
+        verify(userService, times(1)).changePassword(id, request);
     }
 
     @Test
@@ -137,14 +143,15 @@ class UserControllerIT {
     void changePassword_Return404AndProblemDetail_UserNotFound() throws Exception {
         ChangePasswordRequest request = new ChangePasswordRequest(TRAINEE_PASSWORD, "newPassword1234!");
         doThrow(new EntityNotFoundException("User not found"))
-                .when(userService).changePassword(TRAINEE_ID, request, USER_DETAILS);
+                .when(userService).changePassword(USER_ID, request);
 
-        mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", TRAINEE_ID)
+        mockMvc.perform(put("/api/v1/users/{id}/profile/password-change", USER_ID)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(jsonMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.title").value("Entity Not Found"))
                 .andExpect(jsonPath("$.detail").value("User not found"));
-        verify(userService, times(1)).changePassword(TRAINEE_ID, request, USER_DETAILS);
+        verify(ownershipVerifier, times(1)).verifyOwnership(USER_ID, USER_DETAILS, OwnershipVerifier.ResourceType.USER);
+        verify(userService, times(1)).changePassword(USER_ID, request);
     }
 }
