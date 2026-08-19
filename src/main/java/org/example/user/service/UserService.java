@@ -3,11 +3,11 @@ package org.example.user.service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.core.dto.ChangePasswordRequest;
-import org.example.core.service.AuthenticationComponent;
 import org.example.exception.EntityNotFoundException;
-import org.example.user.controller.dto.UserCredentials;
+import org.example.exception.InvalidPasswordException;
 import org.example.user.repository.UserEntity;
 import org.example.user.repository.UserRepository;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,11 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
-    private final AuthenticationComponent authenticator;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
-    public void changePassword(Long id, ChangePasswordRequest request, UserCredentials credentials){
-        authenticator.authenticate(credentials);
+    public void changePassword(Long id, ChangePasswordRequest request){
         UserEntity user = userRepository.findById(id)
                 .filter(UserEntity::getIsActive)
                 .orElseThrow(() -> {
@@ -30,8 +29,10 @@ public class UserService {
                     log.warn(message);
                     return new EntityNotFoundException(message);
                 });
-        authenticator.authorize(user.getUsername(), credentials);
-        user.setPassword(request.newPassword());
+        if (!passwordEncoder.matches(request.oldPassword(), user.getPassword())) {
+            throw new InvalidPasswordException("Old password is incorrect");
+        }
+        user.setPassword(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
         log.info("Changed password for a user with ID: {}", id);
     }

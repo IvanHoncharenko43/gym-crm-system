@@ -3,7 +3,6 @@ package org.example;
 import org.example.training.controller.response.TrainingSummary;
 import org.example.trainingType.dto.TrainingType;
 import org.example.trainingType.repository.TrainingTypeEntity;
-import org.example.user.controller.dto.UserCredentials;
 import org.example.user.controller.dto.FullName;
 import org.example.user.controller.dto.UserProfile;
 import org.example.trainee.controller.request.CreateTraineeRequest;
@@ -16,14 +15,21 @@ import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.request.UpdateTrainerRequest;
 import org.example.training.controller.request.CreateTrainingRequest;
 import org.example.training.repository.TrainingEntity;
+import org.example.security.controller.dto.LoginRequest;
+import org.example.user.controller.dto.UserRole;
 import org.example.user.repository.UserEntity;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDate;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class TestUtils {
 
+    public static final Long USER_ID = 25L;
     public static final Long TRAINEE_ID = 1L;
     public static final String TRAINEE_USERNAME = "John.Doe";
     public static final String TRAINEE_PASSWORD = "122333test";
@@ -64,6 +70,10 @@ public class TestUtils {
         return new UpdateTrainerRequest(
                 new FullName("John", "Doe"), TrainingType.YOGA
         );
+    }
+
+    public static LoginRequest getLoginRequest(){
+        return new LoginRequest(TRAINEE_USERNAME, TRAINEE_PASSWORD);
     }
 
     public static UserEntity getUser(){
@@ -169,16 +179,15 @@ public class TestUtils {
         );
     }
 
-    public static UserCredentials getTraineeCredentials(){
-        return new UserCredentials(
-                TRAINEE_USERNAME, TRAINEE_PASSWORD
-        );
+    public static UserDetails getTraineeUserDetails(){
+        return new User(TRAINEE_USERNAME, TRAINEE_PASSWORD, true, true,
+                true, true, List.of(new SimpleGrantedAuthority(UserRole.TRAINEE.getAuthority())));
     }
 
-    public static UserCredentials getTrainerCredentials(){
-        return new UserCredentials(
-                TRAINER_USERNAME, TRAINER_PASSWORD
-        );
+    public static UserDetails getTrainerUserDetails(){
+        return new User(TRAINER_USERNAME, TRAINER_PASSWORD, true, true,
+                true, true,
+                List.of(new SimpleGrantedAuthority(UserRole.TRAINER.getAuthority())));
     }
 
     public static Set<String> getExistingUsernamesSet(){

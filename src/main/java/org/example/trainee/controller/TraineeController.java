@@ -9,7 +9,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.security.service.OwnershipVerifier;
 import org.example.trainee.controller.request.CreateTraineeRequest;
 import org.example.trainee.controller.request.GetTraineeTrainingsRequest;
 import org.example.trainee.controller.response.TraineeSummary;
@@ -19,9 +21,11 @@ import org.example.trainee.service.TraineeService;
 import org.example.trainer.controller.response.Trainers;
 import org.example.training.controller.response.Trainings;
 import org.example.training.service.TrainingService;
-import org.example.user.controller.dto.UserCredentials;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,7 +38,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RequestAttribute;
 
 @Slf4j
 @Validated
@@ -44,16 +47,15 @@ import org.springframework.web.bind.annotation.RequestAttribute;
                 implementation = ProblemDetail.class))),
 })
 @RestController
-@RequestMapping("/api/v1/trainees")
+@RequestMapping(TraineeController.BASE_PATH)
+@RequiredArgsConstructor
 public class TraineeController {
+
+    public static final String BASE_PATH = "/api/v1/trainees";
 
     private final TraineeService traineeService;
     private final TrainingService trainingService;
-
-    public TraineeController(TraineeService traineeService, TrainingService trainingService){
-        this.traineeService = traineeService;
-        this.trainingService = trainingService;
-    }
+    private final OwnershipVerifier ownershipVerifier;
 
     @Operation(summary = "Register a new trainee", description = "Creates a new trainee profile and returns their summary")
     @ApiResponse(responseCode = "201", description = "Registered the trainee")
@@ -70,18 +72,23 @@ public class TraineeController {
             @ApiResponse(responseCode = "200", description = "Retrieved a new trainee"),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Trainee Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TRAINEE', 'ADMIN')")
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public TraineeSummary getTrainee(
             @Parameter(in = ParameterIn.PATH, description = "Trainee ID", example = "12")
             @PathVariable Long id,
-            @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials){
+            @AuthenticationPrincipal UserDetails userDetails){
         log.info("GET /api/v1/trainees/{id} endpoint called");
-        return traineeService.getById(id, userCredentials);
+        ownershipVerifier.verifyOwnership(id, userDetails, OwnershipVerifier.ResourceType.TRAINEE);
+        return traineeService.getById(id);
     }
 
     @Operation(summary = "Update trainee", description = "Updates an existing trainee's profile")
@@ -92,8 +99,11 @@ public class TraineeController {
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Trainee Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TRAINEE', 'ADMIN')")
     @PutMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
     public TraineeSummary updateTrainee(
@@ -101,9 +111,10 @@ public class TraineeController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateTraineeRequest request,
             @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials){
+            @AuthenticationPrincipal UserDetails userDetails){
         log.info("PUT /api/v1/trainees/{id} endpoint called with request");
-        return traineeService.update(id, request, userCredentials);
+        ownershipVerifier.verifyOwnership(id, userDetails, OwnershipVerifier.ResourceType.TRAINEE);
+        return traineeService.update(id, request);
     }
 
     @Operation(summary = "Delete trainee", description = "Deletes a trainee's profile")
@@ -112,17 +123,21 @@ public class TraineeController {
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TRAINEE', 'ADMIN')")
     @DeleteMapping(params = "username")
     @ResponseStatus(HttpStatus.OK)
     public void deleteTrainee(
             @Parameter(in = ParameterIn.QUERY, description = "Trainee's username", example = "John.Doe")
             @RequestParam String username,
             @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials){
+            @AuthenticationPrincipal UserDetails userDetails){
         log.info("DELETE /api/v1/trainees endpoint called");
-        traineeService.deleteByUsername(username, userCredentials);
+        ownershipVerifier.verifyOwnership(username, userDetails);
+        traineeService.deleteByUsername(username);
     }
 
     @Operation(summary = "Update trainee's trainers", description = "Updates a trainee's trainers list")
@@ -133,8 +148,11 @@ public class TraineeController {
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Trainee Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TRAINEE', 'ADMIN')")
     @PutMapping(value = "/{id}/trainers-update")
     @ResponseStatus(HttpStatus.OK)
     public Trainers updateTrainersList(
@@ -142,9 +160,10 @@ public class TraineeController {
             @PathVariable Long id,
             @Valid @RequestBody UpdateTraineeTrainersRequest request,
             @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials){
+            @AuthenticationPrincipal UserDetails userDetails){
         log.info("PUT /api/v1/trainees/{id}/trainers-update endpoint called with request");
-        return traineeService.updateTrainersList(id, request, userCredentials);
+        ownershipVerifier.verifyOwnership(id, userDetails, OwnershipVerifier.ResourceType.TRAINEE);
+        return traineeService.updateTrainersList(id, request);
     }
 
     @Operation(summary = "Change trainee activity", description = "Changes a trainee's activity status")
@@ -155,33 +174,42 @@ public class TraineeController {
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Trainee Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TRAINEE', 'ADMIN')")
     @PatchMapping(value = "/{id}/profile/active-status/change")
     @ResponseStatus(HttpStatus.OK)
     public void changeTraineeActivity(
             @Parameter(in = ParameterIn.PATH, description = "Trainee ID", example = "12")
             @PathVariable Long id,
             @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials){
+            @AuthenticationPrincipal UserDetails userDetails){
         log.info("PATCH /api/v1/trainees/{id}/profile/active-status/change endpoint called");
-        traineeService.changeActivity(id, userCredentials);
+        ownershipVerifier.verifyOwnership(id, userDetails, OwnershipVerifier.ResourceType.TRAINEE);
+        traineeService.changeActivity(id);
     }
 
     @Operation(summary = "Get trainee's trainings", description = "Returns an existing trainee's trainings list")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "Retrieved trainee's trainings"),
             @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class)))
     })
+    @PreAuthorize("hasAnyRole('TRAINEE', 'ADMIN')")
     @PostMapping(value = "/trainings/search")
     @ResponseStatus(HttpStatus.OK)
     public Trainings getTraineeTrainingList(
             @Valid @RequestBody GetTraineeTrainingsRequest request,
-            @Parameter(hidden = true)
-            @RequestAttribute UserCredentials userCredentials
+            @AuthenticationPrincipal UserDetails userDetails
     ){
         log.info("GET /api/v1/trainees/trainings/search endpoint called with request params");
-        return trainingService.getTraineeTrainingList(request, userCredentials);
+        ownershipVerifier.verifyOwnership(request.username(), userDetails);
+        return trainingService.getTraineeTrainingList(request);
     }
 }

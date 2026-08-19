@@ -19,4 +19,10 @@ public interface TraineeRepository extends JpaRepository<TraineeEntity, Long> {
     @Modifying
     @Query("DELETE FROM UserEntity u WHERE u.username = :username")
     void deleteByUserUsername(String username);
+
+    @Query("SELECT COUNT(t)>0 FROM TraineeEntity t WHERE t.user.id = :userId")
+    boolean existsByUserId(Long userId);
+
+    @Query("SELECT COUNT(t)>0 FROM TraineeEntity t WHERE t.id = :id AND t.user.username = :username")
+    boolean existsByIdAndUserUsername(Long id, String username);
 }

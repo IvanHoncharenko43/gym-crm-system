@@ -21,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,6 +35,9 @@ public class GymMapperTest {
 
     @Mock
     private PasswordGenerator passwordGenerator;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private GymMapper gymMapper;
@@ -57,6 +61,7 @@ public class GymMapperTest {
         verify(usernameGenerator, times(1))
                 .generate(TestUtils.FIRST_NAME, TestUtils.LAST_NAME, TestUtils.getExistingUsernamesSet());
         verify(passwordGenerator, times(1)).generate();
+        verify(passwordEncoder, times(1)).encode(TestUtils.TRAINEE_PASSWORD);
     }
 
     @Test
@@ -111,6 +116,7 @@ public class GymMapperTest {
         verify(usernameGenerator, times(1))
                 .generate(TestUtils.FIRST_NAME, TestUtils.LAST_NAME, TestUtils.getExistingUsernamesSet());
         verify(passwordGenerator, times(1)).generate();
+        verify(passwordEncoder, times(1)).encode(TestUtils.TRAINER_PASSWORD);
     }
 
     @Test

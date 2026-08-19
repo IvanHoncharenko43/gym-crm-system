@@ -9,6 +9,12 @@ import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -70,8 +76,72 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problemDetail;
     }
 
+    @ExceptionHandler(BadCredentialsException.class)
+    public ProblemDetail handleBadCredentialsException(BadCredentialsException exception){
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.BAD_REQUEST, "Invalid username or password"
+        );
+        problemDetail.setTitle("Authentication Failure");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ProblemDetail handleDisabledException(DisabledException exception){
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNAUTHORIZED, "The account is inactive"
+        );
+        problemDetail.setTitle("Authentication Failure");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(LockedException.class)
+    public ProblemDetail handleLockedException(LockedException exception){
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.LOCKED, "Account is temporarily locked due to too many failed login attempts"
+        );
+        problemDetail.setTitle("Authentication Failure");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(TooManyLoginAttemptsException.class)
+    public ProblemDetail handleTooManyLoginAttempts(TooManyLoginAttemptsException exception){
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.TOO_MANY_REQUESTS, exception.getMessage()
+        );
+        problemDetail.setTitle("Authentication Failure");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(InsufficientAuthenticationException.class)
+    public ProblemDetail handleInsufficientAuthenticationException(InsufficientAuthenticationException ex) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNAUTHORIZED,
+                "Authentication token is missing"
+        );
+        problemDetail.setTitle("Authentication Failure");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ProblemDetail handleAuthenticationException(AuthenticationException exception){
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.UNAUTHORIZED, "Authentication failed due to invalid credentials or token"
+        );
+        problemDetail.setTitle("Authentication Failure");
+        return problemDetail;
+    }
+
     @ExceptionHandler(AccessDeniedException.class)
     public ProblemDetail handleAccessDeniedException(AccessDeniedException exception){
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.FORBIDDEN, "Not enough rights to access the resource"
+        );
+        problemDetail.setTitle("Authorization Failure");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(AccessForbiddenException.class)
+    public ProblemDetail handleAccessForbiddenException(AccessForbiddenException exception){
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.FORBIDDEN, exception.getMessage()
         );

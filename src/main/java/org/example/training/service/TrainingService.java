@@ -4,10 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.monitoring.GymCrmMetrics;
 import org.example.exception.InvalidRequestDataException;
 import org.example.training.controller.response.Trainings;
-import org.example.user.controller.dto.UserCredentials;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.example.core.service.AuthenticationComponent;
 import org.example.trainee.controller.request.GetTraineeTrainingsRequest;
 import org.example.trainer.controller.request.GetTrainerTrainingsRequest;
 import org.example.exception.EntityNotFoundException;
@@ -31,12 +29,10 @@ public class TrainingService {
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
     private final GymMapper gymMapper;
-    private final AuthenticationComponent authenticator;
     private final GymCrmMetrics gymCrmMetrics;
 
     @Transactional
-    public TrainingSummary create(CreateTrainingRequest request, UserCredentials credentials) {
-        authenticator.authenticate(credentials);
+    public TrainingSummary create(CreateTrainingRequest request) {
         TraineeEntity trainee = traineeRepository.findByUsername(request.traineeUsername())
                 .filter(t -> t.getUser().getIsActive())
                 .orElseThrow(() -> {
@@ -62,8 +58,7 @@ public class TrainingService {
     }
 
     @Transactional(readOnly = true)
-    public TrainingSummary getById(Long id, UserCredentials credentials) {
-        authenticator.authenticate(credentials);
+    public TrainingSummary getById(Long id) {
         TrainingEntity training = trainingRepository.findById(id)
                 .orElseThrow(() -> {
                     String message = String.format("Training with ID %s not found", id);
@@ -77,8 +72,7 @@ public class TrainingService {
     }
 
     @Transactional(readOnly = true)
-    public Trainings getTraineeTrainingList(GetTraineeTrainingsRequest request, UserCredentials credentials){
-        authenticator.authenticate(credentials);
+    public Trainings getTraineeTrainingList(GetTraineeTrainingsRequest request){
         log.debug("Getting trainee trainings");
         return new Trainings(
                 trainingRepository.findTraineeTrainings(request.username(), request.fromDate(), request.toDate(),
@@ -90,8 +84,7 @@ public class TrainingService {
     }
 
     @Transactional(readOnly = true)
-    public Trainings getTrainerTrainingList(GetTrainerTrainingsRequest request, UserCredentials credentials){
-        authenticator.authenticate(credentials);
+    public Trainings getTrainerTrainingList(GetTrainerTrainingsRequest request){
         log.debug("Getting trainer trainings");
         return new Trainings(
                 trainingRepository.findTrainerTrainings(request.username(), request.fromDate(),

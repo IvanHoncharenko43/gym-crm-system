@@ -3,6 +3,7 @@ package org.example.monitoring;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.config.DbPrivilegesConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Component
+@EnableConfigurationProperties(DbPrivilegesConfigurationProperties.class)
 @RequiredArgsConstructor
 public class DbPrivilegesHealthIndicator implements HealthIndicator {
 

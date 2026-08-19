@@ -5,7 +5,6 @@ import org.example.monitoring.GymCrmMetrics;
 import org.example.trainer.controller.response.Trainers;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
-import org.example.core.service.AuthenticationComponent;
 import org.example.exception.EntityNotFoundException;
 import org.example.trainee.controller.response.TraineeSummary;
 import org.example.trainee.controller.request.UpdateTraineeRequest;
@@ -13,7 +12,6 @@ import org.example.trainee.controller.request.CreateTraineeRequest;
 import org.example.trainee.controller.request.UpdateTraineeTrainersRequest;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.trainer.repository.TrainerRepository;
-import org.example.user.controller.dto.UserCredentials;
 import org.example.core.service.GymMapper;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainee.repository.TraineeRepository;
@@ -32,7 +30,6 @@ public class TraineeService {
     private final TrainerRepository trainerRepository;
     private final UserRepository userRepository;
     private final GymMapper gymMapper;
-    private final AuthenticationComponent authenticator;
     private final GymCrmMetrics gymCrmMetrics;
 
     @Transactional
@@ -47,8 +44,7 @@ public class TraineeService {
     }
 
     @Transactional(readOnly = true)
-    public TraineeSummary getById(Long id, UserCredentials credentials){
-        authenticator.authenticate(credentials);
+    public TraineeSummary getById(Long id){
         return traineeRepository.findById(id)
                 .filter(trainee -> trainee.getUser().getIsActive())
                 .map(gymMapper::toTraineeSummary)
@@ -60,8 +56,7 @@ public class TraineeService {
     }
 
     @Transactional(readOnly = true)
-    public TraineeSummary getByUsername(String username, UserCredentials credentials){
-        authenticator.authenticate(credentials);
+    public TraineeSummary getByUsername(String username){
         return traineeRepository.findByUsername(username)
                 .filter(trainee -> trainee.getUser().getIsActive())
                 .map(gymMapper::toTraineeSummary)
@@ -73,15 +68,13 @@ public class TraineeService {
     }
 
     @Transactional
-    public TraineeSummary update(Long id, UpdateTraineeRequest request, UserCredentials credentials) {
-        authenticator.authenticate(credentials);
+    public TraineeSummary update(Long id, UpdateTraineeRequest request) {
         TraineeEntity existingTrainee = traineeRepository.findById(id)
                 .orElseThrow(() -> {
                     String message = String.format("Trainee with ID %s not found", id);
                     log.warn(message);
                     return new EntityNotFoundException(message);
                 });
-        authenticator.authorize(existingTrainee.getUser().getUsername(), credentials);
         TraineeEntity trainee = gymMapper.toTraineeEntity(request, existingTrainee);
         TraineeEntity updatedTrainee = traineeRepository.save(trainee);
         log.info("Updated trainee profile with ID: {}", updatedTrainee.getId());
@@ -89,41 +82,35 @@ public class TraineeService {
     }
 
     @Transactional
-    public void deleteByUsername(String username, UserCredentials credentials){
-        authenticator.authenticate(credentials);
+    public void deleteByUsername(String username){
         Optional<TraineeEntity> existingTrainee = traineeRepository.findByUsername(username);
         if(existingTrainee.isPresent()) {
-            authenticator.authorize(existingTrainee.get().getUser().getUsername(), credentials);
-            traineeRepository.deleteByUserUsername(credentials.username());
+            traineeRepository.deleteByUserUsername(existingTrainee.get().getUser().getUsername());
             log.info("Deleted by username a trainee profile with ID: {}", existingTrainee.get().getId());
         }
     }
 
     @Transactional
-    public void changeActivity(Long id, UserCredentials credentials){
-        authenticator.authenticate(credentials);
+    public void changeActivity(Long id){
         TraineeEntity trainee = traineeRepository.findById(id)
                 .orElseThrow(() -> {
                     String message = String.format("Trainee with ID %s not found", id);
                     log.warn(message);
                     return new EntityNotFoundException(message);
                 });
-        authenticator.authorize(trainee.getUser().getUsername(), credentials);
         trainee.getUser().setIsActive(!trainee.getUser().getIsActive());
         traineeRepository.save(trainee);
         log.info("Activity status changed for a trainee with ID: {}", id);
     }
 
     @Transactional
-    public Trainers updateTrainersList(Long id, UpdateTraineeTrainersRequest request, UserCredentials credentials){
-        authenticator.authenticate(credentials);
+    public Trainers updateTrainersList(Long id, UpdateTraineeTrainersRequest request){
         TraineeEntity trainee = traineeRepository.findById(id)
                 .orElseThrow(() -> {
                     String message = String.format("Trainee with ID %s not found", id);
                     log.warn(message);
                     return new EntityNotFoundException(message);
                 });
-        authenticator.authorize(trainee.getUser().getUsername(), credentials);
         Set<TrainerEntity> newTrainers = new HashSet<>(trainerRepository.findByUsernames(request.trainerUsernames()));
         trainee.getTrainers().stream()
                 .filter(oldTrainer -> !newTrainers.contains(oldTrainer))
