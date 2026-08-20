@@ -28,5 +28,6 @@
 
   <modules>
     <module>crm-service</module>
+    <module>trainer-workload-service</module>
   </modules>
 </project>
