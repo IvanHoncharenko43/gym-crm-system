@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.exception.AccessForbiddenException;
 import org.example.trainee.repository.TraineeRepository;
 import org.example.trainer.repository.TrainerRepository;
+import org.example.training.repository.TrainingRepository;
 import org.example.user.controller.dto.UserRole;
 import org.example.user.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -18,11 +19,13 @@ public class OwnershipVerifier {
     private final UserRepository userRepository;
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
+    private final TrainingRepository trainingRepository;
 
     public enum ResourceType{
         USER,
         TRAINER,
-        TRAINEE
+        TRAINEE,
+        TRAINING
     }
 
     public void verifyOwnership(String targetUsername, UserDetails userDetails){
@@ -42,6 +45,7 @@ public class OwnershipVerifier {
             case USER -> userRepository.existsByIdAndUsername(targetId, userDetails.getUsername());
             case TRAINEE -> traineeRepository.existsByIdAndUserUsername(targetId, userDetails.getUsername());
             case TRAINER -> trainerRepository.existsByIdAndUserUsername(targetId, userDetails.getUsername());
+            case TRAINING -> trainingRepository.existsByIdAndTrainerUserUsername(targetId, userDetails.getUsername());
         };
         if (!exists) {
             throw new AccessForbiddenException("Authorization failed");

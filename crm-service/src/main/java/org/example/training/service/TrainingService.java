@@ -1,8 +1,11 @@
 package org.example.training.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.core.dto.ActionType;
 import org.example.monitoring.GymCrmMetrics;
 import org.example.exception.InvalidRequestDataException;
+import org.example.trainer.controller.request.TrainerWorkloadRequest;
+import org.example.trainer.service.TrainerWorkloadAdapter;
 import org.example.training.controller.response.Trainings;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +23,8 @@ import org.example.training.repository.TrainingEntity;
 import org.example.training.repository.TrainingRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -30,6 +35,7 @@ public class TrainingService {
     private final TrainerRepository trainerRepository;
     private final GymMapper gymMapper;
     private final GymCrmMetrics gymCrmMetrics;
+    private final TrainerWorkloadAdapter trainerWorkloadAdapter;
 
     @Transactional
     public TrainingSummary create(CreateTrainingRequest request) {
@@ -54,7 +60,28 @@ public class TrainingService {
         TrainingEntity savedTraining = trainingRepository.save(training);
         log.info("Created training with ID: {}", savedTraining.getId());
         gymCrmMetrics.incrementTrainingCreated(training.getTrainingType().getTrainingTypeName().name());
+        TrainerWorkloadRequest trainerWorkloadRequest = gymMapper.toTrainerWorkloadRequest(trainer, training, ActionType.ADD);
+        trainerWorkloadAdapter.updateTrainerWorkload(trainerWorkloadRequest);
         return gymMapper.toTrainingSummary(training, trainee, trainer);
+    }
+
+    @Transactional
+    public void cancel(Long id) {
+        TrainingEntity training = trainingRepository.findById(id)
+                .orElseThrow(() -> {
+                    String message = String.format("Training with ID %s not found", id);
+                    log.warn(message);
+                    return new EntityNotFoundException(message);
+                });
+        if (training.getTrainingDate().isBefore(LocalDate.now())) {
+            String message = String.format("Cannot cancel training with ID %s as training date has already passed", id);
+            log.warn(message);
+            throw new InvalidRequestDataException(message);
+        }
+        TrainerWorkloadRequest trainerWorkloadRequest = gymMapper.toTrainerWorkloadRequest(training.getTrainer(), training, ActionType.DELETE);
+        trainerWorkloadAdapter.updateTrainerWorkload(trainerWorkloadRequest);
+        trainingRepository.delete(training);
+        log.info("Cancelled training with ID: {}", id);
     }
 
     @Transactional(readOnly = true)

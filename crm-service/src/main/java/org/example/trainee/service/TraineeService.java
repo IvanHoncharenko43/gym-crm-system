@@ -1,8 +1,13 @@
 package org.example.trainee.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.core.dto.ActionType;
 import org.example.monitoring.GymCrmMetrics;
+import org.example.trainer.controller.request.TrainerWorkloadRequest;
 import org.example.trainer.controller.response.Trainers;
+import org.example.trainer.service.TrainerWorkloadAdapter;
+import org.example.training.repository.TrainingEntity;
+import org.example.training.repository.TrainingRepository;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.exception.EntityNotFoundException;
@@ -19,6 +24,7 @@ import org.example.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -28,9 +34,11 @@ import java.util.Set;
 public class TraineeService {
     private final TraineeRepository traineeRepository;
     private final TrainerRepository trainerRepository;
+    private final TrainingRepository trainingRepository;
     private final UserRepository userRepository;
     private final GymMapper gymMapper;
     private final GymCrmMetrics gymCrmMetrics;
+    private final TrainerWorkloadAdapter trainerWorkloadAdapter;
 
     @Transactional
     public TraineeSummary create(CreateTraineeRequest request) {
@@ -85,6 +93,11 @@ public class TraineeService {
     public void deleteByUsername(String username){
         Optional<TraineeEntity> existingTrainee = traineeRepository.findByUsername(username);
         if(existingTrainee.isPresent()) {
+            List<TrainingEntity> trainings = trainingRepository.findAllByTraineeUserUsername(username);
+            for (TrainingEntity training : trainings){
+                TrainerWorkloadRequest request = gymMapper.toTrainerWorkloadRequest(training.getTrainer(), training, ActionType.DELETE);
+                trainerWorkloadAdapter.updateTrainerWorkload(request);
+            }
             traineeRepository.deleteByUserUsername(existingTrainee.get().getUser().getUsername());
             log.info("Deleted by username a trainee profile with ID: {}", existingTrainee.get().getId());
         }

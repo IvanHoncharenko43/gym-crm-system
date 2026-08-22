@@ -1,11 +1,13 @@
 package org.example.core.service;
 
 import lombok.RequiredArgsConstructor;
+import org.example.core.dto.ActionType;
 import org.example.trainee.controller.request.CreateTraineeRequest;
 import org.example.trainee.controller.response.TraineeSummary;
 import org.example.trainee.controller.request.UpdateTraineeRequest;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainer.controller.request.CreateTrainerRequest;
+import org.example.trainer.controller.request.TrainerWorkloadRequest;
 import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.request.UpdateTrainerRequest;
 import org.example.trainer.repository.TrainerEntity;
@@ -86,6 +88,17 @@ public class GymMapper {
                         trainer.getUser().getUsername()
                 ),
                 trainer.getSpecialization().getTrainingTypeName()
+        );
+    }
+
+    public TrainerWorkloadRequest toTrainerWorkloadRequest(TrainerEntity trainer, TrainingEntity training, ActionType actionType){
+        return new TrainerWorkloadRequest(
+                trainer.getUser().getUsername(),
+                new FullName(trainer.getUser().getFirstName(), trainer.getUser().getLastName()),
+                trainer.getUser().getIsActive(),
+                training.getTrainingDate(),
+                training.getDurationMinutes(),
+                actionType
         );
     }
 

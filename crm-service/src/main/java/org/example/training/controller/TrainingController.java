@@ -20,12 +20,7 @@ import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @Tag(name = "Trainings", description = "Operations related to gym trainings")
@@ -60,6 +55,17 @@ public class TrainingController {
         log.info("POST /api/v1/trainings endpoint called");
         ownershipVerifier.verifyOwnership(request.trainerUsername(), userDetails);
         return trainingService.create(request);
+    }
+
+    @Operation(summary = "Cancel a training", description = "Cancels an existing training by ID")
+    @ApiResponse(responseCode = "200", description = "Cancelled the training")
+    @PreAuthorize("hasAnyRole('TRAINER', 'ADMIN')")
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public void cancelTraining(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
+        log.info("DELETE /api/v1/trainings/{} endpoint called", id);
+        ownershipVerifier.verifyOwnership(id, userDetails, OwnershipVerifier.ResourceType.TRAINING);
+        trainingService.cancel(id);
     }
 
     @Operation(summary = "Get training types", description = "Returns a list of all training types")
