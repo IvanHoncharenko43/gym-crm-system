@@ -79,9 +79,9 @@ public class TrainingService {
             throw new InvalidRequestDataException(message);
         }
         TrainerWorkloadRequest trainerWorkloadRequest = gymMapper.toTrainerWorkloadRequest(training.getTrainer(), training, ActionType.DELETE);
-        trainerWorkloadAdapter.updateTrainerWorkload(trainerWorkloadRequest);
         trainingRepository.delete(training);
         log.info("Cancelled training with ID: {}", id);
+        trainerWorkloadAdapter.updateTrainerWorkload(trainerWorkloadRequest);
     }
 
     @Transactional(readOnly = true)
