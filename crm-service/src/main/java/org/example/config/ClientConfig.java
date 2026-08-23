@@ -32,8 +32,8 @@ public class ClientConfig {
     @LoadBalanced
     public RestClient.Builder loadBalancedRestClientBuilder() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(Duration.ofSeconds(2));
-        factory.setReadTimeout(Duration.ofSeconds(5));
+        factory.setConnectTimeout(Duration.ofSeconds(clientConfigurationProperties.connectTimeout()));
+        factory.setReadTimeout(Duration.ofSeconds(clientConfigurationProperties.readTimeout()));
         return RestClient.builder()
                 .requestFactory(factory);
     }
