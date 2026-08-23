@@ -1,7 +1,7 @@
 package org.example.workload.config;
 
 import lombok.RequiredArgsConstructor;
-import org.example.workload.security.filter.JwtAuthenticationFilter;
+import org.example.workload.filter.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;

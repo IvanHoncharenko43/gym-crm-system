@@ -42,14 +42,17 @@ public class TrainerWorkloadController {
                     implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "Workload Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "409", description = "Invalid State Transition", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
     })
     @PreAuthorize("hasAnyRole('TRAINER', 'ADMIN')")
     @PostMapping
     @ResponseStatus(HttpStatus.OK)
     public void updateWorkload(@Valid @RequestBody TrainerWorkloadRequest request){
-        switch (request.actionType()){
-            case ADD -> trainerWorkloadService.addWorkload(request);
-            case DELETE -> trainerWorkloadService.deleteWorkload(request);
-        }
+        log.info("POST /api/v1/trainers/workloads endpoint called");
+        trainerWorkloadService.updateWorkload(request);
+        log.info("POST /api/v1/trainers/workloads endpoint executed");
     }
 }
