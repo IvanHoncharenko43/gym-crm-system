@@ -9,12 +9,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.workload.controller.dto.TrainerWorkloadRequest;
+import org.example.workload.controller.dto.request.TrainerWorkloadRequest;
+import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
+import org.example.workload.controller.dto.request.WorkloadQuery;
 import org.example.workload.service.TrainerWorkloadService;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -44,7 +48,7 @@ public class TrainerWorkloadController {
                     implementation = ProblemDetail.class))),
             @ApiResponse(responseCode = "404", description = "Workload Not Found", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
-            @ApiResponse(responseCode = "409", description = "Invalid State Transition", content = @Content(schema = @Schema(
+            @ApiResponse(responseCode = "409", description = "Conflict", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
     })
     @PreAuthorize("hasAnyRole('TRAINER', 'ADMIN')")
@@ -54,5 +58,27 @@ public class TrainerWorkloadController {
         log.info("POST /api/v1/trainers/workloads endpoint called");
         trainerWorkloadService.updateWorkload(request);
         log.info("POST /api/v1/trainers/workloads endpoint executed");
+    }
+
+    @Operation(summary = "Get a trainer's monthly training summary", description = "Returns a trainer's total training duration for a given month and year")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Trainer's monthly workload summary"),
+            @ApiResponse(responseCode = "400", description = "Invalid Request", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "Workload Not Found", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+    })
+    @PreAuthorize("hasAnyRole('TRAINER', 'ADMIN')")
+    @GetMapping
+    @ResponseStatus(HttpStatus.OK)
+    public TrainerWorkloadSummary getWorkload(@Valid @ParameterObject WorkloadQuery query) {
+        log.info("GET /api/v1/trainers/workloads endpoint");
+        TrainerWorkloadSummary response = trainerWorkloadService.getMonthlySummary(query);
+        log.info("GET /api/v1/trainers/workloads endpoint executed");
+        return response;
     }
 }

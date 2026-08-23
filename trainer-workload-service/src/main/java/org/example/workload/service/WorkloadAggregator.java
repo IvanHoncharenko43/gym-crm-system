@@ -1,7 +1,7 @@
 package org.example.workload.service;
 
 import org.example.workload.controller.dto.ActionType;
-import org.example.workload.controller.dto.TrainerWorkloadRequest;
+import org.example.workload.controller.dto.request.TrainerWorkloadRequest;
 import org.example.workload.exception.InvalidStateTransitionException;
 import org.example.workload.exception.WorkloadNotFoundException;
 import org.example.workload.repository.MonthWorkloadEntity;
