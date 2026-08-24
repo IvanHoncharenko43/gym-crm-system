@@ -32,16 +32,16 @@ public class JwtService {
                 .toList();
     }
 
+    public boolean isTokenExpired(String token){
+        return extractAllClaims(token).getExpiration().before(new Date());
+    }
+
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSignInKey())
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-    }
-
-    public boolean isTokenExpired(String token){
-        return extractAllClaims(token).getExpiration().before(new Date());
     }
 
     private SecretKey getSignInKey() {

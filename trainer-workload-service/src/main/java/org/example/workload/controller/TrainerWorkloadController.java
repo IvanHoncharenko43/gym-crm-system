@@ -51,7 +51,7 @@ public class TrainerWorkloadController {
             @ApiResponse(responseCode = "409", description = "Conflict", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
     })
-    @PreAuthorize("hasAnyRole('TRAINER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TRAINER', 'TRAINEE', 'ADMIN')")
     @PostMapping
     @ResponseStatus(HttpStatus.OK)
     public void updateWorkload(@Valid @RequestBody TrainerWorkloadRequest request){
@@ -72,7 +72,7 @@ public class TrainerWorkloadController {
             @ApiResponse(responseCode = "404", description = "Workload Not Found", content = @Content(schema = @Schema(
                     implementation = ProblemDetail.class))),
     })
-    @PreAuthorize("hasAnyRole('TRAINER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('TRAINER', 'TRAINEE', 'ADMIN')")
     @GetMapping
     @ResponseStatus(HttpStatus.OK)
     public TrainerWorkloadSummary getWorkload(@Valid @ParameterObject WorkloadQuery query) {
