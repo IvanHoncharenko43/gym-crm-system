@@ -1,12 +1,14 @@
 package org.example.core;
 
 import org.example.TestUtils;
+import org.example.core.dto.ActionType;
 import org.example.core.service.GymMapper;
 import org.example.trainee.controller.request.CreateTraineeRequest;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainee.controller.response.TraineeSummary;
 import org.example.trainee.controller.request.UpdateTraineeRequest;
 import org.example.trainer.controller.request.CreateTrainerRequest;
+import org.example.trainer.controller.request.TrainerWorkloadRequest;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.request.UpdateTrainerRequest;
@@ -150,6 +152,40 @@ public class GymMapperTest {
 
         assertNotNull(response.specialization());
         assertEquals(trainer.getSpecialization().getTrainingTypeName(), response.specialization());
+    }
+
+    @Test
+    void toTrainerWorkloadRequest_MapCorrectly_FromTrainerAndTrainingAndActionTypeAdd() {
+        TrainerEntity trainer = TestUtils.getTrainer();
+        TrainingEntity training = TestUtils.getTraining();
+
+        TrainerWorkloadRequest request = gymMapper.toTrainerWorkloadRequest(trainer, training, ActionType.ADD);
+
+        assertNotNull(request);
+        assertEquals(trainer.getUser().getUsername(), request.username());
+        assertEquals(trainer.getUser().getFirstName(), request.fullName().firstName());
+        assertEquals(trainer.getUser().getLastName(), request.fullName().lastName());
+        assertEquals(trainer.getUser().getIsActive(), request.isActive());
+        assertEquals(training.getTrainingDate(), request.trainingDate());
+        assertEquals(training.getDurationMinutes(), request.trainingSummaryDurationMinutes());
+        assertEquals(ActionType.ADD, request.actionType());
+    }
+
+    @Test
+    void toTrainerWorkloadRequest_MapCorrectly_FromTrainerAndTrainingAndActionTypeDelete() {
+        TrainerEntity trainer = TestUtils.getTrainer();
+        TrainingEntity training = TestUtils.getTraining();
+
+        TrainerWorkloadRequest request = gymMapper.toTrainerWorkloadRequest(trainer, training, ActionType.DELETE);
+
+        assertNotNull(request);
+        assertEquals(trainer.getUser().getUsername(), request.username());
+        assertEquals(trainer.getUser().getFirstName(), request.fullName().firstName());
+        assertEquals(trainer.getUser().getLastName(), request.fullName().lastName());
+        assertEquals(trainer.getUser().getIsActive(), request.isActive());
+        assertEquals(training.getTrainingDate(), request.trainingDate());
+        assertEquals(training.getDurationMinutes(), request.trainingSummaryDurationMinutes());
+        assertEquals(ActionType.DELETE, request.actionType());
     }
 
     @Test

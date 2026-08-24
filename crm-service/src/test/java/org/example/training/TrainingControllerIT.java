@@ -3,6 +3,9 @@ package org.example.training;
 import io.restassured.module.mockmvc.RestAssuredMockMvc;
 import org.example.TestUtils;
 import org.example.config.SecurityConfig;
+import org.example.exception.AccessForbiddenException;
+import org.example.exception.EntityNotFoundException;
+import org.example.exception.InvalidRequestDataException;
 import org.example.security.service.JwtService;
 import org.example.security.service.OwnershipVerifier;
 import org.example.security.service.TokenBlackListService;
@@ -264,6 +267,95 @@ class TrainingControllerIT {
                 .status(HttpStatus.UNAUTHORIZED)
                 .body("title", equalTo("Authentication Failure"))
                 .body("detail", equalTo("Authentication token is missing"));
+    }
+
+    @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = {"TRAINER"})
+    void cancelTraining_Return200_RequestIsValid() {
+        given()
+                .when()
+                .delete("/api/v1/trainings/{id}", TestUtils.TRAINING_ID)
+                .then()
+                .status(HttpStatus.OK);
+        verify(ownershipVerifier, times(1)).verifyOwnership(TestUtils.TRAINING_ID, USER_DETAILS, OwnershipVerifier.ResourceType.TRAINING);
+        verify(trainingService, times(1)).cancel(TestUtils.TRAINING_ID);
+    }
+
+    @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = {"TRAINER"})
+    void cancelTraining_Return400AndProblemDetail_TrainingDateHasAlreadyPassed() {
+        doThrow(new InvalidRequestDataException("Cannot cancel training with ID 1 as training date has already passed"))
+                .when(trainingService).cancel(TestUtils.TRAINING_ID);
+
+        given()
+                .when()
+                .delete("/api/v1/trainings/{id}", TestUtils.TRAINING_ID)
+                .then()
+                .status(HttpStatus.BAD_REQUEST)
+                .body("title", equalTo("Invalid Request Data"))
+                .body("detail", equalTo("Cannot cancel training with ID 1 as training date has already passed"));
+
+        verify(ownershipVerifier, times(1)).verifyOwnership(TestUtils.TRAINING_ID, USER_DETAILS, OwnershipVerifier.ResourceType.TRAINING);
+        verify(trainingService, times(1)).cancel(TestUtils.TRAINING_ID);
+    }
+
+    @Test
+    @WithAnonymousUser
+    void cancelTraining_Return401AndProblemDetail_UserIsUnauthenticated() {
+        given()
+                .when()
+                .delete("/api/v1/trainings/{id}", TestUtils.TRAINING_ID)
+                .then()
+                .status(HttpStatus.UNAUTHORIZED)
+                .body("title", equalTo("Authentication Failure"))
+                .body("detail", equalTo("Authentication token is missing"));
+        verify(trainingService, never()).cancel(any());
+    }
+
+    @Test
+    @WithMockUser(username = TRAINEE_USERNAME, password = TRAINEE_PASSWORD, roles = {"TRAINEE"})
+    void cancelTraining_Return403AndProblemDetail_UserRoleIsInvalid() {
+        given()
+                .when()
+                .delete("/api/v1/trainings/{id}", TestUtils.TRAINING_ID)
+                .then()
+                .status(HttpStatus.FORBIDDEN)
+                .body("title", equalTo("Authorization Failure"))
+                .body("detail", equalTo("Not enough rights to access the resource"));
+        verify(trainingService, never()).cancel(any());
+    }
+
+    @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = {"TRAINER"})
+    void cancelTraining_Return403AndProblemDetail_UserIsNotOwner() {
+        doThrow(new AccessForbiddenException("Authorization failed"))
+                .when(ownershipVerifier).verifyOwnership(TestUtils.TRAINING_ID, USER_DETAILS, OwnershipVerifier.ResourceType.TRAINING);
+
+        given()
+                .when()
+                .delete("/api/v1/trainings/{id}", TestUtils.TRAINING_ID)
+                .then()
+                .status(HttpStatus.FORBIDDEN)
+                .body("title", equalTo("Authorization Failure"))
+                .body("detail", equalTo("Authorization failed"));
+        verify(trainingService, never()).cancel(any());
+    }
+
+    @Test
+    @WithMockUser(username = TRAINER_USERNAME, password = TRAINER_PASSWORD, roles = {"TRAINER"})
+    void cancelTraining_Return404AndProblemDetail_TrainingNotFound() {
+        doThrow(new EntityNotFoundException("Training with ID 1 not found"))
+                .when(trainingService).cancel(TestUtils.TRAINING_ID);
+
+        given()
+                .when()
+                .delete("/api/v1/trainings/{id}", TestUtils.TRAINING_ID)
+                .then()
+                .status(HttpStatus.NOT_FOUND)
+                .body("title", equalTo("Entity Not Found"))
+                .body("detail", equalTo("Training with ID 1 not found"));
+        verify(ownershipVerifier, times(1)).verifyOwnership(TestUtils.TRAINING_ID, USER_DETAILS, OwnershipVerifier.ResourceType.TRAINING);
+        verify(trainingService, times(1)).cancel(TestUtils.TRAINING_ID);
     }
 
     @Test

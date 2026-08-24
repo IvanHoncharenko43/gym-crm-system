@@ -1,13 +1,18 @@
 package org.example.trainee;
 
 import org.example.TestUtils;
+import org.example.core.dto.ActionType;
 import org.example.exception.EntityNotFoundException;
 import org.example.monitoring.GymCrmMetrics;
 import org.example.trainee.controller.request.UpdateTraineeTrainersRequest;
+import org.example.trainer.controller.request.TrainerWorkloadRequest;
 import org.example.trainer.controller.response.TrainerSummary;
 import org.example.trainer.controller.response.Trainers;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.trainer.repository.TrainerRepository;
+import org.example.trainer.service.TrainerWorkloadAdapter;
+import org.example.training.repository.TrainingEntity;
+import org.example.training.repository.TrainingRepository;
 import org.example.user.controller.dto.FullName;
 import org.example.core.service.GymMapper;
 import org.example.user.controller.dto.UserProfile;
@@ -51,6 +56,12 @@ public class TraineeServiceTest {
 
     @Mock
     private GymCrmMetrics gymCrmMetrics;
+
+    @Mock
+    private TrainingRepository trainingRepository;
+
+    @Mock
+    private TrainerWorkloadAdapter trainerWorkloadAdapter;
 
     @InjectMocks
     private TraineeService traineeService;
@@ -213,16 +224,70 @@ public class TraineeServiceTest {
     }
 
     @Test
-    void deleteByUsername_Delete_TraineeExists() {
+    void deleteByUsername_DeleteAndNotifyWorkloadService_TraineeHasTrainings() {
+        TraineeEntity trainee = new TraineeEntity();
+        trainee.setUser(new UserEntity());
+        trainee.getUser().setUsername(USERNAME);
+        TrainerEntity trainer = new TrainerEntity();
+        trainer.setId(1L);
+        TrainingEntity training1 = new TrainingEntity();
+        training1.setId(1L);
+        training1.setTrainer(trainer);
+        TrainingEntity training2 = new TrainingEntity();
+        training2.setId(2L);
+        training2.setTrainer(trainer);
+        List<TrainingEntity> trainings = List.of(training1, training2);
+        TrainerWorkloadRequest workloadRequest1 = new TrainerWorkloadRequest(
+                "Trainer.Doe", new FullName("Jane", "Smith"), true,
+                LocalDate.of(2026, 5, 12), 45, ActionType.DELETE
+        );
+        TrainerWorkloadRequest workloadRequest2 = new TrainerWorkloadRequest(
+                "Trainer.Doe", new FullName("Jane", "Smith"), true,
+                LocalDate.of(2026, 6, 1), 60, ActionType.DELETE
+        );
+
+        when(traineeRepository.findByUsername(USERNAME)).thenReturn(Optional.of(trainee));
+        when(trainingRepository.findAllByTraineeUserUsername(USERNAME)).thenReturn(trainings);
+        when(gymMapper.toTrainerWorkloadRequest(trainer, training1, ActionType.DELETE)).thenReturn(workloadRequest1);
+        when(gymMapper.toTrainerWorkloadRequest(trainer, training2, ActionType.DELETE)).thenReturn(workloadRequest2);
+
+        traineeService.deleteByUsername(USERNAME);
+
+        verify(traineeRepository, times(1)).findByUsername(USERNAME);
+        verify(trainingRepository, times(1)).findAllByTraineeUserUsername(USERNAME);
+        verify(gymMapper, times(1)).toTrainerWorkloadRequest(trainer, training1, ActionType.DELETE);
+        verify(gymMapper, times(1)).toTrainerWorkloadRequest(trainer, training2, ActionType.DELETE);
+        verify(trainerWorkloadAdapter, times(1)).updateTrainerWorkload(workloadRequest1);
+        verify(trainerWorkloadAdapter, times(1)).updateTrainerWorkload(workloadRequest2);
+        verify(traineeRepository, times(1)).deleteByUserUsername(USERNAME);
+    }
+
+    @Test
+    void deleteByUsername_DeleteWithoutNotifyingWorkloadService_TraineeHasNoTrainings() {
         TraineeEntity trainee = new TraineeEntity();
         trainee.setUser(new UserEntity());
         trainee.getUser().setUsername(USERNAME);
 
         when(traineeRepository.findByUsername(USERNAME)).thenReturn(Optional.of(trainee));
+        when(trainingRepository.findAllByTraineeUserUsername(USERNAME)).thenReturn(List.of());
 
         traineeService.deleteByUsername(USERNAME);
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
+        verify(trainingRepository, times(1)).findAllByTraineeUserUsername(USERNAME);
+        verify(trainerWorkloadAdapter, never()).updateTrainerWorkload(any());
         verify(traineeRepository, times(1)).deleteByUserUsername(USERNAME);
+    }
+
+    @Test
+    void deleteByUsername_DoNothing_TraineeDoesNotExist() {
+        when(traineeRepository.findByUsername(USERNAME)).thenReturn(Optional.empty());
+
+        traineeService.deleteByUsername(USERNAME);
+
+        verify(traineeRepository, times(1)).findByUsername(USERNAME);
+        verify(trainingRepository, never()).findAllByTraineeUserUsername(anyString());
+        verify(trainerWorkloadAdapter, never()).updateTrainerWorkload(any());
+        verify(traineeRepository, never()).deleteByUserUsername(anyString());
     }
 
     @Test

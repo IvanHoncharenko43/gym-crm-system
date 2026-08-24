@@ -1,6 +1,7 @@
 package org.example.training;
 
 import org.example.TestUtils;
+import org.example.core.dto.ActionType;
 import org.example.exception.EntityNotFoundException;
 import org.example.core.service.GymMapper;
 import org.example.exception.InvalidRequestDataException;
@@ -9,8 +10,10 @@ import org.example.trainee.controller.request.GetTraineeTrainingsRequest;
 import org.example.trainee.repository.TraineeEntity;
 import org.example.trainee.repository.TraineeRepository;
 import org.example.trainer.controller.request.GetTrainerTrainingsRequest;
+import org.example.trainer.controller.request.TrainerWorkloadRequest;
 import org.example.trainer.repository.TrainerEntity;
 import org.example.trainer.repository.TrainerRepository;
+import org.example.trainer.service.TrainerWorkloadAdapter;
 import org.example.training.controller.request.CreateTrainingRequest;
 import org.example.training.controller.response.TrainingSummary;
 import org.example.trainingType.dto.TrainingType;
@@ -19,6 +22,7 @@ import org.example.training.repository.TrainingEntity;
 import org.example.training.repository.TrainingRepository;
 import org.example.training.service.TrainingService;
 import org.example.trainingType.repository.TrainingTypeEntity;
+import org.example.user.controller.dto.FullName;
 import org.example.user.repository.UserEntity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -57,6 +61,9 @@ public class TrainingServiceTest {
     @Mock
     private GymCrmMetrics gymCrmMetrics;
 
+    @Mock
+    private TrainerWorkloadAdapter trainerWorkloadAdapter;
+
     @InjectMocks
     private TrainingService trainingService;
 
@@ -85,11 +92,16 @@ public class TrainingServiceTest {
                 TrainingType.CARDIO,
                 LocalDate.of(2026, 5, 12), 45
         );
+        TrainerWorkloadRequest workloadRequest = new TrainerWorkloadRequest(
+                TRAINER_USERNAME, new FullName("John", "Doe"), true,
+                LocalDate.of(2026, 5, 12), 45, ActionType.ADD
+        );
 
         when(traineeRepository.findByUsername(TRAINEE_USERNAME)).thenReturn(Optional.of(trainee));
         when(trainerRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(trainer));
         when(gymMapper.toTraining(request, trainee, trainer)).thenReturn(training);
         when(trainingRepository.save(training)).thenReturn(training);
+        when(gymMapper.toTrainerWorkloadRequest(trainer, training, ActionType.ADD)).thenReturn(workloadRequest);
         when(gymMapper.toTrainingSummary(training, trainee, trainer)).thenReturn(expectedResponse);
 
         trainingService.create(request);
@@ -98,6 +110,8 @@ public class TrainingServiceTest {
         verify(trainerRepository, times(1)).findByUsername(TRAINER_USERNAME);
         verify(gymMapper, times(1)).toTraining(request, trainee, trainer);
         verify(trainingRepository, times(1)).save(training);
+        verify(gymMapper, times(1)).toTrainerWorkloadRequest(trainer, training, ActionType.ADD);
+        verify(trainerWorkloadAdapter, times(1)).updateTrainerWorkload(workloadRequest);
         verify(gymMapper, times(1)).toTrainingSummary(training, trainee, trainer);
     }
 
@@ -179,6 +193,57 @@ public class TrainingServiceTest {
         verify(traineeRepository, times(1)).findByUsername(TRAINEE_USERNAME);
         verify(trainerRepository, times(1)).findByUsername(TRAINER_USERNAME);
         verify(trainingRepository, never()).save(any());
+    }
+
+    @Test
+    void cancel_DeleteTrainingAndNotifyWorkloadService_TrainingExistsAndDateIsInFuture() {
+        TrainerEntity trainer = new TrainerEntity();
+        trainer.setId(TRAINER_ID);
+        TrainingEntity training = new TrainingEntity();
+        training.setId(TRAINING_ID);
+        training.setTrainer(trainer);
+        training.setTrainingDate(LocalDate.now().plusDays(7));
+        TrainerWorkloadRequest workloadRequest = new TrainerWorkloadRequest(
+                TRAINER_USERNAME, new FullName("John", "Doe"), true,
+                training.getTrainingDate(), 45, ActionType.DELETE
+        );
+
+        when(trainingRepository.findById(TRAINING_ID)).thenReturn(Optional.of(training));
+        when(gymMapper.toTrainerWorkloadRequest(trainer, training, ActionType.DELETE)).thenReturn(workloadRequest);
+
+        trainingService.cancel(TRAINING_ID);
+        verify(trainingRepository, times(1)).findById(TRAINING_ID);
+        verify(gymMapper, times(1)).toTrainerWorkloadRequest(trainer, training, ActionType.DELETE);
+        verify(trainingRepository, times(1)).delete(training);
+        verify(trainerWorkloadAdapter, times(1)).updateTrainerWorkload(workloadRequest);
+    }
+
+    @Test
+    void cancel_ThrowEntityNotFoundException_TrainingDoesNotExist() {
+        when(trainingRepository.findById(TRAINING_ID)).thenReturn(Optional.empty());
+
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> trainingService.cancel(TRAINING_ID));
+        assertTrue(exception.getMessage().contains("Training"));
+        verify(trainingRepository, times(1)).findById(TRAINING_ID);
+        verify(trainingRepository, never()).delete(any());
+        verify(trainerWorkloadAdapter, never()).updateTrainerWorkload(any());
+    }
+
+    @Test
+    void cancel_ThrowInvalidRequestDataException_TrainingDateHasAlreadyPassed() {
+        TrainingEntity training = new TrainingEntity();
+        training.setId(TRAINING_ID);
+        training.setTrainingDate(LocalDate.now().minusDays(1));
+
+        when(trainingRepository.findById(TRAINING_ID)).thenReturn(Optional.of(training));
+
+        InvalidRequestDataException exception = assertThrows(InvalidRequestDataException.class,
+                () -> trainingService.cancel(TRAINING_ID));
+        assertTrue(exception.getMessage().contains("already passed"));
+        verify(trainingRepository, times(1)).findById(TRAINING_ID);
+        verify(trainingRepository, never()).delete(any());
+        verify(trainerWorkloadAdapter, never()).updateTrainerWorkload(any());
     }
 
     @Test
