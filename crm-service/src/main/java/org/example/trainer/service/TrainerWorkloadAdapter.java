@@ -6,7 +6,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.trainer.controller.TrainerWorkloadClient;
 import org.example.trainer.controller.request.TrainerWorkloadRequest;
-import org.slf4j.MDC;
 import org.springframework.stereotype.Service;
 
 @Slf4j
@@ -25,10 +24,6 @@ public class TrainerWorkloadAdapter {
     }
 
     private void updateTrainerWorkloadFallback(TrainerWorkloadRequest request, Throwable throwable){
-        String transactionId = MDC.get("traceId");
-        log.error("[TxID: {}] Circuit breaker tripped for Workload Service. Reason: {}",
-                transactionId, throwable.getMessage());
-        log.warn("[TxID: {}] Workload out of sync. Proceeding without external update. Payload: {}",
-                transactionId, request);
+        log.warn("Trainer workload service out of sync");
     }
 }
