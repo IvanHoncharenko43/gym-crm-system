@@ -26,7 +26,7 @@ public class JwtService {
     }
 
     public List<SimpleGrantedAuthority> extractAuthorities(String jwt){
-        List<String> authorities = extractAllClaims(jwt).get("roles", List.class); // extract roles in confProp
+        List<String> authorities = extractAllClaims(jwt).get(jwtProperties.rolesClaim(), List.class);
         return authorities.stream()
                 .map(SimpleGrantedAuthority::new)
                 .toList();

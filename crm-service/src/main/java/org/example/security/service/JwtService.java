@@ -33,7 +33,7 @@ public class JwtService {
                 .map(GrantedAuthority::getAuthority)
                 .toList();
         Map<String, Object> extraClaims = new HashMap<>();
-        extraClaims.put("roles", roles);
+        extraClaims.put(jwtProperties.rolesClaim(), roles);
         return generateToken(extraClaims, userDetails);
     }
 
