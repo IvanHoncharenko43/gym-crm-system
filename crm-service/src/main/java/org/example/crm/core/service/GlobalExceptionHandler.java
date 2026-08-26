@@ -3,6 +3,7 @@ package org.example.crm.core.service;
 import jakarta.annotation.Nullable;
 import jakarta.validation.ConstraintViolationException;
 import org.example.crm.exception.*;
+import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
@@ -19,6 +20,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
@@ -146,6 +148,27 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
                 HttpStatus.FORBIDDEN, exception.getMessage()
         );
         problemDetail.setTitle("Authorization Failure");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(HttpClientErrorException.class)
+    public ProblemDetail handleHttpClientErrorException(HttpClientErrorException exception) {
+        ProblemDetail problemDetail;
+        try {
+            problemDetail = exception.getResponseBodyAs(ProblemDetail.class);
+        } catch (Exception e) {
+            problemDetail = null;
+        }
+        if (problemDetail == null) {
+            problemDetail = ProblemDetail.forStatusAndDetail(
+                    exception.getStatusCode(), exception.getMessage()
+            );
+            problemDetail.setTitle("Invalid Downstream Request");
+        }
+        String traceId = MDC.get("traceId");
+        if (traceId != null) {
+            problemDetail.setProperty("traceId", traceId);
+        }
         return problemDetail;
     }
 
