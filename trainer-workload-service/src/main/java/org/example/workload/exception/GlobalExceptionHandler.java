@@ -137,14 +137,14 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return tagWithTraceId(problemDetail);
     }
 
-    @ExceptionHandler(Exception.class)
-    public ProblemDetail handleException(Exception exception) {
+    @ExceptionHandler(Throwable.class)
+    public ProblemDetail handleException(Throwable throwable) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"
         );
         problemDetail.setTitle("Internal Server Error");
 
-        log.error("Unhandled exception resolved to status {}", HttpStatus.INTERNAL_SERVER_ERROR, exception);
+        log.error("Unhandled exception resolved to status {}", HttpStatus.INTERNAL_SERVER_ERROR, throwable);
         return tagWithTraceId(problemDetail);
     }
 

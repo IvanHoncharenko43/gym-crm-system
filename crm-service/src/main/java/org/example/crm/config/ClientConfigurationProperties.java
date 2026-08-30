@@ -4,8 +4,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 
 @ConfigurationProperties(prefix = "client.services")
 public record ClientConfigurationProperties(
-        String workloadId,
-        Long connectTimeout,
-        Long readTimeout
+        String workloadId
 ) {
 }

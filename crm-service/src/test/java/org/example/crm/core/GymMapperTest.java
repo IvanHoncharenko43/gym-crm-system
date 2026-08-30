@@ -8,7 +8,7 @@ import org.example.crm.trainee.repository.TraineeEntity;
 import org.example.crm.trainee.controller.response.TraineeSummary;
 import org.example.crm.trainee.controller.request.UpdateTraineeRequest;
 import org.example.crm.trainer.controller.request.CreateTrainerRequest;
-import org.example.crm.trainer.controller.request.TrainerWorkloadRequest;
+import org.example.crm.trainer.client.dto.request.TrainerWorkloadRequest;
 import org.example.crm.trainer.repository.TrainerEntity;
 import org.example.crm.trainer.controller.response.TrainerSummary;
 import org.example.crm.trainer.controller.request.UpdateTrainerRequest;

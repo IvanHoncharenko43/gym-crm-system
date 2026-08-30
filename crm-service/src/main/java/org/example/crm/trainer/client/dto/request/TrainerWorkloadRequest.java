@@ -1,4 +1,4 @@
-package org.example.crm.trainer.controller.request;
+package org.example.crm.trainer.client.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;

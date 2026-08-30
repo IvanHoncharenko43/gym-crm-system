@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.crm.core.dto.ActionType;
 import org.example.crm.monitoring.GymCrmMetrics;
 import org.example.crm.exception.InvalidRequestDataException;
-import org.example.crm.trainer.controller.request.TrainerWorkloadRequest;
-import org.example.crm.trainer.service.TrainerWorkloadAdapter;
+import org.example.crm.trainer.client.dto.request.TrainerWorkloadRequest;
+import org.example.crm.trainer.service.TrainerWorkloadGateway;
 import org.example.crm.training.controller.response.Trainings;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +35,7 @@ public class TrainingService {
     private final TrainerRepository trainerRepository;
     private final GymMapper gymMapper;
     private final GymCrmMetrics gymCrmMetrics;
-    private final TrainerWorkloadAdapter trainerWorkloadAdapter;
+    private final TrainerWorkloadGateway trainerWorkloadGateway;
 
     @Transactional
     public TrainingSummary create(CreateTrainingRequest request) {
@@ -61,7 +61,7 @@ public class TrainingService {
         log.info("Created training with ID: {}", savedTraining.getId());
         gymCrmMetrics.incrementTrainingCreated(training.getTrainingType().getTrainingTypeName().name());
         TrainerWorkloadRequest trainerWorkloadRequest = gymMapper.toTrainerWorkloadRequest(trainer, training, ActionType.ADD);
-        trainerWorkloadAdapter.updateTrainerWorkload(trainerWorkloadRequest);
+        trainerWorkloadGateway.updateTrainerWorkload(trainerWorkloadRequest);
         return gymMapper.toTrainingSummary(training, trainee, trainer);
     }
 
@@ -81,7 +81,7 @@ public class TrainingService {
         TrainerWorkloadRequest trainerWorkloadRequest = gymMapper.toTrainerWorkloadRequest(training.getTrainer(), training, ActionType.DELETE);
         trainingRepository.delete(training);
         log.info("Cancelled training with ID: {}", id);
-        trainerWorkloadAdapter.updateTrainerWorkload(trainerWorkloadRequest);
+        trainerWorkloadGateway.updateTrainerWorkload(trainerWorkloadRequest);
     }
 
     @Transactional(readOnly = true)

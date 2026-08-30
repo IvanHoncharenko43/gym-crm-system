@@ -5,12 +5,12 @@ import org.example.crm.core.dto.ActionType;
 import org.example.crm.exception.EntityNotFoundException;
 import org.example.crm.monitoring.GymCrmMetrics;
 import org.example.crm.trainee.controller.request.UpdateTraineeTrainersRequest;
-import org.example.crm.trainer.controller.request.TrainerWorkloadRequest;
+import org.example.crm.trainer.client.dto.request.TrainerWorkloadRequest;
 import org.example.crm.trainer.controller.response.TrainerSummary;
 import org.example.crm.trainer.controller.response.Trainers;
 import org.example.crm.trainer.repository.TrainerEntity;
 import org.example.crm.trainer.repository.TrainerRepository;
-import org.example.crm.trainer.service.TrainerWorkloadAdapter;
+import org.example.crm.trainer.service.TrainerWorkloadGateway;
 import org.example.crm.training.repository.TrainingEntity;
 import org.example.crm.training.repository.TrainingRepository;
 import org.example.crm.user.controller.dto.FullName;
@@ -61,7 +61,7 @@ public class TraineeServiceTest {
     private TrainingRepository trainingRepository;
 
     @Mock
-    private TrainerWorkloadAdapter trainerWorkloadAdapter;
+    private TrainerWorkloadGateway trainerWorkloadGateway;
 
     @InjectMocks
     private TraineeService traineeService;
@@ -257,8 +257,8 @@ public class TraineeServiceTest {
         verify(trainingRepository, times(1)).findAllByTraineeUserUsername(USERNAME);
         verify(gymMapper, times(1)).toTrainerWorkloadRequest(trainer, training1, ActionType.DELETE);
         verify(gymMapper, times(1)).toTrainerWorkloadRequest(trainer, training2, ActionType.DELETE);
-        verify(trainerWorkloadAdapter, times(1)).updateTrainerWorkload(workloadRequest1);
-        verify(trainerWorkloadAdapter, times(1)).updateTrainerWorkload(workloadRequest2);
+        verify(trainerWorkloadGateway, times(1)).updateTrainerWorkload(workloadRequest1);
+        verify(trainerWorkloadGateway, times(1)).updateTrainerWorkload(workloadRequest2);
         verify(traineeRepository, times(1)).deleteByUserUsername(USERNAME);
     }
 
@@ -274,7 +274,7 @@ public class TraineeServiceTest {
         traineeService.deleteByUsername(USERNAME);
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
         verify(trainingRepository, times(1)).findAllByTraineeUserUsername(USERNAME);
-        verify(trainerWorkloadAdapter, never()).updateTrainerWorkload(any());
+        verify(trainerWorkloadGateway, never()).updateTrainerWorkload(any());
         verify(traineeRepository, times(1)).deleteByUserUsername(USERNAME);
     }
 
@@ -286,7 +286,7 @@ public class TraineeServiceTest {
 
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
         verify(trainingRepository, never()).findAllByTraineeUserUsername(anyString());
-        verify(trainerWorkloadAdapter, never()).updateTrainerWorkload(any());
+        verify(trainerWorkloadGateway, never()).updateTrainerWorkload(any());
         verify(traineeRepository, never()).deleteByUserUsername(anyString());
     }
 

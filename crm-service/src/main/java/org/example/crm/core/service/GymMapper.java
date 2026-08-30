@@ -6,8 +6,10 @@ import org.example.crm.trainee.controller.request.CreateTraineeRequest;
 import org.example.crm.trainee.controller.response.TraineeSummary;
 import org.example.crm.trainee.controller.request.UpdateTraineeRequest;
 import org.example.crm.trainee.repository.TraineeEntity;
+import org.example.crm.trainer.client.dto.TrainerWorkloadSummary;
+import org.example.crm.trainer.client.dto.response.TrainerWorkloadSummaryResponse;
 import org.example.crm.trainer.controller.request.CreateTrainerRequest;
-import org.example.crm.trainer.controller.request.TrainerWorkloadRequest;
+import org.example.crm.trainer.client.dto.request.TrainerWorkloadRequest;
 import org.example.crm.trainer.controller.response.TrainerSummary;
 import org.example.crm.trainer.controller.request.UpdateTrainerRequest;
 import org.example.crm.trainer.repository.TrainerEntity;
@@ -99,6 +101,17 @@ public class GymMapper {
                 training.getTrainingDate(),
                 training.getDurationMinutes(),
                 actionType
+        );
+    }
+
+    public TrainerWorkloadSummaryResponse toTrainerWorkloadSummaryResponse(TrainerWorkloadSummary trainerWorkloadSummary){
+        return new TrainerWorkloadSummaryResponse(
+                trainerWorkloadSummary.username(),
+                trainerWorkloadSummary.fullName(),
+                trainerWorkloadSummary.isActive(),
+                trainerWorkloadSummary.year(),
+                trainerWorkloadSummary.month(),
+                trainerWorkloadSummary.trainingSummaryDurationMinutes()
         );
     }
 

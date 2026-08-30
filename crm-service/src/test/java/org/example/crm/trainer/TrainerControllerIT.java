@@ -12,6 +12,7 @@ import org.example.crm.trainer.controller.request.UpdateTrainerRequest;
 import org.example.crm.trainer.controller.response.TrainerSummary;
 import org.example.crm.trainer.controller.response.Trainers;
 import org.example.crm.trainer.service.TrainerService;
+import org.example.crm.trainer.service.TrainerWorkloadGateway;
 import org.example.crm.training.controller.response.Trainings;
 import org.example.crm.training.service.TrainingService;
 import org.example.crm.trainingType.dto.TrainingType;
@@ -60,6 +61,9 @@ class TrainerControllerIT {
 
     @MockitoBean
     private OwnershipVerifier ownershipVerifier;
+
+    @MockitoBean
+    private TrainerWorkloadGateway trainerWorkloadGateway;
 
     @MockitoBean
     private JwtService jwtService;

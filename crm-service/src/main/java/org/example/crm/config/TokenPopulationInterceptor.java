@@ -10,19 +10,17 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @Component
 public class TokenPopulationInterceptor implements ClientHttpRequestInterceptor {
 
     @Override
     public ClientHttpResponse intercept(HttpRequest request, byte[] body, ClientHttpRequestExecution execution) throws IOException {
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
-        if (attributes != null) {
-            String authHeader = attributes.getRequest().getHeader(HttpHeaders.AUTHORIZATION);
-            if (authHeader != null) {
-                request.getHeaders().add(HttpHeaders.AUTHORIZATION, authHeader);
-            }
-        }
+        Optional.ofNullable((ServletRequestAttributes) RequestContextHolder.getRequestAttributes())
+                .map(ServletRequestAttributes::getRequest)
+                .map(req -> req.getHeader(HttpHeaders.AUTHORIZATION))
+                .ifPresent(authHeader -> request.getHeaders().add(HttpHeaders.AUTHORIZATION, authHeader));
         return execution.execute(request, body);
     }
 }

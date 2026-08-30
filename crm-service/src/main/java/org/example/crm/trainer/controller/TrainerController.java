@@ -13,14 +13,18 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.crm.security.service.OwnershipVerifier;
+import org.example.crm.trainer.client.dto.request.TrainerWorkloadQuery;
+import org.example.crm.trainer.client.dto.response.TrainerWorkloadSummaryResponse;
 import org.example.crm.trainer.controller.request.CreateTrainerRequest;
 import org.example.crm.trainer.controller.request.GetTrainerTrainingsRequest;
 import org.example.crm.trainer.controller.response.TrainerSummary;
 import org.example.crm.trainer.controller.request.UpdateTrainerRequest;
 import org.example.crm.trainer.controller.response.Trainers;
 import org.example.crm.trainer.service.TrainerService;
+import org.example.crm.trainer.service.TrainerWorkloadGateway;
 import org.example.crm.training.controller.response.Trainings;
 import org.example.crm.training.service.TrainingService;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -55,6 +59,7 @@ public class TrainerController {
     private final TrainerService trainerService;
     private final TrainingService trainingService;
     private final OwnershipVerifier ownershipVerifier;
+    private final TrainerWorkloadGateway trainerWorkloadGateway;
 
     @Operation(summary = "Register a new trainer", description = "Creates a new trainer profile and returns their summary")
     @ApiResponse(responseCode = "201", description = "Registered a new trainer")
@@ -182,5 +187,30 @@ public class TrainerController {
         log.info("GET /api/v1/trainers/trainings/search endpoint called");
         ownershipVerifier.verifyOwnership(request.username(), userDetails);
         return trainingService.getTrainerTrainingList(request);
+    }
+
+    @Operation(summary = "Get a trainer's monthly workload summary",
+            description = "Retrieves a trainer's total training duration for a given month and year")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Trainer's monthly workload summary"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "404", description = "Trainer Not Found",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "423", description = "Locked", content = @Content(schema = @Schema(
+                    implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "503", description = "Workload Service Unavailable",
+                    content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+    })
+    @PreAuthorize("hasAnyRole('TRAINER', 'ADMIN')")
+    @GetMapping("/workloads")
+    @ResponseStatus(HttpStatus.OK)
+    public TrainerWorkloadSummaryResponse getTrainerWorkload(@Valid @ParameterObject TrainerWorkloadQuery query) {
+        log.info("GET /api/v1/trainers/workload endpoint called");
+        TrainerWorkloadSummaryResponse response = trainerWorkloadGateway.getWorkload(query);
+        log.info("GET /api/v1/trainers/workload endpoint executed");
+        return response;
     }
 }

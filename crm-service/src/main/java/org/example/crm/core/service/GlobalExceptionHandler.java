@@ -1,7 +1,9 @@
 package org.example.crm.core.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Nullable;
 import jakarta.validation.ConstraintViolationException;
+import lombok.RequiredArgsConstructor;
 import org.example.crm.exception.*;
 import org.slf4j.MDC;
 import org.springframework.http.ResponseEntity;
@@ -20,7 +22,6 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.WebRequest;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
@@ -30,7 +31,10 @@ import java.util.List;
 import java.util.Map;
 
 @RestControllerAdvice
+@RequiredArgsConstructor
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
+
+    private final ObjectMapper objectMapper;
 
     @Override
     protected @Nullable ResponseEntity<Object> handleMethodArgumentNotValid(
@@ -151,20 +155,45 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problemDetail;
     }
 
-    @ExceptionHandler(HttpClientErrorException.class)
-    public ProblemDetail handleHttpClientErrorException(HttpClientErrorException exception) {
+    @ExceptionHandler(DownstreamServiceException.class)
+    public ProblemDetail handleDownstreamServiceException(DownstreamServiceException exception) {
         ProblemDetail problemDetail;
-        try {
-            problemDetail = exception.getResponseBodyAs(ProblemDetail.class);
-        } catch (Exception e) {
-            problemDetail = null;
-        }
-        if (problemDetail == null) {
+        if (exception instanceof DownstreamServerErrorException ||
+                exception instanceof DownstreamRetryableClientException){
+            problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY,
+                    "The trainer workload service is currently unavailable");
+            problemDetail.setTitle("Downstream Service Unavailable");
+        } else{
+            String detail;
+            try {
+                ProblemDetail downstreamDetail = objectMapper.readValue(exception.getResponseBody(), ProblemDetail.class);
+                detail = downstreamDetail.getDetail();
+            } catch (Exception e) {
+                detail = "The trainer workload service rejected this request";
+            }
             problemDetail = ProblemDetail.forStatusAndDetail(
-                    exception.getStatusCode(), exception.getMessage()
-            );
+                    HttpStatus.valueOf(exception.getStatusCode().value()), detail);
             problemDetail.setTitle("Invalid Downstream Request");
         }
+        problemDetail.setProperty("downstream_service_id", exception.getServiceName());
+        problemDetail.setProperty("downstream_method", exception.getHttpMethod().name());
+        problemDetail.setProperty("downstream_url", exception.getRequestUri().toString());
+        problemDetail.setProperty("downstream_status", exception.getStatusCode().value());
+        String traceId = MDC.get("traceId");
+        if (traceId != null) {
+            problemDetail.setProperty("traceId", traceId);
+        }
+        return problemDetail;
+    }
+
+    @ExceptionHandler(DownstreamUnavailableException.class)
+    public ProblemDetail handleDownstreamUnavailable(DownstreamUnavailableException exception) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "The downstream service is temporarily unavailable"
+        );
+        problemDetail.setTitle("Downstream Service Unavailable");
+        problemDetail.setProperty("downstream_service_id", exception.getServiceId());
         String traceId = MDC.get("traceId");
         if (traceId != null) {
             problemDetail.setProperty("traceId", traceId);

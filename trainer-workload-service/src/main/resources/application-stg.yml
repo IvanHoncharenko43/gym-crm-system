@@ -1,0 +1,14 @@
+logging:
+  level:
+    root: info
+    org.example.workload: info
+    org.springframework.web: info
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized

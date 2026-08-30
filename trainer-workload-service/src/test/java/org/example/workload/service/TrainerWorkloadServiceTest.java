@@ -18,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Month;
 import java.util.Optional;
-import java.util.function.UnaryOperator;
 
 import static org.example.workload.TestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -32,72 +31,148 @@ class TrainerWorkloadServiceTest {
     private TrainerWorkloadRepository trainerWorkloadRepository;
 
     @Mock
-    private WorkloadAggregator workloadAggregator;
-
-    @Mock
     private WorkloadMapper workloadMapper;
 
     @InjectMocks
     private TrainerWorkloadService trainerWorkloadService;
 
     @Test
-    void updateWorkload_ComputeAndSaveWorkload_ExistingWorkloadFound() {
+    void updateWorkload_IncrementExistingMonthDuration_ExistingYearAndMonthFound() {
         TrainerWorkloadRequest request = getTrainerWorkloadRequest(ActionType.ADD, DURATION_MINUTES);
         TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        TrainerWorkloadEntity updatedWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
+        MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 100);
+        yearWorkload.getMonths().add(monthWorkload);
+        existingWorkload.getYears().add(yearWorkload);
 
-        when(workloadAggregator.apply(existingWorkload, request)).thenReturn(updatedWorkload);
-        when(trainerWorkloadRepository.computeAndSave(eq(TRAINER_USERNAME), any())).thenAnswer(invocation -> {
-            UnaryOperator<TrainerWorkloadEntity> updater = invocation.getArgument(1);
-            return updater.apply(existingWorkload);
-        });
+        when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(existingWorkload));
+        when(workloadMapper.toTrainerWorkloadEntity(request, existingWorkload)).thenReturn(existingWorkload);
 
         trainerWorkloadService.updateWorkload(request);
-        verify(workloadAggregator, times(1)).apply(existingWorkload, request);
-        verify(trainerWorkloadRepository, times(1)).computeAndSave(eq(TRAINER_USERNAME), any());
+
+        assertEquals(1, existingWorkload.getYears().size());
+        YearWorkloadEntity createdYear = existingWorkload.getYears().iterator().next();
+        assertEquals(1, createdYear.getMonths().size());
+        assertEquals(160, createdYear.getMonths().iterator().next().getTrainingSummaryDurationMinutes());
+        verify(trainerWorkloadRepository, times(1)).save(existingWorkload);
+        verify(workloadMapper, never()).toYearWorkloadEntity(anyInt(), any());
+        verify(workloadMapper, never()).toMonthWorkloadEntity(any(), any());
     }
 
     @Test
-    void updateWorkload_ComputeAndSaveWorkload_ExistingWorkloadNotFound() {
+    void updateWorkload_CreateYearAndMonth_ExistingTrainerYearNotFound() {
         TrainerWorkloadRequest request = getTrainerWorkloadRequest(ActionType.ADD, DURATION_MINUTES);
-        TrainerWorkloadEntity createdWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
+        MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
 
-        when(workloadAggregator.apply(null, request)).thenReturn(createdWorkload);
-        when(trainerWorkloadRepository.computeAndSave(eq(TRAINER_USERNAME), any())).thenAnswer(invocation -> {
-            UnaryOperator<TrainerWorkloadEntity> updater = invocation.getArgument(1);
-            return updater.apply(null);
-        });
+        when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(existingWorkload));
+        when(workloadMapper.toTrainerWorkloadEntity(request, existingWorkload)).thenReturn(existingWorkload);
+        when(workloadMapper.toYearWorkloadEntity(TRAINING_DATE.getYear(), existingWorkload))
+                .thenAnswer(invocation -> {
+                    yearWorkload.setTrainerWorkload(existingWorkload);
+                    existingWorkload.getYears().add(yearWorkload);
+                    return yearWorkload;
+                });
+        when(workloadMapper.toMonthWorkloadEntity(TRAINING_DATE.getMonth(), yearWorkload))
+                .thenAnswer(invocation -> {
+                    monthWorkload.setYearWorkload(yearWorkload);
+                    yearWorkload.getMonths().add(monthWorkload);
+                    return monthWorkload;
+                });
 
         trainerWorkloadService.updateWorkload(request);
-        verify(workloadAggregator, times(1)).apply(null, request);
-        verify(trainerWorkloadRepository, times(1)).computeAndSave(eq(TRAINER_USERNAME), any());
+
+        assertEquals(1, existingWorkload.getYears().size());
+        YearWorkloadEntity createdYear = existingWorkload.getYears().iterator().next();
+        assertEquals(1, createdYear.getMonths().size());
+        assertEquals(DURATION_MINUTES, createdYear.getMonths().iterator().next().getTrainingSummaryDurationMinutes());
+        verify(trainerWorkloadRepository, times(1)).save(existingWorkload);
     }
 
     @Test
-    void updateWorkload_ThrowException_AggregatorThrowsWorkloadNotFoundException() {
+    void updateWorkload_CreateTrainerYearAndMonth_TrainerNotFound() {
+        TrainerWorkloadRequest request = getTrainerWorkloadRequest(ActionType.ADD, DURATION_MINUTES);
+        TrainerWorkloadEntity trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
+        MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
+
+        when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.empty());
+        when(workloadMapper.toTrainerWorkloadEntity(request, null)).thenReturn(trainerWorkload);
+        when(workloadMapper.toYearWorkloadEntity(TRAINING_DATE.getYear(), trainerWorkload))
+                .thenAnswer(invocation -> {
+                    yearWorkload.setTrainerWorkload(trainerWorkload);
+                    trainerWorkload.getYears().add(yearWorkload);
+                    return yearWorkload;
+                });
+        when(workloadMapper.toMonthWorkloadEntity(eq(TRAINING_DATE.getMonth()), any(YearWorkloadEntity.class)))
+                .thenAnswer(invocation -> {
+                    monthWorkload.setYearWorkload(yearWorkload);
+                    yearWorkload.getMonths().add(monthWorkload);
+                    return monthWorkload;
+                });
+
+        trainerWorkloadService.updateWorkload(request);
+        assertEquals(1, trainerWorkload.getYears().size());
+        YearWorkloadEntity createdYear = trainerWorkload.getYears().iterator().next();
+        assertEquals(1, createdYear.getMonths().size());
+        assertEquals(DURATION_MINUTES, createdYear.getMonths().iterator().next().getTrainingSummaryDurationMinutes());
+        verify(trainerWorkloadRepository, times(1)).save(trainerWorkload);
+    }
+
+    @Test
+    void updateWorkload_ThrowWorkloadNotFoundException_DeleteAndTrainerNotFound() {
         TrainerWorkloadRequest request = getTrainerWorkloadRequest(ActionType.DELETE, DURATION_MINUTES);
 
-        when(workloadAggregator.apply(null, request)).thenThrow(new WorkloadNotFoundException("Workload not found"));
-        when(trainerWorkloadRepository.computeAndSave(eq(TRAINER_USERNAME), any())).thenAnswer(invocation -> {
-            UnaryOperator<TrainerWorkloadEntity> updater = invocation.getArgument(1);
-            return updater.apply(null);
-        });
+        when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.empty());
 
         assertThrows(WorkloadNotFoundException.class, () -> trainerWorkloadService.updateWorkload(request));
+        verify(workloadMapper, never()).toTrainerWorkloadEntity(any(), any());
+        verify(trainerWorkloadRepository, never()).save(any());
     }
 
     @Test
-    void updateWorkload_ThrowException_AggregatorThrowsInvalidStateTransitionException() {
+    void updateWorkload_ThrowWorkloadNotFoundException_DeleteAndYearNotFound() {
         TrainerWorkloadRequest request = getTrainerWorkloadRequest(ActionType.DELETE, DURATION_MINUTES);
         TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
 
-        when(workloadAggregator.apply(existingWorkload, request)).thenThrow(new InvalidStateTransitionException("Cannot go negative"));
-        when(trainerWorkloadRepository.computeAndSave(eq(TRAINER_USERNAME), any())).thenAnswer(invocation -> {
-            UnaryOperator<TrainerWorkloadEntity> updater = invocation.getArgument(1);
-            return updater.apply(existingWorkload);
-        });
+        when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(existingWorkload));
+        when(workloadMapper.toTrainerWorkloadEntity(request, existingWorkload)).thenReturn(existingWorkload);
+
+        assertThrows(WorkloadNotFoundException.class, () -> trainerWorkloadService.updateWorkload(request));
+        verify(workloadMapper, never()).toYearWorkloadEntity(anyInt(), any());
+        verify(trainerWorkloadRepository, never()).save(any());
+    }
+
+    @Test
+    void updateWorkload_ThrowWorkloadNotFoundException_DeleteAndMonthNotFound() {
+        TrainerWorkloadRequest request = getTrainerWorkloadRequest(ActionType.DELETE, DURATION_MINUTES);
+        TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
+        existingWorkload.getYears().add(yearWorkload);
+
+        when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(existingWorkload));
+        when(workloadMapper.toTrainerWorkloadEntity(request, existingWorkload)).thenReturn(existingWorkload);
+
+        assertThrows(WorkloadNotFoundException.class, () -> trainerWorkloadService.updateWorkload(request));
+        verify(workloadMapper, never()).toMonthWorkloadEntity(any(), any());
+        verify(trainerWorkloadRepository, never()).save(any());
+    }
+
+    @Test
+    void updateWorkload_ThrowInvalidStateTransitionException_DeleteResultsInNegativeDuration() {
+        TrainerWorkloadRequest request = getTrainerWorkloadRequest(ActionType.DELETE, DURATION_MINUTES);
+        TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
+        MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), DURATION_MINUTES - 40);
+        yearWorkload.getMonths().add(monthWorkload);
+        existingWorkload.getYears().add(yearWorkload);
+
+        when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(existingWorkload));
+        when(workloadMapper.toTrainerWorkloadEntity(request, existingWorkload)).thenReturn(existingWorkload);
 
         assertThrows(InvalidStateTransitionException.class, () -> trainerWorkloadService.updateWorkload(request));
+        verify(trainerWorkloadRepository, never()).save(any());
     }
 
     @Test

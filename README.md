@@ -42,5 +42,5 @@ To run the microservice application inside IntelliJ IDEA, you should:
 OR
 - Run each service individually in the following order:
   1. `DiscoveryServiceApplication`
-  2. `CrmApplication`/`TrainerWorkloadApplication`
-  3. `TrainerWorkloadApplication`/`CrmApplication`
+  2. `TrainerWorkloadApplication`
+  3. `CrmApplication`

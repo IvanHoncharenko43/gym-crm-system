@@ -1,21 +1,18 @@
 package org.example.workload.repository;
 
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
-import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.UnaryOperator;
 
 @Repository
-public class TrainerWorkloadRepository {
-    private final Map<String, TrainerWorkloadEntity> repository = new ConcurrentHashMap<>();
-
-    public TrainerWorkloadEntity computeAndSave(String username, UnaryOperator<TrainerWorkloadEntity> updater){
-        return repository.compute(username, (key, existing) -> updater.apply(existing));
-    }
-
-    public Optional<TrainerWorkloadEntity> findByUsername(String username){
-        return Optional.ofNullable(repository.get(username));
-    }
+public interface TrainerWorkloadRepository extends JpaRepository<TrainerWorkloadEntity, Long> {
+    @Query("""
+           SELECT t FROM TrainerWorkloadEntity t
+           LEFT JOIN FETCH t.years y
+           LEFT JOIN FETCH y.months
+           WHERE t.username = :username
+           """)
+    Optional<TrainerWorkloadEntity> findByUsername(String username);
 }
