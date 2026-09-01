@@ -7,6 +7,17 @@ spring:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST}
+    consumer:
+      group-id: workload-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: org.example.workload.controller.dto.request.TrainerWorkloadRequest
+        max.poll.records: 50
 
 server:
   port: ${SERVER_PORT}
@@ -15,6 +26,10 @@ jwt:
   secret-key: ${JWT_SECRET_KEY}
   expiration: ${JWT_EXPIRATION}
   roles-claim: roles
+
+kafka:
+  topics:
+    trainer-workload-update: "trainer-workload-update-event"
 
 springdoc:
   api-docs:

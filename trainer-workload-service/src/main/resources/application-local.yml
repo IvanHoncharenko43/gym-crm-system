@@ -3,6 +3,8 @@ spring:
     url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:trainerworkloaddb}
     username: ${SPRING_DATASOURCE_USERNAME:sa}
     password: ${SPRING_DATASOURCE_PASSWORD:}
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST:localhost:9092}
 
 server:
   port: ${SERVER_PORT:8082}

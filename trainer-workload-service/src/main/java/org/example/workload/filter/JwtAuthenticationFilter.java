@@ -22,7 +22,7 @@ import java.util.List;
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
-    private final static String BEARER_PREFIX = "Bearer ";
+    public final static String BEARER_PREFIX = "Bearer ";
     private final JwtService jwtService;
     private final HandlerExceptionResolver handlerExceptionResolver;
 
