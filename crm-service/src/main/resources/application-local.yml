@@ -11,6 +11,8 @@ spring:
       hibernate:
         format_sql: true
         highlight_sql: true
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST:localhost:9092}
 
 server:
   port: ${SERVER_PORT:8080}
