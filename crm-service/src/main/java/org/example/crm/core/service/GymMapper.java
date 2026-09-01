@@ -154,10 +154,8 @@ public class GymMapper {
         UserEntity newUser = new UserEntity();
         newUser.setFirstName(firstName);
         newUser.setLastName(lastName);
-        String password = passwordGenerator.generate();
-        System.out.println("PASSWIRDD: "+ password);
         newUser.setUsername(usernameGenerator.generate(firstName, lastName, existingUsernames));
-        newUser.setPassword(passwordEncoder.encode(password));
+        newUser.setPassword(passwordEncoder.encode(passwordGenerator.generate()));
         newUser.setIsActive(true);
         return newUser;
     }
