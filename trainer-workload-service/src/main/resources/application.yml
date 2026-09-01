@@ -12,12 +12,17 @@ spring:
     consumer:
       group-id: workload-service-group
       auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
         spring.json.trusted.packages: "*"
         spring.json.value.default.type: org.example.workload.controller.dto.request.TrainerWorkloadRequest
         max.poll.records: 50
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 server:
   port: ${SERVER_PORT}
@@ -30,6 +35,10 @@ jwt:
 kafka:
   topics:
     trainer-workload-update: "trainer-workload-update-event"
+  consumer:
+    retry:
+      backoff-interval-ms: 1000
+      max-attempts: 3
 
 springdoc:
   api-docs:
