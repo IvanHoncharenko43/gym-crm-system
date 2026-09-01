@@ -1,7 +1,7 @@
 package org.example.workload.service;
 
 import org.example.workload.controller.dto.ActionType;
-import org.example.workload.controller.dto.request.TrainerWorkloadRequest;
+import org.example.workload.messaging.TrainerWorkloadUpdateEvent;
 import org.example.workload.controller.dto.request.WorkloadQuery;
 import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
 import org.example.workload.exception.InvalidStateTransitionException;
@@ -38,7 +38,7 @@ class TrainerWorkloadServiceTest {
 
     @Test
     void updateWorkload_IncrementExistingMonthDuration_ExistingYearAndMonthFound() {
-        TrainerWorkloadRequest request = getTrainerWorkloadRequest(ActionType.ADD, DURATION_MINUTES);
+        TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(ActionType.ADD, DURATION_MINUTES);
         TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
         YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
         MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 100);
@@ -61,7 +61,7 @@ class TrainerWorkloadServiceTest {
 
     @Test
     void updateWorkload_CreateYearAndMonth_ExistingTrainerYearNotFound() {
-        TrainerWorkloadRequest request = getTrainerWorkloadRequest(ActionType.ADD, DURATION_MINUTES);
+        TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(ActionType.ADD, DURATION_MINUTES);
         TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
         YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
         MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
@@ -84,7 +84,7 @@ class TrainerWorkloadServiceTest {
 
     @Test
     void updateWorkload_CreateTrainerYearAndMonth_TrainerNotFound() {
-        TrainerWorkloadRequest request = getTrainerWorkloadRequest(ActionType.ADD, DURATION_MINUTES);
+        TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(ActionType.ADD, DURATION_MINUTES);
         TrainerWorkloadEntity trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
         YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
         MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
@@ -106,7 +106,7 @@ class TrainerWorkloadServiceTest {
 
     @Test
     void updateWorkload_ThrowWorkloadNotFoundException_DeleteAndTrainerNotFound() {
-        TrainerWorkloadRequest request = getTrainerWorkloadRequest(ActionType.DELETE, DURATION_MINUTES);
+        TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(ActionType.DELETE, DURATION_MINUTES);
 
         when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.empty());
 
@@ -117,7 +117,7 @@ class TrainerWorkloadServiceTest {
 
     @Test
     void updateWorkload_ThrowWorkloadNotFoundException_DeleteAndYearNotFound() {
-        TrainerWorkloadRequest request = getTrainerWorkloadRequest(ActionType.DELETE, DURATION_MINUTES);
+        TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(ActionType.DELETE, DURATION_MINUTES);
         TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
 
         when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(existingWorkload));
@@ -130,7 +130,7 @@ class TrainerWorkloadServiceTest {
 
     @Test
     void updateWorkload_ThrowWorkloadNotFoundException_DeleteAndMonthNotFound() {
-        TrainerWorkloadRequest request = getTrainerWorkloadRequest(ActionType.DELETE, DURATION_MINUTES);
+        TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(ActionType.DELETE, DURATION_MINUTES);
         TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
         YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
         existingWorkload.getYears().add(yearWorkload);
@@ -145,7 +145,7 @@ class TrainerWorkloadServiceTest {
 
     @Test
     void updateWorkload_ThrowInvalidStateTransitionException_DeleteResultsInNegativeDuration() {
-        TrainerWorkloadRequest request = getTrainerWorkloadRequest(ActionType.DELETE, DURATION_MINUTES);
+        TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(ActionType.DELETE, DURATION_MINUTES);
         TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
         YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
         MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), DURATION_MINUTES - 40);

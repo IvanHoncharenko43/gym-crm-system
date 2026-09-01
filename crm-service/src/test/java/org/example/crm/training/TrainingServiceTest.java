@@ -10,10 +10,10 @@ import org.example.crm.trainee.controller.request.GetTraineeTrainingsRequest;
 import org.example.crm.trainee.repository.TraineeEntity;
 import org.example.crm.trainee.repository.TraineeRepository;
 import org.example.crm.trainer.controller.request.GetTrainerTrainingsRequest;
-import org.example.crm.trainer.client.request.TrainerUpdateWorkloadClientRequest;
+import org.example.crm.trainer.messaging.TrainerWorkloadUpdateEvent;
 import org.example.crm.trainer.repository.TrainerEntity;
 import org.example.crm.trainer.repository.TrainerRepository;
-import org.example.crm.trainer.service.TrainerWorkloadProducerService;
+import org.example.crm.trainer.messaging.TrainerWorkloadProducerService;
 import org.example.crm.training.controller.request.CreateTrainingRequest;
 import org.example.crm.training.controller.response.TrainingSummary;
 import org.example.crm.trainingType.dto.TrainingType;
@@ -92,7 +92,7 @@ public class TrainingServiceTest {
                 TrainingType.CARDIO,
                 LocalDate.of(2026, 5, 12), 45
         );
-        TrainerUpdateWorkloadClientRequest workloadRequest = new TrainerUpdateWorkloadClientRequest(
+        TrainerWorkloadUpdateEvent workloadUpdateEvent = new TrainerWorkloadUpdateEvent(
                 TRAINER_USERNAME, new FullName("John", "Doe"), true,
                 LocalDate.of(2026, 5, 12), 45, ActionType.ADD
         );
@@ -101,7 +101,7 @@ public class TrainingServiceTest {
         when(trainerRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(trainer));
         when(gymMapper.toTraining(request, trainee, trainer)).thenReturn(training);
         when(trainingRepository.save(training)).thenReturn(training);
-        when(gymMapper.toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.ADD)).thenReturn(workloadRequest);
+        when(gymMapper.toTrainerWorkloadUpdateEvent(trainer, training, ActionType.ADD)).thenReturn(workloadUpdateEvent);
         when(gymMapper.toTrainingSummary(training, trainee, trainer)).thenReturn(expectedResponse);
 
         trainingService.create(request);
@@ -110,8 +110,8 @@ public class TrainingServiceTest {
         verify(trainerRepository, times(1)).findByUsername(TRAINER_USERNAME);
         verify(gymMapper, times(1)).toTraining(request, trainee, trainer);
         verify(trainingRepository, times(1)).save(training);
-        verify(gymMapper, times(1)).toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.ADD);
-        verify(trainerWorkloadProducerService, times(1)).publishTrainerWorkloadUpdateEvent(workloadRequest);
+        verify(gymMapper, times(1)).toTrainerWorkloadUpdateEvent(trainer, training, ActionType.ADD);
+        verify(trainerWorkloadProducerService, times(1)).publishTrainerWorkloadUpdateEvent(workloadUpdateEvent);
         verify(gymMapper, times(1)).toTrainingSummary(training, trainee, trainer);
     }
 
@@ -203,19 +203,19 @@ public class TrainingServiceTest {
         training.setId(TRAINING_ID);
         training.setTrainer(trainer);
         training.setTrainingDate(LocalDate.now().plusDays(7));
-        TrainerUpdateWorkloadClientRequest workloadRequest = new TrainerUpdateWorkloadClientRequest(
+        TrainerWorkloadUpdateEvent workloadUpdateEvent = new TrainerWorkloadUpdateEvent(
                 TRAINER_USERNAME, new FullName("John", "Doe"), true,
                 training.getTrainingDate(), 45, ActionType.DELETE
         );
 
         when(trainingRepository.findById(TRAINING_ID)).thenReturn(Optional.of(training));
-        when(gymMapper.toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.DELETE)).thenReturn(workloadRequest);
+        when(gymMapper.toTrainerWorkloadUpdateEvent(trainer, training, ActionType.DELETE)).thenReturn(workloadUpdateEvent);
 
         trainingService.cancel(TRAINING_ID);
         verify(trainingRepository, times(1)).findById(TRAINING_ID);
-        verify(gymMapper, times(1)).toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.DELETE);
+        verify(gymMapper, times(1)).toTrainerWorkloadUpdateEvent(trainer, training, ActionType.DELETE);
         verify(trainingRepository, times(1)).delete(training);
-        verify(trainerWorkloadProducerService, times(1)).publishTrainerWorkloadUpdateEvent(workloadRequest);
+        verify(trainerWorkloadProducerService, times(1)).publishTrainerWorkloadUpdateEvent(workloadUpdateEvent);
     }
 
     @Test

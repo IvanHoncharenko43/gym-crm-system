@@ -1,7 +1,7 @@
 package org.example.workload.service;
 
 import org.example.workload.controller.dto.ActionType;
-import org.example.workload.controller.dto.request.TrainerWorkloadRequest;
+import org.example.workload.messaging.TrainerWorkloadUpdateEvent;
 import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
 import org.example.workload.repository.MonthWorkloadEntity;
 import org.example.workload.repository.TrainerWorkloadEntity;
@@ -34,7 +34,7 @@ class WorkloadMapperTest {
 
     @Test
     void toTrainerWorkloadEntity_MapCorrectly_FromRequest() {
-        TrainerWorkloadRequest request = getTrainerWorkloadRequest(ActionType.ADD, DURATION_MINUTES);
+        TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(ActionType.ADD, DURATION_MINUTES);
 
         TrainerWorkloadEntity result = workloadMapper.toTrainerWorkloadEntity(request, null);
 
@@ -49,7 +49,7 @@ class WorkloadMapperTest {
 
     @Test
     void toTrainerWorkloadEntity_MapCorrectly_FromRequestAndTrainerWorkloadEntity() {
-        TrainerWorkloadRequest request = getTrainerWorkloadRequest(ActionType.ADD, DURATION_MINUTES);
+        TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(ActionType.ADD, DURATION_MINUTES);
         TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
         existingWorkload.setId(21L);
         YearWorkloadEntity existingYear = getYearWorkloadEntity(TRAINING_DATE.getYear());

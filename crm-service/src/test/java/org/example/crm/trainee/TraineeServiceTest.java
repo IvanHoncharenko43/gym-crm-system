@@ -5,12 +5,12 @@ import org.example.crm.core.dto.ActionType;
 import org.example.crm.exception.EntityNotFoundException;
 import org.example.crm.monitoring.GymCrmMetrics;
 import org.example.crm.trainee.controller.request.UpdateTraineeTrainersRequest;
-import org.example.crm.trainer.client.request.TrainerUpdateWorkloadClientRequest;
+import org.example.crm.trainer.messaging.TrainerWorkloadUpdateEvent;
 import org.example.crm.trainer.controller.response.TrainerSummary;
 import org.example.crm.trainer.controller.response.Trainers;
 import org.example.crm.trainer.repository.TrainerEntity;
 import org.example.crm.trainer.repository.TrainerRepository;
-import org.example.crm.trainer.service.TrainerWorkloadProducerService;
+import org.example.crm.trainer.messaging.TrainerWorkloadProducerService;
 import org.example.crm.training.repository.TrainingEntity;
 import org.example.crm.training.repository.TrainingRepository;
 import org.example.crm.user.controller.dto.FullName;
@@ -237,28 +237,28 @@ public class TraineeServiceTest {
         training2.setId(2L);
         training2.setTrainer(trainer);
         List<TrainingEntity> trainings = List.of(training1, training2);
-        TrainerUpdateWorkloadClientRequest workloadRequest1 = new TrainerUpdateWorkloadClientRequest(
+        TrainerWorkloadUpdateEvent workloadUpdateEvent1 = new TrainerWorkloadUpdateEvent(
                 "Trainer.Doe", new FullName("Jane", "Smith"), true,
                 LocalDate.of(2026, 5, 12), 45, ActionType.DELETE
         );
-        TrainerUpdateWorkloadClientRequest workloadRequest2 = new TrainerUpdateWorkloadClientRequest(
+        TrainerWorkloadUpdateEvent workloadUpdateEvent2 = new TrainerWorkloadUpdateEvent(
                 "Trainer.Doe", new FullName("Jane", "Smith"), true,
                 LocalDate.of(2026, 6, 1), 60, ActionType.DELETE
         );
 
         when(traineeRepository.findByUsername(USERNAME)).thenReturn(Optional.of(trainee));
         when(trainingRepository.findAllByTraineeUserUsername(USERNAME)).thenReturn(trainings);
-        when(gymMapper.toTrainerUpdateWorkloadClientRequest(trainer, training1, ActionType.DELETE)).thenReturn(workloadRequest1);
-        when(gymMapper.toTrainerUpdateWorkloadClientRequest(trainer, training2, ActionType.DELETE)).thenReturn(workloadRequest2);
+        when(gymMapper.toTrainerWorkloadUpdateEvent(trainer, training1, ActionType.DELETE)).thenReturn(workloadUpdateEvent1);
+        when(gymMapper.toTrainerWorkloadUpdateEvent(trainer, training2, ActionType.DELETE)).thenReturn(workloadUpdateEvent2);
 
         traineeService.deleteByUsername(USERNAME);
 
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
         verify(trainingRepository, times(1)).findAllByTraineeUserUsername(USERNAME);
-        verify(gymMapper, times(1)).toTrainerUpdateWorkloadClientRequest(trainer, training1, ActionType.DELETE);
-        verify(gymMapper, times(1)).toTrainerUpdateWorkloadClientRequest(trainer, training2, ActionType.DELETE);
-        verify(trainerWorkloadProducerService, times(1)).publishTrainerWorkloadUpdateEvent(workloadRequest1);
-        verify(trainerWorkloadProducerService, times(1)).publishTrainerWorkloadUpdateEvent(workloadRequest2);
+        verify(gymMapper, times(1)).toTrainerWorkloadUpdateEvent(trainer, training1, ActionType.DELETE);
+        verify(gymMapper, times(1)).toTrainerWorkloadUpdateEvent(trainer, training2, ActionType.DELETE);
+        verify(trainerWorkloadProducerService, times(1)).publishTrainerWorkloadUpdateEvent(workloadUpdateEvent1);
+        verify(trainerWorkloadProducerService, times(1)).publishTrainerWorkloadUpdateEvent(workloadUpdateEvent2);
         verify(traineeRepository, times(1)).deleteByUserUsername(USERNAME);
     }
 

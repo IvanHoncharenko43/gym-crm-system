@@ -1,4 +1,4 @@
-package org.example.workload.controller.dto.request;
+package org.example.workload.messaging;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -13,7 +13,7 @@ import org.example.workload.controller.dto.FullName;
 import java.time.LocalDate;
 
 @Schema(description = "DTO for updating trainer's training workload", name = "TrainerWorkload")
-public record TrainerWorkloadRequest(
+public record TrainerWorkloadUpdateEvent(
         @Schema(description = "Username of the trainer", example = "John.Doe", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "Username cannot be blank")
         String username,

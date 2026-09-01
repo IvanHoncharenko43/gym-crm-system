@@ -3,9 +3,9 @@ package org.example.crm.trainee.service;
 import lombok.RequiredArgsConstructor;
 import org.example.crm.core.dto.ActionType;
 import org.example.crm.monitoring.GymCrmMetrics;
-import org.example.crm.trainer.client.request.TrainerUpdateWorkloadClientRequest;
+import org.example.crm.trainer.messaging.TrainerWorkloadUpdateEvent;
 import org.example.crm.trainer.controller.response.Trainers;
-import org.example.crm.trainer.service.TrainerWorkloadProducerService;
+import org.example.crm.trainer.messaging.TrainerWorkloadProducerService;
 import org.example.crm.training.repository.TrainingEntity;
 import org.example.crm.training.repository.TrainingRepository;
 import org.springframework.transaction.annotation.Transactional;
@@ -95,8 +95,8 @@ public class TraineeService {
         if(existingTrainee.isPresent()) {
             List<TrainingEntity> trainings = trainingRepository.findAllByTraineeUserUsername(username);
             for (TrainingEntity training : trainings){
-                TrainerUpdateWorkloadClientRequest request = gymMapper.toTrainerUpdateWorkloadClientRequest(training.getTrainer(), training, ActionType.DELETE);
-                trainerWorkloadProducerService.publishTrainerWorkloadUpdateEvent(request);
+                TrainerWorkloadUpdateEvent trainerWorkloadUpdateEvent = gymMapper.toTrainerWorkloadUpdateEvent(training.getTrainer(), training, ActionType.DELETE);
+                trainerWorkloadProducerService.publishTrainerWorkloadUpdateEvent(trainerWorkloadUpdateEvent);
             }
             traineeRepository.deleteByUserUsername(existingTrainee.get().getUser().getUsername());
             log.info("Deleted by username a trainee profile with ID: {}", existingTrainee.get().getId());

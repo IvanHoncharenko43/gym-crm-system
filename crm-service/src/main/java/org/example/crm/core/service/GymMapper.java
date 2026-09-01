@@ -11,7 +11,7 @@ import org.example.crm.trainer.controller.request.TrainerMonthlyWorkloadRequest;
 import org.example.crm.trainer.client.response.TrainerWorkloadClientResponse;
 import org.example.crm.trainer.controller.response.TrainerWorkloadSummary;
 import org.example.crm.trainer.controller.request.CreateTrainerRequest;
-import org.example.crm.trainer.client.request.TrainerUpdateWorkloadClientRequest;
+import org.example.crm.trainer.messaging.TrainerWorkloadUpdateEvent;
 import org.example.crm.trainer.controller.response.TrainerSummary;
 import org.example.crm.trainer.controller.request.UpdateTrainerRequest;
 import org.example.crm.trainer.repository.TrainerEntity;
@@ -95,8 +95,8 @@ public class GymMapper {
         );
     }
 
-    public TrainerUpdateWorkloadClientRequest toTrainerUpdateWorkloadClientRequest(TrainerEntity trainer, TrainingEntity training, ActionType actionType){
-        return new TrainerUpdateWorkloadClientRequest(
+    public TrainerWorkloadUpdateEvent toTrainerWorkloadUpdateEvent(TrainerEntity trainer, TrainingEntity training, ActionType actionType){
+        return new TrainerWorkloadUpdateEvent(
                 trainer.getUser().getUsername(),
                 new FullName(trainer.getUser().getFirstName(), trainer.getUser().getLastName()),
                 trainer.getUser().getIsActive(),
@@ -154,8 +154,10 @@ public class GymMapper {
         UserEntity newUser = new UserEntity();
         newUser.setFirstName(firstName);
         newUser.setLastName(lastName);
+        String password = passwordGenerator.generate();
+        System.out.println("PASSWIRDD: "+ password);
         newUser.setUsername(usernameGenerator.generate(firstName, lastName, existingUsernames));
-        newUser.setPassword(passwordEncoder.encode(passwordGenerator.generate()));
+        newUser.setPassword(passwordEncoder.encode(password));
         newUser.setIsActive(true);
         return newUser;
     }

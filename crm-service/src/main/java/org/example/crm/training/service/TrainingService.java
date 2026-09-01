@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.crm.core.dto.ActionType;
 import org.example.crm.monitoring.GymCrmMetrics;
 import org.example.crm.exception.InvalidRequestDataException;
-import org.example.crm.trainer.client.request.TrainerUpdateWorkloadClientRequest;
-import org.example.crm.trainer.service.TrainerWorkloadProducerService;
+import org.example.crm.trainer.messaging.TrainerWorkloadUpdateEvent;
+import org.example.crm.trainer.messaging.TrainerWorkloadProducerService;
 import org.example.crm.training.controller.response.Trainings;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -60,8 +60,8 @@ public class TrainingService {
         TrainingEntity savedTraining = trainingRepository.save(training);
         log.info("Created training with ID: {}", savedTraining.getId());
         gymCrmMetrics.incrementTrainingCreated(training.getTrainingType().getTrainingTypeName().name());
-        TrainerUpdateWorkloadClientRequest trainerUpdateWorkloadClientRequest = gymMapper.toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.ADD);
-        trainerWorkloadProducerService.publishTrainerWorkloadUpdateEvent(trainerUpdateWorkloadClientRequest);
+        TrainerWorkloadUpdateEvent trainerWorkloadUpdateEvent = gymMapper.toTrainerWorkloadUpdateEvent(trainer, training, ActionType.ADD);
+        trainerWorkloadProducerService.publishTrainerWorkloadUpdateEvent(trainerWorkloadUpdateEvent);
         return gymMapper.toTrainingSummary(training, trainee, trainer);
     }
 
@@ -78,10 +78,10 @@ public class TrainingService {
             log.warn(message);
             throw new InvalidRequestDataException(message);
         }
-        TrainerUpdateWorkloadClientRequest trainerUpdateWorkloadClientRequest = gymMapper.toTrainerUpdateWorkloadClientRequest(training.getTrainer(), training, ActionType.DELETE);
+        TrainerWorkloadUpdateEvent trainerWorkloadUpdateEvent = gymMapper.toTrainerWorkloadUpdateEvent(training.getTrainer(), training, ActionType.DELETE);
         trainingRepository.delete(training);
         log.info("Cancelled training with ID: {}", id);
-        trainerWorkloadProducerService.publishTrainerWorkloadUpdateEvent(trainerUpdateWorkloadClientRequest);
+        trainerWorkloadProducerService.publishTrainerWorkloadUpdateEvent(trainerWorkloadUpdateEvent);
     }
 
     @Transactional(readOnly = true)
