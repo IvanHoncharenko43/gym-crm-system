@@ -13,7 +13,7 @@ import org.example.crm.trainer.controller.request.GetTrainerTrainingsRequest;
 import org.example.crm.trainer.client.request.TrainerUpdateWorkloadClientRequest;
 import org.example.crm.trainer.repository.TrainerEntity;
 import org.example.crm.trainer.repository.TrainerRepository;
-import org.example.crm.trainer.service.TrainerWorkloadService;
+import org.example.crm.trainer.service.TrainerWorkloadProducerService;
 import org.example.crm.training.controller.request.CreateTrainingRequest;
 import org.example.crm.training.controller.response.TrainingSummary;
 import org.example.crm.trainingType.dto.TrainingType;
@@ -62,7 +62,7 @@ public class TrainingServiceTest {
     private GymCrmMetrics gymCrmMetrics;
 
     @Mock
-    private TrainerWorkloadService trainerWorkloadService;
+    private TrainerWorkloadProducerService trainerWorkloadProducerService;
 
     @InjectMocks
     private TrainingService trainingService;
@@ -111,7 +111,7 @@ public class TrainingServiceTest {
         verify(gymMapper, times(1)).toTraining(request, trainee, trainer);
         verify(trainingRepository, times(1)).save(training);
         verify(gymMapper, times(1)).toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.ADD);
-        verify(trainerWorkloadService, times(1)).updateTrainerWorkload(workloadRequest);
+        verify(trainerWorkloadProducerService, times(1)).publishTrainerWorkloadUpdateEvent(workloadRequest);
         verify(gymMapper, times(1)).toTrainingSummary(training, trainee, trainer);
     }
 
@@ -215,7 +215,7 @@ public class TrainingServiceTest {
         verify(trainingRepository, times(1)).findById(TRAINING_ID);
         verify(gymMapper, times(1)).toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.DELETE);
         verify(trainingRepository, times(1)).delete(training);
-        verify(trainerWorkloadService, times(1)).updateTrainerWorkload(workloadRequest);
+        verify(trainerWorkloadProducerService, times(1)).publishTrainerWorkloadUpdateEvent(workloadRequest);
     }
 
     @Test
@@ -227,7 +227,7 @@ public class TrainingServiceTest {
         assertTrue(exception.getMessage().contains("Training"));
         verify(trainingRepository, times(1)).findById(TRAINING_ID);
         verify(trainingRepository, never()).delete(any());
-        verify(trainerWorkloadService, never()).updateTrainerWorkload(any());
+        verify(trainerWorkloadProducerService, never()).publishTrainerWorkloadUpdateEvent(any());
     }
 
     @Test
@@ -243,7 +243,7 @@ public class TrainingServiceTest {
         assertTrue(exception.getMessage().contains("already passed"));
         verify(trainingRepository, times(1)).findById(TRAINING_ID);
         verify(trainingRepository, never()).delete(any());
-        verify(trainerWorkloadService, never()).updateTrainerWorkload(any());
+        verify(trainerWorkloadProducerService, never()).publishTrainerWorkloadUpdateEvent(any());
     }
 
     @Test

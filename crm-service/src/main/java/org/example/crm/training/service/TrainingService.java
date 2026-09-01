@@ -5,7 +5,7 @@ import org.example.crm.core.dto.ActionType;
 import org.example.crm.monitoring.GymCrmMetrics;
 import org.example.crm.exception.InvalidRequestDataException;
 import org.example.crm.trainer.client.request.TrainerUpdateWorkloadClientRequest;
-import org.example.crm.trainer.service.TrainerWorkloadService;
+import org.example.crm.trainer.service.TrainerWorkloadProducerService;
 import org.example.crm.training.controller.response.Trainings;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +35,7 @@ public class TrainingService {
     private final TrainerRepository trainerRepository;
     private final GymMapper gymMapper;
     private final GymCrmMetrics gymCrmMetrics;
-    private final TrainerWorkloadService trainerWorkloadService;
+    private final TrainerWorkloadProducerService trainerWorkloadProducerService;
 
     @Transactional
     public TrainingSummary create(CreateTrainingRequest request) {
@@ -61,7 +61,7 @@ public class TrainingService {
         log.info("Created training with ID: {}", savedTraining.getId());
         gymCrmMetrics.incrementTrainingCreated(training.getTrainingType().getTrainingTypeName().name());
         TrainerUpdateWorkloadClientRequest trainerUpdateWorkloadClientRequest = gymMapper.toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.ADD);
-        trainerWorkloadService.updateTrainerWorkload(trainerUpdateWorkloadClientRequest);
+        trainerWorkloadProducerService.publishTrainerWorkloadUpdateEvent(trainerUpdateWorkloadClientRequest);
         return gymMapper.toTrainingSummary(training, trainee, trainer);
     }
 
@@ -81,7 +81,7 @@ public class TrainingService {
         TrainerUpdateWorkloadClientRequest trainerUpdateWorkloadClientRequest = gymMapper.toTrainerUpdateWorkloadClientRequest(training.getTrainer(), training, ActionType.DELETE);
         trainingRepository.delete(training);
         log.info("Cancelled training with ID: {}", id);
-        trainerWorkloadService.updateTrainerWorkload(trainerUpdateWorkloadClientRequest);
+        trainerWorkloadProducerService.publishTrainerWorkloadUpdateEvent(trainerUpdateWorkloadClientRequest);
     }
 
     @Transactional(readOnly = true)

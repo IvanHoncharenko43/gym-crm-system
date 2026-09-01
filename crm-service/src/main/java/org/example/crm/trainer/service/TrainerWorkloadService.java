@@ -12,7 +12,6 @@ import org.example.crm.trainer.client.TrainerWorkloadClient;
 import org.example.crm.trainer.controller.request.TrainerMonthlyWorkloadRequest;
 import org.example.crm.trainer.client.response.TrainerWorkloadClientResponse;
 import org.example.crm.trainer.client.request.TrainerMonthlyWorkloadClientRequest;
-import org.example.crm.trainer.client.request.TrainerUpdateWorkloadClientRequest;
 import org.example.crm.trainer.controller.response.TrainerWorkloadSummary;
 import org.springframework.stereotype.Service;
 
@@ -25,14 +24,6 @@ public class TrainerWorkloadService {
     private final GymMapper gymMapper;
     private final ClientConfigurationProperties clientConfigurationProperties;
 
-    @CircuitBreaker(name = "trainerWorkloadService", fallbackMethod = "updateTrainerWorkloadFallback")
-    @Retry(name = "trainerWorkloadService")
-    public void updateTrainerWorkload(TrainerUpdateWorkloadClientRequest request){
-        log.debug("Sending an update on trainer workload");
-        trainerWorkloadClient.updateTrainerWorkload(request);
-        log.debug("Updated a trainer's workload");
-    }
-
     @CircuitBreaker(name = "trainerWorkloadService", fallbackMethod = "getWorkloadFallback")
     @Retry(name = "trainerWorkloadService")
     public TrainerWorkloadSummary getWorkload(TrainerMonthlyWorkloadRequest request) {
@@ -41,10 +32,6 @@ public class TrainerWorkloadService {
         TrainerWorkloadClientResponse response = trainerWorkloadClient.getWorkload(clientRequest);
         log.debug("Retrieved trainer workload summary");
         return gymMapper.toTrainerWorkloadSummary(response);
-    }
-
-    private void updateTrainerWorkloadFallback(TrainerUpdateWorkloadClientRequest request, Throwable throwable){
-        log.warn("Failed to send workload update ({}) for trainer. The CRM service has committed the change, but the workload service missed the update", request.actionType().name());
     }
 
     private TrainerWorkloadSummary getWorkloadFallback(TrainerMonthlyWorkloadClientRequest query, Throwable throwable) {

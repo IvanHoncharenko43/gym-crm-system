@@ -10,7 +10,7 @@ import org.example.crm.trainer.controller.response.TrainerSummary;
 import org.example.crm.trainer.controller.response.Trainers;
 import org.example.crm.trainer.repository.TrainerEntity;
 import org.example.crm.trainer.repository.TrainerRepository;
-import org.example.crm.trainer.service.TrainerWorkloadService;
+import org.example.crm.trainer.service.TrainerWorkloadProducerService;
 import org.example.crm.training.repository.TrainingEntity;
 import org.example.crm.training.repository.TrainingRepository;
 import org.example.crm.user.controller.dto.FullName;
@@ -61,7 +61,7 @@ public class TraineeServiceTest {
     private TrainingRepository trainingRepository;
 
     @Mock
-    private TrainerWorkloadService trainerWorkloadService;
+    private TrainerWorkloadProducerService trainerWorkloadProducerService;
 
     @InjectMocks
     private TraineeService traineeService;
@@ -257,8 +257,8 @@ public class TraineeServiceTest {
         verify(trainingRepository, times(1)).findAllByTraineeUserUsername(USERNAME);
         verify(gymMapper, times(1)).toTrainerUpdateWorkloadClientRequest(trainer, training1, ActionType.DELETE);
         verify(gymMapper, times(1)).toTrainerUpdateWorkloadClientRequest(trainer, training2, ActionType.DELETE);
-        verify(trainerWorkloadService, times(1)).updateTrainerWorkload(workloadRequest1);
-        verify(trainerWorkloadService, times(1)).updateTrainerWorkload(workloadRequest2);
+        verify(trainerWorkloadProducerService, times(1)).publishTrainerWorkloadUpdateEvent(workloadRequest1);
+        verify(trainerWorkloadProducerService, times(1)).publishTrainerWorkloadUpdateEvent(workloadRequest2);
         verify(traineeRepository, times(1)).deleteByUserUsername(USERNAME);
     }
 
@@ -274,7 +274,7 @@ public class TraineeServiceTest {
         traineeService.deleteByUsername(USERNAME);
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
         verify(trainingRepository, times(1)).findAllByTraineeUserUsername(USERNAME);
-        verify(trainerWorkloadService, never()).updateTrainerWorkload(any());
+        verify(trainerWorkloadProducerService, never()).publishTrainerWorkloadUpdateEvent(any());
         verify(traineeRepository, times(1)).deleteByUserUsername(USERNAME);
     }
 
@@ -286,7 +286,7 @@ public class TraineeServiceTest {
 
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
         verify(trainingRepository, never()).findAllByTraineeUserUsername(anyString());
-        verify(trainerWorkloadService, never()).updateTrainerWorkload(any());
+        verify(trainerWorkloadProducerService, never()).publishTrainerWorkloadUpdateEvent(any());
         verify(traineeRepository, never()).deleteByUserUsername(anyString());
     }
 
