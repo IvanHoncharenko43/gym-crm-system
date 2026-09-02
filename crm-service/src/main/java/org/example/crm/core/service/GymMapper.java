@@ -6,10 +6,12 @@ import org.example.crm.trainee.controller.request.CreateTraineeRequest;
 import org.example.crm.trainee.controller.response.TraineeSummary;
 import org.example.crm.trainee.controller.request.UpdateTraineeRequest;
 import org.example.crm.trainee.repository.TraineeEntity;
-import org.example.crm.trainer.client.dto.TrainerWorkloadSummary;
-import org.example.crm.trainer.client.dto.response.TrainerWorkloadSummaryResponse;
+import org.example.crm.trainer.client.request.TrainerMonthlyWorkloadClientRequest;
+import org.example.crm.trainer.controller.request.TrainerMonthlyWorkloadRequest;
+import org.example.crm.trainer.client.response.TrainerWorkloadClientResponse;
+import org.example.crm.trainer.controller.response.TrainerWorkloadSummary;
 import org.example.crm.trainer.controller.request.CreateTrainerRequest;
-import org.example.crm.trainer.client.dto.request.TrainerWorkloadRequest;
+import org.example.crm.trainer.client.request.TrainerUpdateWorkloadClientRequest;
 import org.example.crm.trainer.controller.response.TrainerSummary;
 import org.example.crm.trainer.controller.request.UpdateTrainerRequest;
 import org.example.crm.trainer.repository.TrainerEntity;
@@ -93,8 +95,8 @@ public class GymMapper {
         );
     }
 
-    public TrainerWorkloadRequest toTrainerWorkloadRequest(TrainerEntity trainer, TrainingEntity training, ActionType actionType){
-        return new TrainerWorkloadRequest(
+    public TrainerUpdateWorkloadClientRequest toTrainerUpdateWorkloadClientRequest(TrainerEntity trainer, TrainingEntity training, ActionType actionType){
+        return new TrainerUpdateWorkloadClientRequest(
                 trainer.getUser().getUsername(),
                 new FullName(trainer.getUser().getFirstName(), trainer.getUser().getLastName()),
                 trainer.getUser().getIsActive(),
@@ -104,14 +106,22 @@ public class GymMapper {
         );
     }
 
-    public TrainerWorkloadSummaryResponse toTrainerWorkloadSummaryResponse(TrainerWorkloadSummary trainerWorkloadSummary){
-        return new TrainerWorkloadSummaryResponse(
-                trainerWorkloadSummary.username(),
-                trainerWorkloadSummary.fullName(),
-                trainerWorkloadSummary.isActive(),
-                trainerWorkloadSummary.year(),
-                trainerWorkloadSummary.month(),
-                trainerWorkloadSummary.trainingSummaryDurationMinutes()
+    public TrainerMonthlyWorkloadClientRequest toTrainerMonthlyWorkloadClientRequest(TrainerMonthlyWorkloadRequest request){
+        return new TrainerMonthlyWorkloadClientRequest(
+                request.username(),
+                request.year(),
+                request.month()
+        );
+    }
+
+    public TrainerWorkloadSummary toTrainerWorkloadSummary(TrainerWorkloadClientResponse trainerWorkloadClientResponse){
+        return new TrainerWorkloadSummary(
+                trainerWorkloadClientResponse.username(),
+                trainerWorkloadClientResponse.fullName(),
+                trainerWorkloadClientResponse.isActive(),
+                trainerWorkloadClientResponse.year(),
+                trainerWorkloadClientResponse.month(),
+                trainerWorkloadClientResponse.trainingSummaryDurationMinutes()
         );
     }
 

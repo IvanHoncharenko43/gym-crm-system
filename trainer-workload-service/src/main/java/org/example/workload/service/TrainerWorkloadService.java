@@ -46,7 +46,9 @@ public class TrainerWorkloadService {
                         throw new WorkloadNotFoundException(
                                 "Cannot update-delete trainer's %s workload because there isn't enough year data to alter".formatted(requestYear));
                     }
-                    return workloadMapper.toYearWorkloadEntity(requestYear, trainerWorkloadEntity);
+                    YearWorkloadEntity createdYearWorkload = workloadMapper.toYearWorkloadEntity(requestYear);
+                    trainerWorkloadEntity.getYears().add(createdYearWorkload);
+                    return createdYearWorkload;
                 });
         Month requestMonth = request.trainingDate().getMonth();
         MonthWorkloadEntity monthWorkloadEntity = yearWorkloadEntity.getMonths().stream()
@@ -57,11 +59,17 @@ public class TrainerWorkloadService {
                         throw new WorkloadNotFoundException(String.format(
                                 "Cannot update-delete trainer's %s workload because there isn't enough month data to alter", request.trainingDate()));
                     }
-                    return workloadMapper.toMonthWorkloadEntity(requestMonth, yearWorkloadEntity);
+                    MonthWorkloadEntity createdMonthWorkload = workloadMapper.toMonthWorkloadEntity(requestMonth);
+                    yearWorkloadEntity.getMonths().add(createdMonthWorkload);
+                    return createdMonthWorkload;
                 });
         int currentMinutes = monthWorkloadEntity.getTrainingSummaryDurationMinutes();
-        int addend = isDelete ? -request.trainingSummaryDurationMinutes() : request.trainingSummaryDurationMinutes();
-        int updatedMinutes = currentMinutes + addend;
+        int updatedMinutes;
+        if(isDelete){
+            updatedMinutes = currentMinutes - request.trainingSummaryDurationMinutes();
+        } else {
+            updatedMinutes = currentMinutes + request.trainingSummaryDurationMinutes();
+        }
         if (updatedMinutes < 0) {
             throw new InvalidStateTransitionException(String.format(
                     "Cannot update trainer's %s workload because resulting workload cannot go negative", request.trainingDate()));

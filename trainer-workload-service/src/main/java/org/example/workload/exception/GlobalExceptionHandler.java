@@ -138,7 +138,7 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     }
 
     @ExceptionHandler(Throwable.class)
-    public ProblemDetail handleException(Throwable throwable) {
+    public ProblemDetail handleThrowable(Throwable throwable) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
                 HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred"
         );

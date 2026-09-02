@@ -1,9 +1,9 @@
 package org.example.crm.trainer.client;
 
 import jakarta.validation.Valid;
-import org.example.crm.trainer.client.dto.TrainerWorkloadSummary;
-import org.example.crm.trainer.client.dto.request.TrainerWorkloadQuery;
-import org.example.crm.trainer.client.dto.request.TrainerWorkloadRequest;
+import org.example.crm.trainer.client.request.TrainerMonthlyWorkloadClientRequest;
+import org.example.crm.trainer.client.request.TrainerUpdateWorkloadClientRequest;
+import org.example.crm.trainer.client.response.TrainerWorkloadClientResponse;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.service.annotation.GetExchange;
@@ -14,8 +14,8 @@ import org.springframework.web.service.annotation.PostExchange;
 public interface TrainerWorkloadClient {
 
     @PostExchange
-    void updateTrainerWorkload(@RequestBody TrainerWorkloadRequest request);
+    void updateTrainerWorkload(@RequestBody TrainerUpdateWorkloadClientRequest request);
 
     @GetExchange
-    TrainerWorkloadSummary getWorkload(@Valid @ParameterObject TrainerWorkloadQuery query);
+    TrainerWorkloadClientResponse getWorkload(@Valid @ParameterObject TrainerMonthlyWorkloadClientRequest query);
 }

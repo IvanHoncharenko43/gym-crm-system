@@ -13,15 +13,15 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.crm.security.service.OwnershipVerifier;
-import org.example.crm.trainer.client.dto.request.TrainerWorkloadQuery;
-import org.example.crm.trainer.client.dto.response.TrainerWorkloadSummaryResponse;
+import org.example.crm.trainer.controller.request.TrainerMonthlyWorkloadRequest;
+import org.example.crm.trainer.controller.response.TrainerWorkloadSummary;
 import org.example.crm.trainer.controller.request.CreateTrainerRequest;
 import org.example.crm.trainer.controller.request.GetTrainerTrainingsRequest;
 import org.example.crm.trainer.controller.response.TrainerSummary;
 import org.example.crm.trainer.controller.request.UpdateTrainerRequest;
 import org.example.crm.trainer.controller.response.Trainers;
 import org.example.crm.trainer.service.TrainerService;
-import org.example.crm.trainer.service.TrainerWorkloadGateway;
+import org.example.crm.trainer.service.TrainerWorkloadService;
 import org.example.crm.training.controller.response.Trainings;
 import org.example.crm.training.service.TrainingService;
 import org.springdoc.core.annotations.ParameterObject;
@@ -59,7 +59,7 @@ public class TrainerController {
     private final TrainerService trainerService;
     private final TrainingService trainingService;
     private final OwnershipVerifier ownershipVerifier;
-    private final TrainerWorkloadGateway trainerWorkloadGateway;
+    private final TrainerWorkloadService trainerWorkloadService;
 
     @Operation(summary = "Register a new trainer", description = "Creates a new trainer profile and returns their summary")
     @ApiResponse(responseCode = "201", description = "Registered a new trainer")
@@ -207,9 +207,9 @@ public class TrainerController {
     @PreAuthorize("hasAnyRole('TRAINER', 'ADMIN')")
     @GetMapping("/workloads")
     @ResponseStatus(HttpStatus.OK)
-    public TrainerWorkloadSummaryResponse getTrainerWorkload(@Valid @ParameterObject TrainerWorkloadQuery query) {
+    public TrainerWorkloadSummary getTrainerWorkload(@Valid @ParameterObject TrainerMonthlyWorkloadRequest request) {
         log.info("GET /api/v1/trainers/workload endpoint called");
-        TrainerWorkloadSummaryResponse response = trainerWorkloadGateway.getWorkload(query);
+        TrainerWorkloadSummary response = trainerWorkloadService.getWorkload(request);
         log.info("GET /api/v1/trainers/workload endpoint executed");
         return response;
     }

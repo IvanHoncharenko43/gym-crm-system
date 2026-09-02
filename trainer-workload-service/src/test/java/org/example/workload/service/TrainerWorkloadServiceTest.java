@@ -55,8 +55,8 @@ class TrainerWorkloadServiceTest {
         assertEquals(1, createdYear.getMonths().size());
         assertEquals(160, createdYear.getMonths().iterator().next().getTrainingSummaryDurationMinutes());
         verify(trainerWorkloadRepository, times(1)).save(existingWorkload);
-        verify(workloadMapper, never()).toYearWorkloadEntity(anyInt(), any());
-        verify(workloadMapper, never()).toMonthWorkloadEntity(any(), any());
+        verify(workloadMapper, never()).toYearWorkloadEntity(anyInt());
+        verify(workloadMapper, never()).toMonthWorkloadEntity(any());
     }
 
     @Test
@@ -68,18 +68,10 @@ class TrainerWorkloadServiceTest {
 
         when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(existingWorkload));
         when(workloadMapper.toTrainerWorkloadEntity(request, existingWorkload)).thenReturn(existingWorkload);
-        when(workloadMapper.toYearWorkloadEntity(TRAINING_DATE.getYear(), existingWorkload))
-                .thenAnswer(invocation -> {
-                    yearWorkload.setTrainerWorkload(existingWorkload);
-                    existingWorkload.getYears().add(yearWorkload);
-                    return yearWorkload;
-                });
-        when(workloadMapper.toMonthWorkloadEntity(TRAINING_DATE.getMonth(), yearWorkload))
-                .thenAnswer(invocation -> {
-                    monthWorkload.setYearWorkload(yearWorkload);
-                    yearWorkload.getMonths().add(monthWorkload);
-                    return monthWorkload;
-                });
+        when(workloadMapper.toYearWorkloadEntity(TRAINING_DATE.getYear()))
+                .thenReturn(yearWorkload);
+        when(workloadMapper.toMonthWorkloadEntity(TRAINING_DATE.getMonth()))
+                .thenReturn(monthWorkload);
 
         trainerWorkloadService.updateWorkload(request);
 
@@ -99,18 +91,10 @@ class TrainerWorkloadServiceTest {
 
         when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.empty());
         when(workloadMapper.toTrainerWorkloadEntity(request, null)).thenReturn(trainerWorkload);
-        when(workloadMapper.toYearWorkloadEntity(TRAINING_DATE.getYear(), trainerWorkload))
-                .thenAnswer(invocation -> {
-                    yearWorkload.setTrainerWorkload(trainerWorkload);
-                    trainerWorkload.getYears().add(yearWorkload);
-                    return yearWorkload;
-                });
-        when(workloadMapper.toMonthWorkloadEntity(eq(TRAINING_DATE.getMonth()), any(YearWorkloadEntity.class)))
-                .thenAnswer(invocation -> {
-                    monthWorkload.setYearWorkload(yearWorkload);
-                    yearWorkload.getMonths().add(monthWorkload);
-                    return monthWorkload;
-                });
+        when(workloadMapper.toYearWorkloadEntity(TRAINING_DATE.getYear()))
+                .thenReturn(yearWorkload);
+        when(workloadMapper.toMonthWorkloadEntity(TRAINING_DATE.getMonth()))
+                .thenReturn(monthWorkload);
 
         trainerWorkloadService.updateWorkload(request);
         assertEquals(1, trainerWorkload.getYears().size());
@@ -140,7 +124,7 @@ class TrainerWorkloadServiceTest {
         when(workloadMapper.toTrainerWorkloadEntity(request, existingWorkload)).thenReturn(existingWorkload);
 
         assertThrows(WorkloadNotFoundException.class, () -> trainerWorkloadService.updateWorkload(request));
-        verify(workloadMapper, never()).toYearWorkloadEntity(anyInt(), any());
+        verify(workloadMapper, never()).toYearWorkloadEntity(anyInt());
         verify(trainerWorkloadRepository, never()).save(any());
     }
 
@@ -155,7 +139,7 @@ class TrainerWorkloadServiceTest {
         when(workloadMapper.toTrainerWorkloadEntity(request, existingWorkload)).thenReturn(existingWorkload);
 
         assertThrows(WorkloadNotFoundException.class, () -> trainerWorkloadService.updateWorkload(request));
-        verify(workloadMapper, never()).toMonthWorkloadEntity(any(), any());
+        verify(workloadMapper, never()).toMonthWorkloadEntity(any());
         verify(trainerWorkloadRepository, never()).save(any());
     }
 

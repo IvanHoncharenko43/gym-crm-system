@@ -4,8 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.example.crm.core.dto.ActionType;
 import org.example.crm.monitoring.GymCrmMetrics;
 import org.example.crm.exception.InvalidRequestDataException;
-import org.example.crm.trainer.client.dto.request.TrainerWorkloadRequest;
-import org.example.crm.trainer.service.TrainerWorkloadGateway;
+import org.example.crm.trainer.client.request.TrainerUpdateWorkloadClientRequest;
+import org.example.crm.trainer.service.TrainerWorkloadService;
 import org.example.crm.training.controller.response.Trainings;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +35,7 @@ public class TrainingService {
     private final TrainerRepository trainerRepository;
     private final GymMapper gymMapper;
     private final GymCrmMetrics gymCrmMetrics;
-    private final TrainerWorkloadGateway trainerWorkloadGateway;
+    private final TrainerWorkloadService trainerWorkloadService;
 
     @Transactional
     public TrainingSummary create(CreateTrainingRequest request) {
@@ -60,8 +60,8 @@ public class TrainingService {
         TrainingEntity savedTraining = trainingRepository.save(training);
         log.info("Created training with ID: {}", savedTraining.getId());
         gymCrmMetrics.incrementTrainingCreated(training.getTrainingType().getTrainingTypeName().name());
-        TrainerWorkloadRequest trainerWorkloadRequest = gymMapper.toTrainerWorkloadRequest(trainer, training, ActionType.ADD);
-        trainerWorkloadGateway.updateTrainerWorkload(trainerWorkloadRequest);
+        TrainerUpdateWorkloadClientRequest trainerUpdateWorkloadClientRequest = gymMapper.toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.ADD);
+        trainerWorkloadService.updateTrainerWorkload(trainerUpdateWorkloadClientRequest);
         return gymMapper.toTrainingSummary(training, trainee, trainer);
     }
 
@@ -78,10 +78,10 @@ public class TrainingService {
             log.warn(message);
             throw new InvalidRequestDataException(message);
         }
-        TrainerWorkloadRequest trainerWorkloadRequest = gymMapper.toTrainerWorkloadRequest(training.getTrainer(), training, ActionType.DELETE);
+        TrainerUpdateWorkloadClientRequest trainerUpdateWorkloadClientRequest = gymMapper.toTrainerUpdateWorkloadClientRequest(training.getTrainer(), training, ActionType.DELETE);
         trainingRepository.delete(training);
         log.info("Cancelled training with ID: {}", id);
-        trainerWorkloadGateway.updateTrainerWorkload(trainerWorkloadRequest);
+        trainerWorkloadService.updateTrainerWorkload(trainerUpdateWorkloadClientRequest);
     }
 
     @Transactional(readOnly = true)

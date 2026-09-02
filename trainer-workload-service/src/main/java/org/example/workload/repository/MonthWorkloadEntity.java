@@ -8,8 +8,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Column;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -34,20 +32,15 @@ public class MonthWorkloadEntity {
     @Column(name = "training_summary_duration_minutes")
     private int trainingSummaryDurationMinutes;
 
-    @ManyToOne
-    @JoinColumn(name = "year_workload_id")
-    private YearWorkloadEntity yearWorkload;
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof MonthWorkloadEntity that)) return false;
-        return month != null && month.equals(that.getMonth())
-                && yearWorkload != null && yearWorkload.equals(that.getYearWorkload());
+        return month != null && month.equals(that.getMonth());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(month, yearWorkload);
+        return Objects.hash(month);
     }
 }

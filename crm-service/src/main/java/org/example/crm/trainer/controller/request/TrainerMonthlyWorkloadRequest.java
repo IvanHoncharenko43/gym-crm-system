@@ -1,12 +1,12 @@
-package org.example.crm.trainer.client.dto.request;
+package org.example.crm.trainer.controller.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 
-@Schema(description = "Query filters for a trainer's monthly workload", name = "WorkloadQuery")
-public record TrainerWorkloadQuery(
+@Schema(description = "Request for getting a trainer's monthly workload", name = "TrainerMonthlyWorkload")
+public record TrainerMonthlyWorkloadRequest(
         @Schema(description = "Username of the trainer", example = "John.Doe", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "Username cannot be blank")
         String username,

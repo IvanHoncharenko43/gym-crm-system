@@ -7,7 +7,7 @@ import java.net.URI;
 
 public class DownstreamServerErrorException extends DownstreamServiceException {
     public DownstreamServerErrorException(String serviceName, HttpMethod httpMethod, URI requestUri,
-                                          HttpStatusCode statusCode, String responseBody) {
-        super(serviceName, httpMethod, requestUri, statusCode, responseBody);
+                                          HttpStatusCode statusCode, String detail) {
+        super(serviceName, httpMethod, requestUri, statusCode, detail);
     }
 }

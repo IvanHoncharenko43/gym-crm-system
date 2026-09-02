@@ -9,6 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Column;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.JoinColumn;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -39,7 +40,8 @@ public class TrainerWorkloadEntity {
     @Column(nullable = false)
     private boolean status;
 
-    @OneToMany(mappedBy = "trainerWorkload", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "trainer_workload_id")
     private Set<YearWorkloadEntity> years = new HashSet<>();
 
     @Override

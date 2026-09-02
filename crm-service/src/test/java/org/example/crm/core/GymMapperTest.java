@@ -8,7 +8,7 @@ import org.example.crm.trainee.repository.TraineeEntity;
 import org.example.crm.trainee.controller.response.TraineeSummary;
 import org.example.crm.trainee.controller.request.UpdateTraineeRequest;
 import org.example.crm.trainer.controller.request.CreateTrainerRequest;
-import org.example.crm.trainer.client.dto.request.TrainerWorkloadRequest;
+import org.example.crm.trainer.client.request.TrainerUpdateWorkloadClientRequest;
 import org.example.crm.trainer.repository.TrainerEntity;
 import org.example.crm.trainer.controller.response.TrainerSummary;
 import org.example.crm.trainer.controller.request.UpdateTrainerRequest;
@@ -155,11 +155,11 @@ public class GymMapperTest {
     }
 
     @Test
-    void toTrainerWorkloadRequest_MapCorrectly_FromTrainerAndTrainingAndActionTypeAdd() {
+    void toTrainerUpdateWorkloadClientRequest_MapCorrectly_FromTrainerAndTrainingAndActionTypeAdd() {
         TrainerEntity trainer = TestUtils.getTrainer();
         TrainingEntity training = TestUtils.getTraining();
 
-        TrainerWorkloadRequest request = gymMapper.toTrainerWorkloadRequest(trainer, training, ActionType.ADD);
+        TrainerUpdateWorkloadClientRequest request = gymMapper.toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.ADD);
 
         assertNotNull(request);
         assertEquals(trainer.getUser().getUsername(), request.username());
@@ -172,11 +172,11 @@ public class GymMapperTest {
     }
 
     @Test
-    void toTrainerWorkloadRequest_MapCorrectly_FromTrainerAndTrainingAndActionTypeDelete() {
+    void toTrainerUpdateWorkloadClientRequest_MapCorrectly_FromTrainerAndTrainingAndActionTypeDelete() {
         TrainerEntity trainer = TestUtils.getTrainer();
         TrainingEntity training = TestUtils.getTraining();
 
-        TrainerWorkloadRequest request = gymMapper.toTrainerWorkloadRequest(trainer, training, ActionType.DELETE);
+        TrainerUpdateWorkloadClientRequest request = gymMapper.toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.DELETE);
 
         assertNotNull(request);
         assertEquals(trainer.getUser().getUsername(), request.username());

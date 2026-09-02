@@ -40,10 +40,8 @@ class TrainerWorkloadRepositoryTest {
     void save_PersistTrainerWorkloadWithYearsAndMonths_EntityHasYearsAndMonths() {
         TrainerWorkloadEntity trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
         YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
-        yearWorkload.setTrainerWorkload(trainerWorkload);
         trainerWorkload.getYears().add(yearWorkload);
         MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), DURATION_MINUTES);
-        monthWorkload.setYearWorkload(yearWorkload);
         yearWorkload.getMonths().add(monthWorkload);
 
         TrainerWorkloadEntity savedWorkload = trainerWorkloadRepository.save(trainerWorkload);
@@ -64,10 +62,8 @@ class TrainerWorkloadRepositoryTest {
     void findByUsername_ReturnEntityWithYearsAndMonths_UsernameExists() {
         TrainerWorkloadEntity trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
         YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
-        yearWorkload.setTrainerWorkload(trainerWorkload);
         trainerWorkload.getYears().add(yearWorkload);
         MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), DURATION_MINUTES);
-        monthWorkload.setYearWorkload(yearWorkload);
         yearWorkload.getMonths().add(monthWorkload);
         entityManager.persistAndFlush(trainerWorkload);
         entityManager.clear();

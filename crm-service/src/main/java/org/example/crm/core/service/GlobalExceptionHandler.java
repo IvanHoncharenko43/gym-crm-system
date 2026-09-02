@@ -1,6 +1,5 @@
 package org.example.crm.core.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.Nullable;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
@@ -33,8 +32,6 @@ import java.util.Map;
 @RestControllerAdvice
 @RequiredArgsConstructor
 public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
-
-    private final ObjectMapper objectMapper;
 
     @Override
     protected @Nullable ResponseEntity<Object> handleMethodArgumentNotValid(
@@ -158,21 +155,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @ExceptionHandler(DownstreamServiceException.class)
     public ProblemDetail handleDownstreamServiceException(DownstreamServiceException exception) {
         ProblemDetail problemDetail;
-        if (exception instanceof DownstreamServerErrorException ||
-                exception instanceof DownstreamRetryableClientException){
+        if (exception instanceof DownstreamServerErrorException){
             problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY,
-                    "The trainer workload service is currently unavailable");
+                    String.format("The %s is currently unavailable", exception.getServiceName()));
             problemDetail.setTitle("Downstream Service Unavailable");
         } else{
-            String detail;
-            try {
-                ProblemDetail downstreamDetail = objectMapper.readValue(exception.getResponseBody(), ProblemDetail.class);
-                detail = downstreamDetail.getDetail();
-            } catch (Exception e) {
-                detail = "The trainer workload service rejected this request";
-            }
             problemDetail = ProblemDetail.forStatusAndDetail(
-                    HttpStatus.valueOf(exception.getStatusCode().value()), detail);
+                    HttpStatus.valueOf(exception.getStatusCode().value()), exception.getDetail());
             problemDetail.setTitle("Invalid Downstream Request");
         }
         problemDetail.setProperty("downstream_service_id", exception.getServiceName());
@@ -237,10 +226,10 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return problemDetail;
     }
 
-    @ExceptionHandler(Exception.class)
-    public ProblemDetail handleException(Exception exception){
+    @ExceptionHandler(Throwable.class)
+    public ProblemDetail handleThrowable(Throwable throwable){
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                HttpStatus.INTERNAL_SERVER_ERROR, exception.getMessage()
+                HttpStatus.INTERNAL_SERVER_ERROR, throwable.getMessage()
         );
         problemDetail.setTitle("Internal Server Error");
         return problemDetail;

@@ -7,7 +7,7 @@ import java.net.URI;
 
 public class DownstreamRetryableClientException extends DownstreamClientErrorException {
     public DownstreamRetryableClientException(String serviceName, HttpMethod httpMethod,
-                                              URI requestUri, HttpStatusCode statusCode, String responseBody) {
-        super(serviceName, httpMethod, requestUri, statusCode, responseBody);
+                                              URI requestUri, HttpStatusCode statusCode, String detail) {
+        super(serviceName, httpMethod, requestUri, statusCode, detail);
     }
 }

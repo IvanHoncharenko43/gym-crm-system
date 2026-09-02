@@ -1,10 +1,10 @@
-package org.example.crm.trainer.client.dto.response;
+package org.example.crm.trainer.controller.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import org.example.crm.user.controller.dto.FullName;
 
-@Schema(description = "DTO for a trainer's monthly training summary", name = "TrainerWorkloadSummaryResponse")
-public record TrainerWorkloadSummaryResponse(
+@Schema(description = "DTO for a trainer's monthly training summary", name = "TrainerWorkloadSummary")
+public record TrainerWorkloadSummary(
         @Schema(description = "Username of the trainer")
         String username,
 

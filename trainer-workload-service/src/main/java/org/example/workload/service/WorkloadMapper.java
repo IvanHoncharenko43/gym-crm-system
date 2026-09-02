@@ -37,19 +37,15 @@ public class WorkloadMapper {
         );
     }
 
-    public YearWorkloadEntity toYearWorkloadEntity(int year, TrainerWorkloadEntity trainerWorkloadEntity){
+    public YearWorkloadEntity toYearWorkloadEntity(int year){
         YearWorkloadEntity yearWorkloadEntity = new YearWorkloadEntity();
         yearWorkloadEntity.setYear(year);
-        yearWorkloadEntity.setTrainerWorkload(trainerWorkloadEntity);
-        trainerWorkloadEntity.getYears().add(yearWorkloadEntity);
         return yearWorkloadEntity;
     }
 
-    public MonthWorkloadEntity toMonthWorkloadEntity(Month month, YearWorkloadEntity yearWorkloadEntity){
+    public MonthWorkloadEntity toMonthWorkloadEntity(Month month){
         MonthWorkloadEntity monthWorkloadEntity = new MonthWorkloadEntity();
         monthWorkloadEntity.setMonth(month);
-        monthWorkloadEntity.setYearWorkload(yearWorkloadEntity);
-        yearWorkloadEntity.getMonths().add(monthWorkloadEntity);
         return monthWorkloadEntity;
     }
 }

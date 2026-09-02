@@ -9,16 +9,17 @@ import org.example.crm.core.service.GymMapper;
 import org.example.crm.exception.DownstreamServiceException;
 import org.example.crm.exception.DownstreamUnavailableException;
 import org.example.crm.trainer.client.TrainerWorkloadClient;
-import org.example.crm.trainer.client.dto.TrainerWorkloadSummary;
-import org.example.crm.trainer.client.dto.request.TrainerWorkloadQuery;
-import org.example.crm.trainer.client.dto.request.TrainerWorkloadRequest;
-import org.example.crm.trainer.client.dto.response.TrainerWorkloadSummaryResponse;
+import org.example.crm.trainer.controller.request.TrainerMonthlyWorkloadRequest;
+import org.example.crm.trainer.client.response.TrainerWorkloadClientResponse;
+import org.example.crm.trainer.client.request.TrainerMonthlyWorkloadClientRequest;
+import org.example.crm.trainer.client.request.TrainerUpdateWorkloadClientRequest;
+import org.example.crm.trainer.controller.response.TrainerWorkloadSummary;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class TrainerWorkloadGateway {
+public class TrainerWorkloadService {
 
     private final TrainerWorkloadClient trainerWorkloadClient;
     private final GymMapper gymMapper;
@@ -26,7 +27,7 @@ public class TrainerWorkloadGateway {
 
     @CircuitBreaker(name = "trainerWorkloadService", fallbackMethod = "updateTrainerWorkloadFallback")
     @Retry(name = "trainerWorkloadService")
-    public void updateTrainerWorkload(TrainerWorkloadRequest request){
+    public void updateTrainerWorkload(TrainerUpdateWorkloadClientRequest request){
         log.debug("Sending an update on trainer workload");
         trainerWorkloadClient.updateTrainerWorkload(request);
         log.debug("Updated a trainer's workload");
@@ -34,18 +35,19 @@ public class TrainerWorkloadGateway {
 
     @CircuitBreaker(name = "trainerWorkloadService", fallbackMethod = "getWorkloadFallback")
     @Retry(name = "trainerWorkloadService")
-    public TrainerWorkloadSummaryResponse getWorkload(TrainerWorkloadQuery query) {
-        log.debug("Requesting trainer workload summary for {}/{}", query.month(), query.year());
-        TrainerWorkloadSummary response = trainerWorkloadClient.getWorkload(query);
+    public TrainerWorkloadSummary getWorkload(TrainerMonthlyWorkloadRequest request) {
+        log.debug("Requesting trainer workload summary for {}/{}", request.month(), request.year());
+        TrainerMonthlyWorkloadClientRequest clientRequest = gymMapper.toTrainerMonthlyWorkloadClientRequest(request);
+        TrainerWorkloadClientResponse response = trainerWorkloadClient.getWorkload(clientRequest);
         log.debug("Retrieved trainer workload summary");
-        return gymMapper.toTrainerWorkloadSummaryResponse(response);
+        return gymMapper.toTrainerWorkloadSummary(response);
     }
 
-    private void updateTrainerWorkloadFallback(TrainerWorkloadRequest request, Throwable throwable){
+    private void updateTrainerWorkloadFallback(TrainerUpdateWorkloadClientRequest request, Throwable throwable){
         log.warn("Failed to send workload update ({}) for trainer. The CRM service has committed the change, but the workload service missed the update", request.actionType().name());
     }
 
-    private TrainerWorkloadSummaryResponse getWorkloadFallback(TrainerWorkloadQuery query, Throwable throwable) {
+    private TrainerWorkloadSummary getWorkloadFallback(TrainerMonthlyWorkloadClientRequest query, Throwable throwable) {
         log.warn("Failed to retrieve trainer workload summary for {}/{} from trainer-workload-service",
                 query.month(), query.year());
         if (throwable instanceof DownstreamServiceException exception){

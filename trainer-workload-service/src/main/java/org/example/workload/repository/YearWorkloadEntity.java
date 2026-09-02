@@ -10,7 +10,6 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Column;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -32,23 +31,19 @@ public class YearWorkloadEntity {
     @Column(name = "workload_year")
     private int year;
 
-    @OneToMany(mappedBy = "yearWorkload", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "year_workload_id")
     private Set<MonthWorkloadEntity> months = new HashSet<>();
-
-    @ManyToOne
-    @JoinColumn(name = "trainer_workload_id", nullable = false)
-    private TrainerWorkloadEntity trainerWorkload;
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof YearWorkloadEntity that)) return false;
-        return year == that.getYear()
-                && trainerWorkload != null && trainerWorkload.equals(that.getTrainerWorkload());
+        return year == that.getYear();
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(year, trainerWorkload);
+        return Objects.hash(year);
     }
 }

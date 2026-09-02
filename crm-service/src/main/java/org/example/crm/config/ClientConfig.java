@@ -1,5 +1,6 @@
 package org.example.crm.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.example.crm.trainer.client.TrainerWorkloadClient;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -21,6 +22,7 @@ public class ClientConfig {
 
     private final ClientConfigurationProperties clientConfigurationProperties;
     private final DiscoveryClient discoveryClient;
+    private final ObjectMapper objectMapper;
 
     @Bean
     public RestClient trainerWorkloadRestClient(
@@ -35,7 +37,7 @@ public class ClientConfig {
                 .requestInterceptor(tokenPopulationInterceptor)
                 .requestInterceptor(traceIdPopulationInterceptor)
                 .defaultStatusHandler(HttpStatusCode::isError,
-                        new DownstreamErrorStatusHandler(clientConfigurationProperties.workloadId()))
+                        new DownstreamErrorStatusHandler(clientConfigurationProperties.workloadId(), objectMapper))
                 .build();
     }
 
