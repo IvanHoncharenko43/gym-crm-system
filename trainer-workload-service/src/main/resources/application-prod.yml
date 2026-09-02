@@ -1,0 +1,17 @@
+logging:
+  level:
+    root: warn
+    org.example.workload: info
+    org.springframework.web: warn
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

@@ -1,6 +1,9 @@
 # Gym CRM System
 
-This is a Spring Boot 4 and Hibernate/Spring Data JPA-based REST API implementation of a Gym CRM system. The application deploys on an embedded Tomcat container managed automatically by Spring Boot
+This is a microservice implementation of a Gym CRM system. The services are built with Spring Boot 4 and REST API:  
+`crm-service` manages the data layer with Hibernate/Spring Data JPA;  
+`trainer-workload-service` manages the data layer with in-memory storage.  
+Services are deployed on embedded Tomcat containers managed automatically by Spring Boot, and leverage Eureka as a discovery service.
 
 ## Prerequisites
 * Java 21 installed and configured in your system path.
@@ -33,6 +36,11 @@ The application utilizes Spring Boot Profiles to manage different environments:
 - Start the database container with the `docker compose up` command
 ## How to Run the Application
 
-To run the application inside IntelliJ IDEA, you should:
+To run the microservice application inside IntelliJ IDEA, you should:
 
-- Click `Run` to run the GymCrmApplication
+- Click `Run` on the Spring Boot Services tab,  
+OR
+- Run each service individually in the following order:
+  1. `DiscoveryServiceApplication`
+  2. `TrainerWorkloadApplication`
+  3. `CrmApplication`

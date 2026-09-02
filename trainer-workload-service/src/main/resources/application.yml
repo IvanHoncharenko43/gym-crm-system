@@ -1,0 +1,53 @@
+spring:
+  application:
+    name: trainer-workload-service
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+server:
+  port: ${SERVER_PORT}
+
+jwt:
+  secret-key: ${JWT_SECRET_KEY}
+  expiration: ${JWT_EXPIRATION}
+  roles-claim: roles
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE}
+    healthcheck:
+      enabled: true
+  instance:
+    prefer-ip-address: true
+
+
+management:
+  server:
+    port: ${MANAGEMENT_PORT}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include:
+            - livenessState
+        readiness:
+          include:
+            - readinessState
+info:
+  app:
+    name: Trainer Workload Service
+    description: Spring Boot Microservice for Trainer Workload Tracking
+    version: 1.0.0
