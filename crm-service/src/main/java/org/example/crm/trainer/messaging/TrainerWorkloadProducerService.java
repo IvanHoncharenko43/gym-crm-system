@@ -12,7 +12,6 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 
 import static org.example.crm.core.filter.TraceIdFilter.TRACE_ID_KEY;
-import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 
 @Slf4j
 @Service
@@ -30,8 +29,6 @@ public class TrainerWorkloadProducerService {
         ProducerRecord<String, TrainerWorkloadUpdateEvent> record = new ProducerRecord<>(
                 kafkaTopicsConfigurationProperties.trainerWorkloadUpdate(), messageKey, event);
 
-        requestHeaderContextResolver.getAuthorizationHeader()
-                .ifPresent(authorizationHeader -> record.headers().add(AUTHORIZATION, authorizationHeader.getBytes(StandardCharsets.UTF_8)));
         requestHeaderContextResolver.getTraceIdHeader()
                 .ifPresent(traceIdHeader -> record.headers().add(TRACE_ID_KEY, traceIdHeader.getBytes(StandardCharsets.UTF_8)));
         kafkaTemplate.send(record)
