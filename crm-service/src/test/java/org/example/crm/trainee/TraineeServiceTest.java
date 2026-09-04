@@ -1,16 +1,14 @@
 package org.example.crm.trainee;
 
 import org.example.crm.TestUtils;
-import org.example.crm.core.dto.ActionType;
 import org.example.crm.exception.EntityNotFoundException;
 import org.example.crm.monitoring.GymCrmMetrics;
 import org.example.crm.trainee.controller.request.UpdateTraineeTrainersRequest;
-import org.example.crm.trainer.messaging.TrainerWorkloadUpdateEvent;
 import org.example.crm.trainer.controller.response.TrainerSummary;
 import org.example.crm.trainer.controller.response.Trainers;
 import org.example.crm.trainer.repository.TrainerEntity;
 import org.example.crm.trainer.repository.TrainerRepository;
-import org.example.crm.trainer.messaging.TrainerWorkloadProducerService;
+import org.example.crm.training.event.TrainingChangedEvent;
 import org.example.crm.training.repository.TrainingEntity;
 import org.example.crm.training.repository.TrainingRepository;
 import org.example.crm.user.controller.dto.FullName;
@@ -29,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDate;
 import java.util.*;
@@ -61,7 +60,7 @@ public class TraineeServiceTest {
     private TrainingRepository trainingRepository;
 
     @Mock
-    private TrainerWorkloadProducerService trainerWorkloadProducerService;
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     private TraineeService traineeService;
@@ -224,46 +223,51 @@ public class TraineeServiceTest {
     }
 
     @Test
-    void deleteByUsername_DeleteAndNotifyWorkloadService_TraineeHasTrainings() {
+    void deleteByUsername_PublishOneEventPerDistinctTrainerMonth_TraineeHasTrainings() {
         TraineeEntity trainee = new TraineeEntity();
         trainee.setUser(new UserEntity());
         trainee.getUser().setUsername(USERNAME);
-        TrainerEntity trainer = new TrainerEntity();
-        trainer.setId(1L);
+
+        TrainerEntity trainer1 = new TrainerEntity();
+        trainer1.setId(1L);
+        trainer1.setUser(new UserEntity());
+        trainer1.getUser().setUsername("Trainer.Doe");
+        TrainerEntity trainer2 = new TrainerEntity();
+        trainer2.setId(2L);
+        trainer2.setUser(new UserEntity());
+        trainer2.getUser().setUsername("Trainer.Smith");
+
         TrainingEntity training1 = new TrainingEntity();
         training1.setId(1L);
-        training1.setTrainer(trainer);
+        training1.setTrainer(trainer1);
+        training1.setTrainingDate(LocalDate.of(2026, 5, 12));
         TrainingEntity training2 = new TrainingEntity();
         training2.setId(2L);
-        training2.setTrainer(trainer);
-        List<TrainingEntity> trainings = List.of(training1, training2);
-        TrainerWorkloadUpdateEvent workloadUpdateEvent1 = new TrainerWorkloadUpdateEvent(
-                "Trainer.Doe", new FullName("Jane", "Smith"), true,
-                LocalDate.of(2026, 5, 12), 45, ActionType.DELETE
-        );
-        TrainerWorkloadUpdateEvent workloadUpdateEvent2 = new TrainerWorkloadUpdateEvent(
-                "Trainer.Doe", new FullName("Jane", "Smith"), true,
-                LocalDate.of(2026, 6, 1), 60, ActionType.DELETE
-        );
+        training2.setTrainer(trainer1);
+        training2.setTrainingDate(LocalDate.of(2026, 5, 20));
+        TrainingEntity training3 = new TrainingEntity();
+        training3.setId(3L);
+        training3.setTrainer(trainer2);
+        training3.setTrainingDate(LocalDate.of(2026, 6, 1));
+        List<TrainingEntity> trainings = List.of(training1, training2, training3);
 
         when(traineeRepository.findByUsername(USERNAME)).thenReturn(Optional.of(trainee));
         when(trainingRepository.findAllByTraineeUserUsername(USERNAME)).thenReturn(trainings);
-        when(gymMapper.toTrainerWorkloadUpdateEvent(trainer, training1, ActionType.DELETE)).thenReturn(workloadUpdateEvent1);
-        when(gymMapper.toTrainerWorkloadUpdateEvent(trainer, training2, ActionType.DELETE)).thenReturn(workloadUpdateEvent2);
 
         traineeService.deleteByUsername(USERNAME);
 
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
         verify(trainingRepository, times(1)).findAllByTraineeUserUsername(USERNAME);
-        verify(gymMapper, times(1)).toTrainerWorkloadUpdateEvent(trainer, training1, ActionType.DELETE);
-        verify(gymMapper, times(1)).toTrainerWorkloadUpdateEvent(trainer, training2, ActionType.DELETE);
-        verify(trainerWorkloadProducerService, times(1)).publishTrainerWorkloadUpdateEvent(workloadUpdateEvent1);
-        verify(trainerWorkloadProducerService, times(1)).publishTrainerWorkloadUpdateEvent(workloadUpdateEvent2);
         verify(traineeRepository, times(1)).deleteByUserUsername(USERNAME);
+        verify(applicationEventPublisher, times(1))
+                .publishEvent(new TrainingChangedEvent("Trainer.Doe", LocalDate.of(2026, 5, 1)));
+        verify(applicationEventPublisher, times(1))
+                .publishEvent(new TrainingChangedEvent("Trainer.Smith", LocalDate.of(2026, 6, 1)));
+        verifyNoMoreInteractions(applicationEventPublisher);
     }
 
     @Test
-    void deleteByUsername_DeleteWithoutNotifyingWorkloadService_TraineeHasNoTrainings() {
+    void deleteByUsername_DeleteWithoutPublishingEvents_TraineeHasNoTrainings() {
         TraineeEntity trainee = new TraineeEntity();
         trainee.setUser(new UserEntity());
         trainee.getUser().setUsername(USERNAME);
@@ -274,7 +278,7 @@ public class TraineeServiceTest {
         traineeService.deleteByUsername(USERNAME);
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
         verify(trainingRepository, times(1)).findAllByTraineeUserUsername(USERNAME);
-        verify(trainerWorkloadProducerService, never()).publishTrainerWorkloadUpdateEvent(any());
+        verify(applicationEventPublisher, never()).publishEvent(any());
         verify(traineeRepository, times(1)).deleteByUserUsername(USERNAME);
     }
 
@@ -286,7 +290,7 @@ public class TraineeServiceTest {
 
         verify(traineeRepository, times(1)).findByUsername(USERNAME);
         verify(trainingRepository, never()).findAllByTraineeUserUsername(anyString());
-        verify(trainerWorkloadProducerService, never()).publishTrainerWorkloadUpdateEvent(any());
+        verify(applicationEventPublisher, never()).publishEvent(any());
         verify(traineeRepository, never()).deleteByUserUsername(anyString());
     }
 

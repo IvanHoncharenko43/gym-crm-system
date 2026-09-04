@@ -1,7 +1,6 @@
 package org.example.crm.core;
 
 import org.example.crm.TestUtils;
-import org.example.crm.core.dto.ActionType;
 import org.example.crm.core.service.GymMapper;
 import org.example.crm.trainee.controller.request.CreateTraineeRequest;
 import org.example.crm.trainee.repository.TraineeEntity;
@@ -25,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -155,37 +155,20 @@ public class GymMapperTest {
     }
 
     @Test
-    void toTrainerUpdateWorkloadClientRequest_MapCorrectly_FromTrainerAndTrainingAndActionTypeAdd() {
+    void toTrainerWorkloadUpdateEvent_MapCorrectly_FromTrainerAndDateAndTotalMinutes() {
         TrainerEntity trainer = TestUtils.getTrainer();
-        TrainingEntity training = TestUtils.getTraining();
+        LocalDate trainingDate = LocalDate.of(2026, 5, 12);
+        int totalDurationMinutes = 160;
 
-        TrainerWorkloadUpdateEvent event = gymMapper.toTrainerWorkloadUpdateEvent(trainer, training, ActionType.ADD);
+        TrainerWorkloadUpdateEvent event = gymMapper.toTrainerWorkloadUpdateEvent(trainer, trainingDate, totalDurationMinutes);
 
         assertNotNull(event);
         assertEquals(trainer.getUser().getUsername(), event.username());
         assertEquals(trainer.getUser().getFirstName(), event.fullName().firstName());
         assertEquals(trainer.getUser().getLastName(), event.fullName().lastName());
         assertEquals(trainer.getUser().getIsActive(), event.isActive());
-        assertEquals(training.getTrainingDate(), event.trainingDate());
-        assertEquals(training.getDurationMinutes(), event.trainingSummaryDurationMinutes());
-        assertEquals(ActionType.ADD, event.actionType());
-    }
-
-    @Test
-    void toTrainerUpdateWorkloadClientRequest_MapCorrectly_FromTrainerAndTrainingAndActionTypeDelete() {
-        TrainerEntity trainer = TestUtils.getTrainer();
-        TrainingEntity training = TestUtils.getTraining();
-
-        TrainerWorkloadUpdateEvent event = gymMapper.toTrainerWorkloadUpdateEvent(trainer, training, ActionType.DELETE);
-
-        assertNotNull(event);
-        assertEquals(trainer.getUser().getUsername(), event.username());
-        assertEquals(trainer.getUser().getFirstName(), event.fullName().firstName());
-        assertEquals(trainer.getUser().getLastName(), event.fullName().lastName());
-        assertEquals(trainer.getUser().getIsActive(), event.isActive());
-        assertEquals(training.getTrainingDate(), event.trainingDate());
-        assertEquals(training.getDurationMinutes(), event.trainingSummaryDurationMinutes());
-        assertEquals(ActionType.DELETE, event.actionType());
+        assertEquals(trainingDate, event.trainingDate());
+        assertEquals(totalDurationMinutes, event.trainingSummaryDurationMinutes());
     }
 
     @Test
