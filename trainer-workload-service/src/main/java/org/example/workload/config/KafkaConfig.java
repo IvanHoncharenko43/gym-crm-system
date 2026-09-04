@@ -1,11 +1,13 @@
 package org.example.workload.config;
 
 import lombok.RequiredArgsConstructor;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
+import org.springframework.kafka.core.KafkaAdmin;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
@@ -16,16 +18,22 @@ import org.springframework.util.backoff.FixedBackOff;
 @RequiredArgsConstructor
 @EnableConfigurationProperties({KafkaRetryConfigurationProperties.class, KafkaTopicsConfigurationProperties.class})
 public class KafkaConfig {
+
+    private final KafkaAdmin kafkaAdmin;
     private final KafkaTemplate<Object, Object> kafkaTemplate;
     private final KafkaRetryConfigurationProperties kafkaRetryConfigurationProperties;
     private final KafkaTopicsConfigurationProperties kafkaTopicsConfigurationProperties;
+
+    @Bean
+    public AdminClient kafkaAdminClient() {
+        return AdminClient.create(kafkaAdmin.getConfigurationProperties());
+    }
 
     @Bean
     public DefaultErrorHandler errorHandler() {
         DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate);
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, new FixedBackOff(
                 kafkaRetryConfigurationProperties.backoffIntervalMs(), kafkaRetryConfigurationProperties.maxAttempts()));
-        errorHandler.addNotRetryableExceptions(InsufficientAuthenticationException.class);
         return errorHandler;
     }
 

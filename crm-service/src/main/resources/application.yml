@@ -74,6 +74,7 @@ management:
             - readinessState
             - db
             - dbPrivileges
+            - kafkaCluster
 
 resilience4j:
   circuitbreaker:

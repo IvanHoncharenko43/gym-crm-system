@@ -71,6 +71,8 @@ management:
         readiness:
           include:
             - readinessState
+            - kafkaCluster
+            - kafkaConsumerGroup
 info:
   app:
     name: Trainer Workload Service
