@@ -1,12 +1,11 @@
 package org.example.crm.training.service;
 
 import lombok.RequiredArgsConstructor;
-import org.example.crm.core.dto.ActionType;
 import org.example.crm.monitoring.GymCrmMetrics;
 import org.example.crm.exception.InvalidRequestDataException;
-import org.example.crm.trainer.messaging.TrainerWorkloadUpdateEvent;
-import org.example.crm.trainer.messaging.TrainerWorkloadProducerService;
 import org.example.crm.training.controller.response.Trainings;
+import org.example.crm.training.event.TrainingChangedEvent;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.crm.trainee.controller.request.GetTraineeTrainingsRequest;
@@ -35,7 +34,7 @@ public class TrainingService {
     private final TrainerRepository trainerRepository;
     private final GymMapper gymMapper;
     private final GymCrmMetrics gymCrmMetrics;
-    private final TrainerWorkloadProducerService trainerWorkloadProducerService;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional
     public TrainingSummary create(CreateTrainingRequest request) {
@@ -60,8 +59,7 @@ public class TrainingService {
         TrainingEntity savedTraining = trainingRepository.save(training);
         log.info("Created training with ID: {}", savedTraining.getId());
         gymCrmMetrics.incrementTrainingCreated(training.getTrainingType().getTrainingTypeName().name());
-        TrainerWorkloadUpdateEvent trainerWorkloadUpdateEvent = gymMapper.toTrainerWorkloadUpdateEvent(trainer, training, ActionType.ADD);
-        trainerWorkloadProducerService.publishTrainerWorkloadUpdateEvent(trainerWorkloadUpdateEvent);
+        applicationEventPublisher.publishEvent(new TrainingChangedEvent(trainer.getUser().getUsername(), training.getTrainingDate()));
         return gymMapper.toTrainingSummary(training, trainee, trainer);
     }
 
@@ -78,10 +76,9 @@ public class TrainingService {
             log.warn(message);
             throw new InvalidRequestDataException(message);
         }
-        TrainerWorkloadUpdateEvent trainerWorkloadUpdateEvent = gymMapper.toTrainerWorkloadUpdateEvent(training.getTrainer(), training, ActionType.DELETE);
         trainingRepository.delete(training);
         log.info("Cancelled training with ID: {}", id);
-        trainerWorkloadProducerService.publishTrainerWorkloadUpdateEvent(trainerWorkloadUpdateEvent);
+        applicationEventPublisher.publishEvent(new TrainingChangedEvent(training.getTrainer().getUser().getUsername(), training.getTrainingDate()));
     }
 
     @Transactional(readOnly = true)
