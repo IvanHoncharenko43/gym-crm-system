@@ -24,19 +24,20 @@ public class TrainerWorkloadService {
     private final GymMapper gymMapper;
     private final ClientConfigurationProperties clientConfigurationProperties;
 
-    @CircuitBreaker(name = "trainerWorkloadService", fallbackMethod = "getWorkloadFallback")
-    @Retry(name = "trainerWorkloadService")
+    @CircuitBreaker(name = "trainerWorkloadService")
+    @Retry(name = "trainerWorkloadService", fallbackMethod = "getWorkloadFallback")
     public TrainerWorkloadSummary getWorkload(TrainerMonthlyWorkloadRequest request) {
         log.debug("Requesting trainer workload summary for {}/{}", request.month(), request.year());
         TrainerMonthlyWorkloadClientRequest clientRequest = gymMapper.toTrainerMonthlyWorkloadClientRequest(request);
-        TrainerWorkloadClientResponse response = trainerWorkloadClient.getWorkload(clientRequest);
+        TrainerWorkloadClientResponse response = trainerWorkloadClient.getWorkload(
+                clientRequest.username(), clientRequest.year(), clientRequest.month());
         log.debug("Retrieved trainer workload summary");
         return gymMapper.toTrainerWorkloadSummary(response);
     }
 
-    private TrainerWorkloadSummary getWorkloadFallback(TrainerMonthlyWorkloadClientRequest query, Throwable throwable) {
+    private TrainerWorkloadSummary getWorkloadFallback(TrainerMonthlyWorkloadRequest request, Throwable throwable) {
         log.warn("Failed to retrieve trainer workload summary for {}/{} from trainer-workload-service",
-                query.month(), query.year());
+                request.month(), request.year());
         if (throwable instanceof DownstreamServiceException exception){
             throw exception;
         }
