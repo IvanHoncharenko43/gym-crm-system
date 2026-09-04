@@ -27,20 +27,19 @@ spring:
 
 server:
   port: ${SERVER_PORT}
-
-jwt:
-  secret-key: ${JWT_SECRET_KEY}
-  expiration: ${JWT_EXPIRATION}
-  roles-claim: roles
-
-kafka:
-  topics:
-    trainer-workload-update: "trainer-workload-update-event"
-    trainer-workload-update-dlt: "trainer-workload-update-event-dlt"
-  consumer:
-    retry:
-      backoff-interval-ms: 1000
-      max-attempts: 3
+app:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY}
+    expiration: ${JWT_EXPIRATION}
+    roles-claim: roles
+  kafka:
+    topics:
+      trainer-workload-update: "trainer-workload-update-event"
+      trainer-workload-update-dlt: "trainer-workload-update-event-dlt"
+    consumer:
+      retry:
+        backoff-interval-ms: 1000
+        max-attempts: 3
 
 springdoc:
   api-docs:

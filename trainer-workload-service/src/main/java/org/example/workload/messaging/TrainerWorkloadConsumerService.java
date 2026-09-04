@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 public class TrainerWorkloadConsumerService {
     private final TrainerWorkloadService trainerWorkloadService;
 
-    @KafkaListener(topics = "${kafka.topics.trainer-workload-update}", groupId = "workload-service-group")
+    @KafkaListener(topics = "${app.kafka.topics.trainer-workload-update}")
     public void consumeTrainerWorkloadUpdate(@Valid @Payload TrainerWorkloadUpdateEvent request) {
         log.info("Started processing workload update for trainer");
         trainerWorkloadService.updateWorkload(request);

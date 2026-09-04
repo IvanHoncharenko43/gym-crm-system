@@ -26,27 +26,25 @@ spring:
 server:
   port: ${SERVER_PORT}
 
-jwt:
-  secret-key: ${JWT_SECRET_KEY}
-  expiration: ${JWT_EXPIRATION}
-  roles-claim: roles
-
-security:
-  cors:
-    allowed-origins: "*"
-    allowed-methods: GET,POST,PUT,PATCH,DELETE
-    allowed-headers: Authorization,Content-Type,Cache-Control
-    exposed-headers: Authorization
-  admin:
-    usernames: ${ADMIN_USERNAMES:}
-
-client:
-  services:
-    workload-id: ${WORKLOAD_ID}
-
-kafka:
-  topics:
-    trainer-workload-update: "trainer-workload-update-event"
+app:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY}
+    expiration: ${JWT_EXPIRATION}
+    roles-claim: roles
+  security:
+    cors:
+      allowed-origins: "*"
+      allowed-methods: GET,POST,PUT,PATCH,DELETE
+      allowed-headers: Authorization,Content-Type,Cache-Control
+      exposed-headers: Authorization
+    admin:
+      usernames: ${ADMIN_USERNAMES:}
+  client:
+    services:
+      workload-id: ${WORKLOAD_ID}
+  kafka:
+    topics:
+      trainer-workload-update: "trainer-workload-update-event"
 
 eureka:
   client:

@@ -9,9 +9,10 @@ spring:
 server:
   port: ${SERVER_PORT:8082}
 
-jwt:
-  secret-key: ${JWT_SECRET_KEY:SdM6oy/wkfKckcHf2PX1oNTvmC4C7WteH4RLg6Lg6Nw=}
-  expiration: ${JWT_EXPIRATION:7200000}
+app:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY:SdM6oy/wkfKckcHf2PX1oNTvmC4C7WteH4RLg6Lg6Nw=}
+    expiration: ${JWT_EXPIRATION:7200000}
 
 eureka:
   client:
