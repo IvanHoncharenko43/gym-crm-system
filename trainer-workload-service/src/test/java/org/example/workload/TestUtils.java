@@ -1,6 +1,5 @@
 package org.example.workload;
 
-import org.example.workload.controller.dto.ActionType;
 import org.example.workload.controller.dto.FullName;
 import org.example.workload.messaging.TrainerWorkloadUpdateEvent;
 import org.example.workload.controller.dto.request.WorkloadQuery;
@@ -21,28 +20,26 @@ public class TestUtils {
     public static final int DURATION_MINUTES = 60;
 
     public static TrainerWorkloadUpdateEvent getTrainerWorkloadRequest() {
-        return getTrainerWorkloadRequest(ActionType.ADD, DURATION_MINUTES);
+        return getTrainerWorkloadRequest(DURATION_MINUTES);
     }
 
-    public static TrainerWorkloadUpdateEvent getTrainerWorkloadRequest(ActionType actionType, int durationMinutes) {
+    public static TrainerWorkloadUpdateEvent getTrainerWorkloadRequest(int durationMinutes) {
         return new TrainerWorkloadUpdateEvent(
                 TRAINER_USERNAME,
                 new FullName(FIRST_NAME, LAST_NAME),
                 true,
                 TRAINING_DATE,
-                durationMinutes,
-                actionType
+                durationMinutes
         );
     }
 
-    public static TrainerWorkloadUpdateEvent getTrainerWorkloadRequest(LocalDate trainingDate, ActionType actionType, int durationMinutes) {
+    public static TrainerWorkloadUpdateEvent getTrainerWorkloadRequest(LocalDate trainingDate, int durationMinutes) {
         return new TrainerWorkloadUpdateEvent(
                 TRAINER_USERNAME,
                 new FullName(FIRST_NAME, LAST_NAME),
                 true,
                 trainingDate,
-                durationMinutes,
-                actionType
+                durationMinutes
         );
     }
 
