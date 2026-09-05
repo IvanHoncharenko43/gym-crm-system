@@ -1,7 +1,7 @@
 package org.example.workload.service;
 
 import org.example.workload.controller.dto.FullName;
-import org.example.workload.controller.dto.request.TrainerWorkloadRequest;
+import org.example.workload.messaging.TrainerWorkloadUpdateEvent;
 import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
 import org.example.workload.repository.MonthWorkloadEntity;
 import org.example.workload.repository.TrainerWorkloadEntity;
@@ -13,12 +13,12 @@ import java.time.Month;
 @Component
 public class WorkloadMapper {
 
-    public TrainerWorkloadEntity toTrainerWorkloadEntity(TrainerWorkloadRequest request, TrainerWorkloadEntity existingTrainerWorkloadEntity){
+    public TrainerWorkloadEntity toTrainerWorkloadEntity(TrainerWorkloadUpdateEvent event, TrainerWorkloadEntity existingTrainerWorkloadEntity){
         TrainerWorkloadEntity trainerWorkloadEntity = new TrainerWorkloadEntity();
-        trainerWorkloadEntity.setUsername(request.username());
-        trainerWorkloadEntity.setFirstName(request.fullName().firstName());
-        trainerWorkloadEntity.setLastName(request.fullName().lastName());
-        trainerWorkloadEntity.setStatus(request.isActive());
+        trainerWorkloadEntity.setUsername(event.username());
+        trainerWorkloadEntity.setFirstName(event.fullName().firstName());
+        trainerWorkloadEntity.setLastName(event.fullName().lastName());
+        trainerWorkloadEntity.setStatus(event.isActive());
         if(existingTrainerWorkloadEntity != null) {
             trainerWorkloadEntity.setId(existingTrainerWorkloadEntity.getId());
             trainerWorkloadEntity.setYears(existingTrainerWorkloadEntity.getYears());

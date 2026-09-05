@@ -11,27 +11,40 @@ spring:
     clients:
       connect-timeout: 1s
       read-timeout: 2s
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all
+      properties:
+        delivery.timeout.ms: 120000
+        enable.idempotence: true
+        spring.json.add.type.headers: true
+        spring.json.type.mapping: updateWorkloadEvent:org.example.crm.trainer.messaging.TrainerWorkloadUpdateEvent
 
 server:
   port: ${SERVER_PORT}
 
-jwt:
-  secret-key: ${JWT_SECRET_KEY}
-  expiration: ${JWT_EXPIRATION}
-  roles-claim: roles
-
-security:
-  cors:
-    allowed-origins: "*"
-    allowed-methods: GET,POST,PUT,PATCH,DELETE
-    allowed-headers: Authorization,Content-Type,Cache-Control
-    exposed-headers: Authorization
-  admin:
-    usernames: ${ADMIN_USERNAMES:}
-
-client:
-  services:
-    workload-id: ${WORKLOAD_ID}
+app:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY}
+    expiration: ${JWT_EXPIRATION}
+    roles-claim: roles
+  security:
+    cors:
+      allowed-origins: "*"
+      allowed-methods: GET,POST,PUT,PATCH,DELETE
+      allowed-headers: Authorization,Content-Type,Cache-Control
+      exposed-headers: Authorization
+    admin:
+      usernames: ${ADMIN_USERNAMES:}
+  client:
+    services:
+      workload-id: ${WORKLOAD_ID}
+  kafka:
+    topics:
+      trainer-workload-update: "trainer-workload-update-event"
 
 eureka:
   client:
@@ -61,6 +74,7 @@ management:
             - readinessState
             - db
             - dbPrivileges
+            - kafkaCluster
 
 resilience4j:
   circuitbreaker:

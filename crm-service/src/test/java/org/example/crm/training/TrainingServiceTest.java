@@ -1,7 +1,6 @@
 package org.example.crm.training;
 
 import org.example.crm.TestUtils;
-import org.example.crm.core.dto.ActionType;
 import org.example.crm.exception.EntityNotFoundException;
 import org.example.crm.core.service.GymMapper;
 import org.example.crm.exception.InvalidRequestDataException;
@@ -10,25 +9,24 @@ import org.example.crm.trainee.controller.request.GetTraineeTrainingsRequest;
 import org.example.crm.trainee.repository.TraineeEntity;
 import org.example.crm.trainee.repository.TraineeRepository;
 import org.example.crm.trainer.controller.request.GetTrainerTrainingsRequest;
-import org.example.crm.trainer.client.request.TrainerUpdateWorkloadClientRequest;
 import org.example.crm.trainer.repository.TrainerEntity;
 import org.example.crm.trainer.repository.TrainerRepository;
-import org.example.crm.trainer.service.TrainerWorkloadService;
 import org.example.crm.training.controller.request.CreateTrainingRequest;
 import org.example.crm.training.controller.response.TrainingSummary;
+import org.example.crm.training.event.TrainingChangedEvent;
 import org.example.crm.trainingType.dto.TrainingType;
 import org.example.crm.training.controller.response.Trainings;
 import org.example.crm.training.repository.TrainingEntity;
 import org.example.crm.training.repository.TrainingRepository;
 import org.example.crm.training.service.TrainingService;
 import org.example.crm.trainingType.repository.TrainingTypeEntity;
-import org.example.crm.user.controller.dto.FullName;
 import org.example.crm.user.repository.UserEntity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -62,7 +60,7 @@ public class TrainingServiceTest {
     private GymCrmMetrics gymCrmMetrics;
 
     @Mock
-    private TrainerWorkloadService trainerWorkloadService;
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     private TrainingService trainingService;
@@ -84,6 +82,9 @@ public class TrainingServiceTest {
         TrainingTypeEntity trainingType = new TrainingTypeEntity();
         trainingType.setTrainingTypeName(TrainingType.YOGA);
         training.setTrainingType(trainingType);
+        trainee.getUser().setUsername(TRAINEE_USERNAME);
+        trainer.getUser().setUsername(TRAINER_USERNAME);
+        training.setTrainingDate(LocalDate.of(2026, 5, 12));
         TrainingSummary expectedResponse = new TrainingSummary(
                 TRAINING_ID,
                 TestUtils.getTrainerSummary(TRAINER_USERNAME),
@@ -92,16 +93,11 @@ public class TrainingServiceTest {
                 TrainingType.CARDIO,
                 LocalDate.of(2026, 5, 12), 45
         );
-        TrainerUpdateWorkloadClientRequest workloadRequest = new TrainerUpdateWorkloadClientRequest(
-                TRAINER_USERNAME, new FullName("John", "Doe"), true,
-                LocalDate.of(2026, 5, 12), 45, ActionType.ADD
-        );
 
         when(traineeRepository.findByUsername(TRAINEE_USERNAME)).thenReturn(Optional.of(trainee));
         when(trainerRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(trainer));
         when(gymMapper.toTraining(request, trainee, trainer)).thenReturn(training);
         when(trainingRepository.save(training)).thenReturn(training);
-        when(gymMapper.toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.ADD)).thenReturn(workloadRequest);
         when(gymMapper.toTrainingSummary(training, trainee, trainer)).thenReturn(expectedResponse);
 
         trainingService.create(request);
@@ -110,8 +106,8 @@ public class TrainingServiceTest {
         verify(trainerRepository, times(1)).findByUsername(TRAINER_USERNAME);
         verify(gymMapper, times(1)).toTraining(request, trainee, trainer);
         verify(trainingRepository, times(1)).save(training);
-        verify(gymMapper, times(1)).toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.ADD);
-        verify(trainerWorkloadService, times(1)).updateTrainerWorkload(workloadRequest);
+        verify(applicationEventPublisher, times(1))
+                .publishEvent(new TrainingChangedEvent(TRAINER_USERNAME, LocalDate.of(2026, 5, 12)));
         verify(gymMapper, times(1)).toTrainingSummary(training, trainee, trainer);
     }
 
@@ -199,23 +195,20 @@ public class TrainingServiceTest {
     void cancel_DeleteTrainingAndNotifyWorkloadService_TrainingExistsAndDateIsInFuture() {
         TrainerEntity trainer = new TrainerEntity();
         trainer.setId(TRAINER_ID);
+        trainer.setUser(new UserEntity());
+        trainer.getUser().setUsername(TRAINER_USERNAME);
         TrainingEntity training = new TrainingEntity();
         training.setId(TRAINING_ID);
         training.setTrainer(trainer);
         training.setTrainingDate(LocalDate.now().plusDays(7));
-        TrainerUpdateWorkloadClientRequest workloadRequest = new TrainerUpdateWorkloadClientRequest(
-                TRAINER_USERNAME, new FullName("John", "Doe"), true,
-                training.getTrainingDate(), 45, ActionType.DELETE
-        );
 
         when(trainingRepository.findById(TRAINING_ID)).thenReturn(Optional.of(training));
-        when(gymMapper.toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.DELETE)).thenReturn(workloadRequest);
 
         trainingService.cancel(TRAINING_ID);
         verify(trainingRepository, times(1)).findById(TRAINING_ID);
-        verify(gymMapper, times(1)).toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.DELETE);
         verify(trainingRepository, times(1)).delete(training);
-        verify(trainerWorkloadService, times(1)).updateTrainerWorkload(workloadRequest);
+        verify(applicationEventPublisher, times(1))
+                .publishEvent(new TrainingChangedEvent(TRAINER_USERNAME, training.getTrainingDate()));
     }
 
     @Test
@@ -227,7 +220,7 @@ public class TrainingServiceTest {
         assertTrue(exception.getMessage().contains("Training"));
         verify(trainingRepository, times(1)).findById(TRAINING_ID);
         verify(trainingRepository, never()).delete(any());
-        verify(trainerWorkloadService, never()).updateTrainerWorkload(any());
+        verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
     @Test
@@ -243,7 +236,7 @@ public class TrainingServiceTest {
         assertTrue(exception.getMessage().contains("already passed"));
         verify(trainingRepository, times(1)).findById(TRAINING_ID);
         verify(trainingRepository, never()).delete(any());
-        verify(trainerWorkloadService, never()).updateTrainerWorkload(any());
+        verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
     @Test

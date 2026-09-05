@@ -1,14 +1,13 @@
 package org.example.crm.core;
 
 import org.example.crm.TestUtils;
-import org.example.crm.core.dto.ActionType;
 import org.example.crm.core.service.GymMapper;
 import org.example.crm.trainee.controller.request.CreateTraineeRequest;
 import org.example.crm.trainee.repository.TraineeEntity;
 import org.example.crm.trainee.controller.response.TraineeSummary;
 import org.example.crm.trainee.controller.request.UpdateTraineeRequest;
 import org.example.crm.trainer.controller.request.CreateTrainerRequest;
-import org.example.crm.trainer.client.request.TrainerUpdateWorkloadClientRequest;
+import org.example.crm.trainer.messaging.TrainerWorkloadUpdateEvent;
 import org.example.crm.trainer.repository.TrainerEntity;
 import org.example.crm.trainer.controller.response.TrainerSummary;
 import org.example.crm.trainer.controller.request.UpdateTrainerRequest;
@@ -25,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -155,37 +155,20 @@ public class GymMapperTest {
     }
 
     @Test
-    void toTrainerUpdateWorkloadClientRequest_MapCorrectly_FromTrainerAndTrainingAndActionTypeAdd() {
+    void toTrainerWorkloadUpdateEvent_MapCorrectly_FromTrainerAndDateAndTotalMinutes() {
         TrainerEntity trainer = TestUtils.getTrainer();
-        TrainingEntity training = TestUtils.getTraining();
+        LocalDate trainingDate = LocalDate.of(2026, 5, 12);
+        int totalDurationMinutes = 160;
 
-        TrainerUpdateWorkloadClientRequest request = gymMapper.toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.ADD);
+        TrainerWorkloadUpdateEvent event = gymMapper.toTrainerWorkloadUpdateEvent(trainer, trainingDate, totalDurationMinutes);
 
-        assertNotNull(request);
-        assertEquals(trainer.getUser().getUsername(), request.username());
-        assertEquals(trainer.getUser().getFirstName(), request.fullName().firstName());
-        assertEquals(trainer.getUser().getLastName(), request.fullName().lastName());
-        assertEquals(trainer.getUser().getIsActive(), request.isActive());
-        assertEquals(training.getTrainingDate(), request.trainingDate());
-        assertEquals(training.getDurationMinutes(), request.trainingSummaryDurationMinutes());
-        assertEquals(ActionType.ADD, request.actionType());
-    }
-
-    @Test
-    void toTrainerUpdateWorkloadClientRequest_MapCorrectly_FromTrainerAndTrainingAndActionTypeDelete() {
-        TrainerEntity trainer = TestUtils.getTrainer();
-        TrainingEntity training = TestUtils.getTraining();
-
-        TrainerUpdateWorkloadClientRequest request = gymMapper.toTrainerUpdateWorkloadClientRequest(trainer, training, ActionType.DELETE);
-
-        assertNotNull(request);
-        assertEquals(trainer.getUser().getUsername(), request.username());
-        assertEquals(trainer.getUser().getFirstName(), request.fullName().firstName());
-        assertEquals(trainer.getUser().getLastName(), request.fullName().lastName());
-        assertEquals(trainer.getUser().getIsActive(), request.isActive());
-        assertEquals(training.getTrainingDate(), request.trainingDate());
-        assertEquals(training.getDurationMinutes(), request.trainingSummaryDurationMinutes());
-        assertEquals(ActionType.DELETE, request.actionType());
+        assertNotNull(event);
+        assertEquals(trainer.getUser().getUsername(), event.username());
+        assertEquals(trainer.getUser().getFirstName(), event.fullName().firstName());
+        assertEquals(trainer.getUser().getLastName(), event.fullName().lastName());
+        assertEquals(trainer.getUser().getIsActive(), event.isActive());
+        assertEquals(trainingDate, event.trainingDate());
+        assertEquals(totalDurationMinutes, event.trainingSummaryDurationMinutes());
     }
 
     @Test

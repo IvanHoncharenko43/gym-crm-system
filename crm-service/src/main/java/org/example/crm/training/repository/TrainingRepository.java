@@ -26,4 +26,11 @@ public interface TrainingRepository extends JpaRepository<TrainingEntity, Long>,
 
     @Query("SELECT COUNT(t)>0 FROM TrainingEntity t WHERE t.id = :id AND t.trainer.user.username = :username")
     boolean existsByIdAndTrainerUserUsername(Long id, String username);
+
+    @Query("SELECT COALESCE(SUM(t.durationMinutes), 0) FROM TrainingEntity t " +
+            "WHERE t.trainer.user.username = :username " +
+            "AND YEAR(t.trainingDate) = :year " +
+            "AND MONTH(t.trainingDate) = :month")
+    int sumDurationByTrainerAndMonthAndYear(String username, int year, int month
+    );
 }
