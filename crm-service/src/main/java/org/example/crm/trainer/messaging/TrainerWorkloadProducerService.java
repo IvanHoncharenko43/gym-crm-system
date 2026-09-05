@@ -3,6 +3,7 @@ package org.example.crm.trainer.messaging;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.clients.producer.RecordMetadata;
 import org.example.crm.config.KafkaTopicsConfigurationProperties;
 import org.example.crm.config.RequestHeaderContextResolver;
 import org.slf4j.MDC;
@@ -41,7 +42,9 @@ public class TrainerWorkloadProducerService {
                     }
                     try {
                         if (ex == null) {
-                            log.info("Successfully sent workload update for trainer");
+                            RecordMetadata recordMetadata = result.getRecordMetadata();
+                            log.info("Successfully sent workload update for trainer [topic: {}, partition: {}, offset: {}]",
+                                    recordMetadata.topic(), recordMetadata.partition(), recordMetadata.offset());
                         } else {
                             log.error("Failed to send workload update for trainer", ex);
                         }
