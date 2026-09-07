@@ -3,11 +3,14 @@ package org.example.workload.repository;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -32,6 +35,12 @@ public class TrainerWorkloadEntity {
     private int year;
 
     private Set<MonthWorkloadEntity> months = new HashSet<>();
+
+    @CreatedDate
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
 
     @Override
     public boolean equals(Object o) {
