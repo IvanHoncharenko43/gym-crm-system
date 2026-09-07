@@ -6,7 +6,6 @@ import org.example.workload.controller.dto.request.WorkloadQuery;
 import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
 import org.example.workload.repository.MonthWorkloadEntity;
 import org.example.workload.repository.TrainerWorkloadEntity;
-import org.example.workload.repository.YearWorkloadEntity;
 
 import java.time.LocalDate;
 import java.time.Month;
@@ -69,12 +68,7 @@ public class TestUtils {
         entity.setFirstName(firstName);
         entity.setLastName(lastName);
         entity.setStatus(status);
-        return entity;
-    }
-
-    public static YearWorkloadEntity getYearWorkloadEntity(int year) {
-        YearWorkloadEntity entity = new YearWorkloadEntity();
-        entity.setYear(year);
+        entity.setYear(TRAINING_DATE.getYear());
         return entity;
     }
 

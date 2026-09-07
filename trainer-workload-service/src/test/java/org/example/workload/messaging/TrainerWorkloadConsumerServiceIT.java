@@ -12,22 +12,16 @@ import org.example.workload.controller.dto.FullName;
 import org.example.workload.repository.MonthWorkloadEntity;
 import org.example.workload.repository.TrainerWorkloadEntity;
 import org.example.workload.repository.TrainerWorkloadRepository;
-import org.example.workload.repository.YearWorkloadEntity;
 import org.example.workload.service.TrainerWorkloadService;
 import org.example.workload.service.WorkloadMapper;
-import org.hibernate.AssertionFailure;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.data.jpa.autoconfigure.DataJpaRepositoriesAutoConfiguration;
-import org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration;
-import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.boot.kafka.autoconfigure.KafkaAutoConfiguration;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.DefaultKafkaProducerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -58,12 +52,8 @@ import static org.example.workload.TestUtils.getTrainerWorkloadRequest;
 }, webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @ImportAutoConfiguration({
         KafkaAutoConfiguration.class,
-        DataSourceAutoConfiguration.class,
-        HibernateJpaAutoConfiguration.class,
-        DataJpaRepositoriesAutoConfiguration.class
 })
 @EntityScan(basePackages = "org.example.workload.repository")
-@EnableJpaRepositories(basePackages = "org.example.workload.repository")
 @EmbeddedKafka(partitions = 1, topics = {
         TrainerWorkloadConsumerServiceIT.TOPIC,
         TrainerWorkloadConsumerServiceIT.DLT_TOPIC
@@ -114,20 +104,16 @@ class TrainerWorkloadConsumerServiceIT {
 
         eventKafkaTemplate.send(TOPIC, event.username(), event);
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
-            TrainerWorkloadEntity persisted = trainerWorkloadRepository.findByUsername(username)
+            TrainerWorkloadEntity persisted = trainerWorkloadRepository.findByUsernameAndYear(username, event.trainingDate().getYear())
                     .orElseThrow(() -> new AssertionError("Trainer workload was not persisted"));
             assertThat(persisted.getUsername()).isEqualTo(username);
             assertThat(persisted.getFirstName()).isEqualTo("John");
             assertThat(persisted.getLastName()).isEqualTo("Doe");
             assertThat(persisted.isStatus()).isTrue();
-            YearWorkloadEntity year2026 = persisted.getYears().stream()
-                    .filter(y -> y.getYear() == yearOfTheWorkload)
+            MonthWorkloadEntity may = persisted.getMonths().stream()
+                    .filter(m -> m.getMonth() == event.trainingDate().getMonth())
                     .findFirst()
-                    .orElseThrow(() -> new AssertionError(String.format("Year %s not found", yearOfTheWorkload)));
-            MonthWorkloadEntity may = year2026.getMonths().stream()
-                    .filter(m -> m.getMonth() == Month.MAY)
-                    .findFirst()
-                    .orElseThrow(() -> new AssertionError("May not created"));
+                    .orElseThrow(() -> new AssertionError(event.trainingDate().getMonth() + " not created"));
             assertThat(may.getTrainingSummaryDurationMinutes()).isEqualTo(90);
         });
     }
@@ -141,20 +127,16 @@ class TrainerWorkloadConsumerServiceIT {
 
         eventKafkaTemplate.send(TOPIC, mayEvent.username(), mayEvent);
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() ->
-                assertThat(trainerWorkloadRepository.findByUsername(username)).isPresent());
+                assertThat(trainerWorkloadRepository.findByUsernameAndYear(username, yearOfTheWorkloads)).isPresent());
 
         eventKafkaTemplate.send(TOPIC, juneEvent.username(), juneEvent);
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
-            TrainerWorkloadEntity persisted = trainerWorkloadRepository.findByUsername(username)
+            TrainerWorkloadEntity persisted = trainerWorkloadRepository.findByUsernameAndYear(username, yearOfTheWorkloads)
                     .orElseThrow(() -> new AssertionError("Trainer workload was not persisted"));
-            YearWorkloadEntity year2026 = persisted.getYears().stream()
-                    .filter(y -> y.getYear() == yearOfTheWorkloads)
-                    .findFirst()
-                    .orElseThrow(() -> new AssertionFailure(String.format("Year %s not found", yearOfTheWorkloads)));
-            assertThat(year2026.getMonths()).hasSize(2);
-            assertThat(year2026.getMonths().stream().map(MonthWorkloadEntity::getMonth))
+            assertThat(persisted.getMonths()).hasSize(2);
+            assertThat(persisted.getMonths().stream().map(MonthWorkloadEntity::getMonth))
                     .containsExactlyInAnyOrder(Month.MAY, Month.JUNE);
-            int juneDuration = year2026.getMonths().stream()
+            int juneDuration = persisted.getMonths().stream()
                     .filter(m -> m.getMonth() == Month.JUNE)
                     .findFirst()
                     .orElseThrow()

@@ -1,34 +1,38 @@
 package org.example.workload.repository;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
+import org.springframework.boot.data.mongodb.test.autoconfigure.DataMongoTest;
+import org.springframework.data.mongodb.core.MongoTemplate;
 
 import java.util.Optional;
 
 import static org.example.workload.TestUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
-@DataJpaTest
+@DataMongoTest
 class TrainerWorkloadRepositoryTest {
 
     @Autowired
     private TrainerWorkloadRepository trainerWorkloadRepository;
 
     @Autowired
-    private TestEntityManager entityManager;
+    private MongoTemplate mongoTemplate;
+
+    @AfterEach
+    void cleanUp() {
+        mongoTemplate.dropCollection(TrainerWorkloadEntity.class);
+    }
 
     @Test
     void save_PersistTrainerWorkloadEntity_EntityIsNew() {
         TrainerWorkloadEntity trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
 
         TrainerWorkloadEntity savedWorkload = trainerWorkloadRepository.save(trainerWorkload);
-        entityManager.flush();
-        entityManager.clear();
 
         assertThat(savedWorkload.getId()).isNotNull();
-        TrainerWorkloadEntity existingWorkload = entityManager.find(TrainerWorkloadEntity.class, savedWorkload.getId());
+        TrainerWorkloadEntity existingWorkload = mongoTemplate.findById(savedWorkload.getId(), TrainerWorkloadEntity.class);
         assertThat(existingWorkload).isNotNull();
         assertThat(existingWorkload.getUsername()).isEqualTo(TRAINER_USERNAME);
         assertThat(existingWorkload.getFirstName()).isEqualTo(FIRST_NAME);
@@ -39,48 +43,41 @@ class TrainerWorkloadRepositoryTest {
     @Test
     void save_PersistTrainerWorkloadWithYearsAndMonths_EntityHasYearsAndMonths() {
         TrainerWorkloadEntity trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
-        trainerWorkload.getYears().add(yearWorkload);
         MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), DURATION_MINUTES);
-        yearWorkload.getMonths().add(monthWorkload);
+        trainerWorkload.getMonths().add(monthWorkload);
 
         TrainerWorkloadEntity savedWorkload = trainerWorkloadRepository.save(trainerWorkload);
-        entityManager.flush();
-        entityManager.clear();
 
-        TrainerWorkloadEntity existingWorkload = entityManager.find(TrainerWorkloadEntity.class, savedWorkload.getId());
-        assertThat(existingWorkload.getYears()).hasSize(1);
-        YearWorkloadEntity existingYear = existingWorkload.getYears().iterator().next();
-        assertThat(existingYear.getYear()).isEqualTo(TRAINING_DATE.getYear());
-        assertThat(existingYear.getMonths()).hasSize(1);
-        MonthWorkloadEntity existingMonth = existingYear.getMonths().iterator().next();
+        TrainerWorkloadEntity existingWorkload = mongoTemplate.findById(savedWorkload.getId(), TrainerWorkloadEntity.class);
+        assertThat(existingWorkload).isNotNull();
+        assertThat(existingWorkload.getYear()).isEqualTo(TRAINING_DATE.getYear());
+        assertThat(existingWorkload.getMonths()).hasSize(1);
+        MonthWorkloadEntity existingMonth = existingWorkload.getMonths().iterator().next();
         assertThat(existingMonth.getMonth()).isEqualTo(TRAINING_DATE.getMonth());
         assertThat(existingMonth.getTrainingSummaryDurationMinutes()).isEqualTo(DURATION_MINUTES);
     }
 
     @Test
-    void findByUsername_ReturnEntityWithYearsAndMonths_UsernameExists() {
+    void findByUsernameAndYear_ReturnEntityWithYearsAndMonths_UsernameExists() {
         TrainerWorkloadEntity trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
-        trainerWorkload.getYears().add(yearWorkload);
         MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), DURATION_MINUTES);
-        yearWorkload.getMonths().add(monthWorkload);
-        entityManager.persistAndFlush(trainerWorkload);
-        entityManager.clear();
+        trainerWorkload.getMonths().add(monthWorkload);
+        mongoTemplate.save(trainerWorkload);
 
-        Optional<TrainerWorkloadEntity> result = trainerWorkloadRepository.findByUsername(TRAINER_USERNAME);
+        Optional<TrainerWorkloadEntity> result = trainerWorkloadRepository.findByUsernameAndYear(trainerWorkload.getUsername(), trainerWorkload.getYear());
 
         assertThat(result).isPresent();
         assertThat(result.get().getUsername()).isEqualTo(TRAINER_USERNAME);
         assertThat(result.get().getFirstName()).isEqualTo(FIRST_NAME);
         assertThat(result.get().getLastName()).isEqualTo(LAST_NAME);
-        assertThat(result.get().getYears()).hasSize(1);
-        assertThat(result.get().getYears().iterator().next().getMonths()).hasSize(1);
+        assertThat(result.get().getYear()).isEqualTo(TRAINING_DATE.getYear());
+        assertThat(result.get().isStatus()).isTrue();
+        assertThat(result.get().getMonths()).hasSize(1);
     }
 
     @Test
-    void findByUsername_ReturnEmpty_UsernameDoesNotExist() {
-        Optional<TrainerWorkloadEntity> result = trainerWorkloadRepository.findByUsername("not.found");
+    void findByUsernameAndYear_ReturnEmpty_UsernameDoesNotExist() {
+        Optional<TrainerWorkloadEntity> result = trainerWorkloadRepository.findByUsernameAndYear("not.found", 2026);
         assertThat(result).isEmpty();
     }
 }
