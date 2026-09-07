@@ -13,7 +13,7 @@ public class TokenBlackListService {
     private final static int HOUR = 3600000;
     private final Map<String, Instant> blackList = new ConcurrentHashMap<>();
 
-    @Value("${jwt.expiration}")
+    @Value("${app.jwt.expiration}")
     private long jwtExpirationMs;
 
     public void blackListToken(String token){

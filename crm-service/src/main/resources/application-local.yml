@@ -11,21 +11,22 @@ spring:
       hibernate:
         format_sql: true
         highlight_sql: true
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST:localhost:9092}
 
 server:
   port: ${SERVER_PORT:8080}
 
-jwt:
-  secret-key: ${JWT_SECRET_KEY:SdM6oy/wkfKckcHf2PX1oNTvmC4C7WteH4RLg6Lg6Nw=}
-  expiration: ${JWT_EXPIRATION:7200000}
-
-security:
-  admin:
-    usernames: ${ADMIN_USERNAMES:John.Doe27}
-
-client:
-  services:
-    workload-id: ${WORKLOAD_ID:trainer-workload-service}
+app:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY:SdM6oy/wkfKckcHf2PX1oNTvmC4C7WteH4RLg6Lg6Nw=}
+    expiration: ${JWT_EXPIRATION:7200000}
+  security:
+    admin:
+      usernames: ${ADMIN_USERNAMES:John.Doe27}
+  client:
+    services:
+      workload-id: ${WORKLOAD_ID:trainer-workload-service}
 
 eureka:
   client:

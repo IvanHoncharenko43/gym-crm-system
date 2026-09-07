@@ -93,17 +93,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         return tagWithTraceId(problemDetail);
     }
 
-    @ExceptionHandler(InvalidStateTransitionException.class)
-    public ProblemDetail handleInvalidStateTransitionException(InvalidStateTransitionException exception) {
-        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
-                HttpStatus.CONFLICT, exception.getMessage()
-        );
-        problemDetail.setTitle("Invalid State Transition");
-
-        logAndTag(exception, HttpStatus.CONFLICT);
-        return tagWithTraceId(problemDetail);
-    }
-
     @ExceptionHandler(InsufficientAuthenticationException.class)
     public ProblemDetail handleInsufficientAuthenticationException(InsufficientAuthenticationException exception) {
         ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(

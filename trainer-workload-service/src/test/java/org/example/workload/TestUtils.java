@@ -1,8 +1,7 @@
 package org.example.workload;
 
-import org.example.workload.controller.dto.ActionType;
 import org.example.workload.controller.dto.FullName;
-import org.example.workload.controller.dto.request.TrainerWorkloadRequest;
+import org.example.workload.messaging.TrainerWorkloadUpdateEvent;
 import org.example.workload.controller.dto.request.WorkloadQuery;
 import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
 import org.example.workload.repository.MonthWorkloadEntity;
@@ -20,29 +19,47 @@ public class TestUtils {
     public static final LocalDate TRAINING_DATE = LocalDate.of(2026, 5, 12);
     public static final int DURATION_MINUTES = 60;
 
-    public static TrainerWorkloadRequest getTrainerWorkloadRequest() {
-        return getTrainerWorkloadRequest(ActionType.ADD, DURATION_MINUTES);
+    public static TrainerWorkloadUpdateEvent getTrainerWorkloadRequest() {
+        return getTrainerWorkloadRequest(DURATION_MINUTES);
     }
 
-    public static TrainerWorkloadRequest getTrainerWorkloadRequest(ActionType actionType, int durationMinutes) {
-        return new TrainerWorkloadRequest(
+    public static TrainerWorkloadUpdateEvent getTrainerWorkloadRequest(int durationMinutes) {
+        return new TrainerWorkloadUpdateEvent(
                 TRAINER_USERNAME,
                 new FullName(FIRST_NAME, LAST_NAME),
                 true,
                 TRAINING_DATE,
-                durationMinutes,
-                actionType
+                durationMinutes
         );
     }
 
-    public static TrainerWorkloadRequest getTrainerWorkloadRequest(LocalDate trainingDate, ActionType actionType, int durationMinutes) {
-        return new TrainerWorkloadRequest(
+    public static TrainerWorkloadUpdateEvent getTrainerWorkloadRequest(String username, int durationMinutes) {
+        return new TrainerWorkloadUpdateEvent(
+                username,
+                new FullName(FIRST_NAME, LAST_NAME),
+                true,
+                TRAINING_DATE,
+                durationMinutes
+        );
+    }
+
+    public static TrainerWorkloadUpdateEvent getTrainerWorkloadRequest(LocalDate trainingDate, int durationMinutes) {
+        return new TrainerWorkloadUpdateEvent(
                 TRAINER_USERNAME,
                 new FullName(FIRST_NAME, LAST_NAME),
                 true,
                 trainingDate,
-                durationMinutes,
-                actionType
+                durationMinutes
+        );
+    }
+
+    public static TrainerWorkloadUpdateEvent getTrainerWorkloadRequest(String username, LocalDate trainingDate, int durationMinutes) {
+        return new TrainerWorkloadUpdateEvent(
+                username,
+                new FullName(FIRST_NAME, LAST_NAME),
+                true,
+                trainingDate,
+                durationMinutes
         );
     }
 

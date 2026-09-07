@@ -1,13 +1,12 @@
 package org.example.crm.trainee.service;
 
 import lombok.RequiredArgsConstructor;
-import org.example.crm.core.dto.ActionType;
 import org.example.crm.monitoring.GymCrmMetrics;
-import org.example.crm.trainer.client.request.TrainerUpdateWorkloadClientRequest;
 import org.example.crm.trainer.controller.response.Trainers;
-import org.example.crm.trainer.service.TrainerWorkloadService;
+import org.example.crm.training.event.TrainingChangedEvent;
 import org.example.crm.training.repository.TrainingEntity;
 import org.example.crm.training.repository.TrainingRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.example.crm.exception.EntityNotFoundException;
@@ -23,6 +22,7 @@ import org.example.crm.trainee.repository.TraineeRepository;
 import org.example.crm.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -38,7 +38,8 @@ public class TraineeService {
     private final UserRepository userRepository;
     private final GymMapper gymMapper;
     private final GymCrmMetrics gymCrmMetrics;
-    private final TrainerWorkloadService trainerWorkloadService;
+    private final ApplicationEventPublisher applicationEventPublisher;
+    private record TrainerMonthKey(String trainerUsername, int year, int month) {}
 
     @Transactional
     public TraineeSummary create(CreateTraineeRequest request) {
@@ -94,12 +95,16 @@ public class TraineeService {
         Optional<TraineeEntity> existingTrainee = traineeRepository.findByUsername(username);
         if(existingTrainee.isPresent()) {
             List<TrainingEntity> trainings = trainingRepository.findAllByTraineeUserUsername(username);
+            Set<TrainerMonthKey> distinctTrainerMonths = new HashSet<>();
             for (TrainingEntity training : trainings){
-                TrainerUpdateWorkloadClientRequest request = gymMapper.toTrainerUpdateWorkloadClientRequest(training.getTrainer(), training, ActionType.DELETE);
-                trainerWorkloadService.updateTrainerWorkload(request);
+                LocalDate date = training.getTrainingDate();
+                distinctTrainerMonths.add(new TrainerMonthKey(
+                        training.getTrainer().getUser().getUsername(), date.getYear(), date.getMonthValue()));
             }
             traineeRepository.deleteByUserUsername(existingTrainee.get().getUser().getUsername());
             log.info("Deleted by username a trainee profile with ID: {}", existingTrainee.get().getId());
+            distinctTrainerMonths.forEach(key -> applicationEventPublisher.publishEvent(
+                    new TrainingChangedEvent(key.trainerUsername(), LocalDate.of(key.year(), key.month(), 1))));
         }
     }
 

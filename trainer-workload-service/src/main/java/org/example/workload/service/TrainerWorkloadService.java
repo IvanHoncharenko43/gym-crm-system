@@ -2,11 +2,9 @@ package org.example.workload.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.workload.controller.dto.ActionType;
-import org.example.workload.controller.dto.request.TrainerWorkloadRequest;
+import org.example.workload.messaging.TrainerWorkloadUpdateEvent;
 import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
 import org.example.workload.controller.dto.request.WorkloadQuery;
-import org.example.workload.exception.InvalidStateTransitionException;
 import org.example.workload.exception.WorkloadNotFoundException;
 import org.example.workload.repository.MonthWorkloadEntity;
 import org.example.workload.repository.TrainerWorkloadEntity;
@@ -26,57 +24,32 @@ public class TrainerWorkloadService {
     private final WorkloadMapper workloadMapper;
 
     @Transactional
-    public void updateWorkload(TrainerWorkloadRequest request){
-        boolean isDelete = request.actionType() == ActionType.DELETE;
-        TrainerWorkloadEntity existingTrainerWorkloadEntity = trainerWorkloadRepository.findByUsername(request.username())
-                        .orElseGet(() -> {
-                            if (isDelete) {
-                                throw new WorkloadNotFoundException("Cannot update-delete trainer's workload because there isn't one to alter");
-                            }
-                            return null;
-                        });
-        TrainerWorkloadEntity trainerWorkloadEntity = workloadMapper.toTrainerWorkloadEntity(request, existingTrainerWorkloadEntity);
+    public void updateWorkload(TrainerWorkloadUpdateEvent event){
+        TrainerWorkloadEntity existingTrainerWorkloadEntity = trainerWorkloadRepository.findByUsername(event.username())
+                .orElse(null);
+        TrainerWorkloadEntity trainerWorkloadEntity = workloadMapper.toTrainerWorkloadEntity(event, existingTrainerWorkloadEntity);
 
-        int requestYear = request.trainingDate().getYear();
+        int requestYear = event.trainingDate().getYear();
         YearWorkloadEntity yearWorkloadEntity = trainerWorkloadEntity.getYears().stream()
                 .filter(y -> y.getYear() == requestYear)
                 .findFirst()
                 .orElseGet(() -> {
-                    if (isDelete) {
-                        throw new WorkloadNotFoundException(
-                                "Cannot update-delete trainer's %s workload because there isn't enough year data to alter".formatted(requestYear));
-                    }
                     YearWorkloadEntity createdYearWorkload = workloadMapper.toYearWorkloadEntity(requestYear);
                     trainerWorkloadEntity.getYears().add(createdYearWorkload);
                     return createdYearWorkload;
                 });
-        Month requestMonth = request.trainingDate().getMonth();
+        Month requestMonth = event.trainingDate().getMonth();
         MonthWorkloadEntity monthWorkloadEntity = yearWorkloadEntity.getMonths().stream()
                 .filter(m -> m.getMonth() == requestMonth)
                 .findFirst()
                 .orElseGet(() -> {
-                    if (isDelete) {
-                        throw new WorkloadNotFoundException(String.format(
-                                "Cannot update-delete trainer's %s workload because there isn't enough month data to alter", request.trainingDate()));
-                    }
                     MonthWorkloadEntity createdMonthWorkload = workloadMapper.toMonthWorkloadEntity(requestMonth);
                     yearWorkloadEntity.getMonths().add(createdMonthWorkload);
                     return createdMonthWorkload;
                 });
-        int currentMinutes = monthWorkloadEntity.getTrainingSummaryDurationMinutes();
-        int updatedMinutes;
-        if(isDelete){
-            updatedMinutes = currentMinutes - request.trainingSummaryDurationMinutes();
-        } else {
-            updatedMinutes = currentMinutes + request.trainingSummaryDurationMinutes();
-        }
-        if (updatedMinutes < 0) {
-            throw new InvalidStateTransitionException(String.format(
-                    "Cannot update trainer's %s workload because resulting workload cannot go negative", request.trainingDate()));
-        }
-        monthWorkloadEntity.setTrainingSummaryDurationMinutes(updatedMinutes);
+        monthWorkloadEntity.setTrainingSummaryDurationMinutes(event.trainingSummaryDurationMinutes());
         trainerWorkloadRepository.save(trainerWorkloadEntity);
-        log.info("Updated a trainer's workload with operation: {}", request.actionType().name());
+        log.info("Upserted trainer's {} workload to {} minutes", event.trainingDate(), event.trainingSummaryDurationMinutes());
     }
 
     @Transactional(readOnly = true)

@@ -7,14 +7,39 @@ spring:
     url: ${SPRING_DATASOURCE_URL}
     username: ${SPRING_DATASOURCE_USERNAME}
     password: ${SPRING_DATASOURCE_PASSWORD}
+  kafka:
+    bootstrap-servers: ${KAFKA_HOST}
+    consumer:
+      group-id: workload-service-group
+      auto-offset-reset: earliest
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.type.mapping: updateWorkloadEvent:org.example.workload.messaging.TrainerWorkloadUpdateEvent
+        spring.json.trusted.packages: "org.example.workload.messaging"
+        spring.json.value.default.type: org.example.workload.messaging.TrainerWorkloadUpdateEvent
+        max.poll.records: 50
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
 server:
   port: ${SERVER_PORT}
-
-jwt:
-  secret-key: ${JWT_SECRET_KEY}
-  expiration: ${JWT_EXPIRATION}
-  roles-claim: roles
+app:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY}
+    expiration: ${JWT_EXPIRATION}
+    roles-claim: roles
+  kafka:
+    topics:
+      trainer-workload-update: "trainer-workload-update-event"
+      trainer-workload-update-dlt: "trainer-workload-update-event-dlt"
+    consumer:
+      retry:
+        backoff-interval-ms: 1000
+        max-attempts: 3
 
 springdoc:
   api-docs:
@@ -46,6 +71,8 @@ management:
         readiness:
           include:
             - readinessState
+            - kafkaCluster
+            - kafkaConsumerGroup
 info:
   app:
     name: Trainer Workload Service
