@@ -1,18 +1,12 @@
 package org.example.workload.repository;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Table;
-import jakarta.persistence.Id;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Column;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.JoinColumn;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.CompoundIndex;
+import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.util.HashSet;
 import java.util.Objects;
@@ -21,28 +15,23 @@ import java.util.Set;
 @NoArgsConstructor
 @Getter
 @Setter
-@Entity
-@Table(name = "trainer_workloads")
+@Document(collection = "trainer_year_workloads")
+@CompoundIndex(name = "username_year_index", def = "{'username': 1, 'year': 1}", unique = true)
 public class TrainerWorkloadEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private String id;
 
-    @Column(nullable = false, unique = true)
     private String username;
 
-    @Column(name = "first_name", nullable = false)
+    @Field("first_name")
     private String firstName;
 
-    @Column(name = "last_name", nullable = false)
+    @Field("last_name")
     private String lastName;
-
-    @Column(nullable = false)
     private boolean status;
+    private int year;
 
-    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "trainer_workload_id")
-    private Set<YearWorkloadEntity> years = new HashSet<>();
+    private Set<MonthWorkloadEntity> months = new HashSet<>();
 
     @Override
     public boolean equals(Object o) {

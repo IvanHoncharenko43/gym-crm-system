@@ -9,7 +9,6 @@ import org.example.workload.exception.WorkloadNotFoundException;
 import org.example.workload.repository.MonthWorkloadEntity;
 import org.example.workload.repository.TrainerWorkloadEntity;
 import org.example.workload.repository.TrainerWorkloadRepository;
-import org.example.workload.repository.YearWorkloadEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,44 +24,33 @@ public class TrainerWorkloadService {
 
     @Transactional
     public void updateWorkload(TrainerWorkloadUpdateEvent event){
-        TrainerWorkloadEntity existingTrainerWorkloadEntity = trainerWorkloadRepository.findByUsername(event.username())
-                .orElse(null);
-        TrainerWorkloadEntity trainerWorkloadEntity = workloadMapper.toTrainerWorkloadEntity(event, existingTrainerWorkloadEntity);
-
         int requestYear = event.trainingDate().getYear();
-        YearWorkloadEntity yearWorkloadEntity = trainerWorkloadEntity.getYears().stream()
-                .filter(y -> y.getYear() == requestYear)
-                .findFirst()
-                .orElseGet(() -> {
-                    YearWorkloadEntity createdYearWorkload = workloadMapper.toYearWorkloadEntity(requestYear);
-                    trainerWorkloadEntity.getYears().add(createdYearWorkload);
-                    return createdYearWorkload;
-                });
+        TrainerWorkloadEntity existingTrainerWorkloadDocument = trainerWorkloadRepository.findByUsernameAndYear(event.username(), requestYear)
+                .orElse(null);
+        TrainerWorkloadEntity trainerWorkloadDocument = workloadMapper.toTrainerWorkloadDocument(event, existingTrainerWorkloadDocument);
         Month requestMonth = event.trainingDate().getMonth();
-        MonthWorkloadEntity monthWorkloadEntity = yearWorkloadEntity.getMonths().stream()
+        MonthWorkloadEntity monthWorkloadEntity = trainerWorkloadDocument.getMonths().stream()
                 .filter(m -> m.getMonth() == requestMonth)
                 .findFirst()
                 .orElseGet(() -> {
-                    MonthWorkloadEntity createdMonthWorkload = workloadMapper.toMonthWorkloadEntity(requestMonth);
-                    yearWorkloadEntity.getMonths().add(createdMonthWorkload);
+                    MonthWorkloadEntity createdMonthWorkload = workloadMapper.toMonthWorkload(requestMonth);
+                    trainerWorkloadDocument.getMonths().add(createdMonthWorkload);
                     return createdMonthWorkload;
                 });
         monthWorkloadEntity.setTrainingSummaryDurationMinutes(event.trainingSummaryDurationMinutes());
-        trainerWorkloadRepository.save(trainerWorkloadEntity);
+        trainerWorkloadRepository.save(trainerWorkloadDocument);
         log.info("Upserted trainer's {} workload to {} minutes", event.trainingDate(), event.trainingSummaryDurationMinutes());
     }
 
     @Transactional(readOnly = true)
     public TrainerWorkloadSummary getMonthlySummary(WorkloadQuery query){
-        TrainerWorkloadEntity workload = trainerWorkloadRepository.findByUsername(query.username())
+        int requestYear = query.year();
+        TrainerWorkloadEntity workload = trainerWorkloadRepository.findByUsernameAndYear(query.username(), requestYear)
                 .orElseThrow(() -> new WorkloadNotFoundException("No workload found for trainer"));
         Month requestedMonth = Month.of(query.month());
-        int durationMinutes = workload.getYears().stream()
-                .filter(y -> y.getYear() == query.year())
+        int durationMinutes = workload.getMonths().stream()
+                .filter(m -> m.getMonth() == requestedMonth)
                 .findFirst()
-                .flatMap(y -> y.getMonths().stream()
-                        .filter(m -> m.getMonth() == requestedMonth)
-                        .findFirst())
                 .map(MonthWorkloadEntity::getTrainingSummaryDurationMinutes)
                 .orElse(0);
         return workloadMapper.toTrainerWorkloadSummary(workload, query.year(), query.month(), durationMinutes);
