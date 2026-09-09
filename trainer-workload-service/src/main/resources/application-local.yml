@@ -3,9 +3,9 @@ spring:
     uri: ${SPRING_MONGODB_URI:mongodb://admin:adminPassword@localhost:27020/trainer_workloads?authSource=admin}
   kafka:
     bootstrap-servers: ${KAFKA_HOST:localhost:9092}
-#  data:
-#    mongodb:
-#      auto-index-creation: true
+  data:
+    mongodb:
+      auto-index-creation: true
 
 server:
   port: ${SERVER_PORT:8082}

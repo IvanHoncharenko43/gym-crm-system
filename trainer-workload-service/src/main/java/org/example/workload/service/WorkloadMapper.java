@@ -22,6 +22,7 @@ public class WorkloadMapper {
         if(existingTrainerWorkloadDocument != null) {
             trainerWorkloadDocument.setId(existingTrainerWorkloadDocument.getId());
             trainerWorkloadDocument.setMonths(existingTrainerWorkloadDocument.getMonths());
+            trainerWorkloadDocument.setCreatedAt(existingTrainerWorkloadDocument.getCreatedAt());
         }
         return trainerWorkloadDocument;
     }
