@@ -12,7 +12,7 @@ import static org.example.workload.TestUtils.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataMongoTest
-class TrainerWorkloadRepositoryTest {
+class TrainerWorkloadRepositoryIT {
 
     @Autowired
     private TrainerWorkloadRepository trainerWorkloadRepository;
