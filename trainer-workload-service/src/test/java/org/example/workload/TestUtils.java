@@ -4,8 +4,8 @@ import org.example.workload.controller.dto.FullName;
 import org.example.workload.messaging.TrainerWorkloadUpdateEvent;
 import org.example.workload.controller.dto.request.WorkloadQuery;
 import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
-import org.example.workload.repository.MonthWorkloadEntity;
-import org.example.workload.repository.TrainerWorkloadEntity;
+import org.example.workload.repository.MonthWorkload;
+import org.example.workload.repository.TrainerWorkloadDocument;
 
 import java.time.LocalDate;
 import java.time.Month;
@@ -62,8 +62,8 @@ public class TestUtils {
         );
     }
 
-    public static TrainerWorkloadEntity getTrainerWorkloadEntity(String username, String firstName, String lastName, boolean status) {
-        TrainerWorkloadEntity entity = new TrainerWorkloadEntity();
+    public static TrainerWorkloadDocument getTrainerWorkloadEntity(String username, String firstName, String lastName, boolean status) {
+        TrainerWorkloadDocument entity = new TrainerWorkloadDocument();
         entity.setUsername(username);
         entity.setFirstName(firstName);
         entity.setLastName(lastName);
@@ -72,8 +72,8 @@ public class TestUtils {
         return entity;
     }
 
-    public static MonthWorkloadEntity getMonthWorkloadEntity(Month month, int trainingSummaryDurationMinutes) {
-        MonthWorkloadEntity entity = new MonthWorkloadEntity();
+    public static MonthWorkload getMonthWorkloadEntity(Month month, int trainingSummaryDurationMinutes) {
+        MonthWorkload entity = new MonthWorkload();
         entity.setMonth(month);
         entity.setTrainingSummaryDurationMinutes(trainingSummaryDurationMinutes);
         return entity;

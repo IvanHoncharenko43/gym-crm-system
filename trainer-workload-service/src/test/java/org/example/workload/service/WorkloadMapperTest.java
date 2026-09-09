@@ -2,8 +2,8 @@ package org.example.workload.service;
 
 import org.example.workload.messaging.TrainerWorkloadUpdateEvent;
 import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
-import org.example.workload.repository.MonthWorkloadEntity;
-import org.example.workload.repository.TrainerWorkloadEntity;
+import org.example.workload.repository.MonthWorkload;
+import org.example.workload.repository.TrainerWorkloadDocument;
 import org.junit.jupiter.api.Test;
 
 import java.time.Month;
@@ -17,7 +17,7 @@ class WorkloadMapperTest {
 
     @Test
     void toTrainerWorkloadSummary_MapCorrectly_FromWorkloadEntityAndYearAndMonthAndDuration() {
-        TrainerWorkloadEntity trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        TrainerWorkloadDocument trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
 
         TrainerWorkloadSummary result = workloadMapper.toTrainerWorkloadSummary(
                 trainerWorkload, TRAINING_DATE.getYear(), TRAINING_DATE.getMonthValue(), DURATION_MINUTES
@@ -36,7 +36,7 @@ class WorkloadMapperTest {
     void toTrainerWorkloadDocument_MapCorrectly_FromRequest() {
         TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(DURATION_MINUTES);
 
-        TrainerWorkloadEntity result = workloadMapper.toTrainerWorkloadDocument(request, null);
+        TrainerWorkloadDocument result = workloadMapper.toTrainerWorkloadDocument(request, null);
 
         assertNotNull(result);
         assertNull(result.getId());
@@ -51,13 +51,13 @@ class WorkloadMapperTest {
     @Test
     void toTrainerWorkloadDocument_MapCorrectly_FromRequestAndTrainerWorkloadEntity() {
         TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(DURATION_MINUTES);
-        TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        TrainerWorkloadDocument existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
         String id = "21";
         existingWorkload.setId(id);
-        MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(Month.MAY, 0);
+        MonthWorkload monthWorkload = getMonthWorkloadEntity(Month.MAY, 0);
         existingWorkload.getMonths().add(monthWorkload);
 
-        TrainerWorkloadEntity result = workloadMapper.toTrainerWorkloadDocument(request, existingWorkload);
+        TrainerWorkloadDocument result = workloadMapper.toTrainerWorkloadDocument(request, existingWorkload);
 
         assertNotNull(result);
         assertEquals(id, result.getId());
@@ -71,7 +71,7 @@ class WorkloadMapperTest {
 
     @Test
     void toMonthWorkload_MapCorrectly_FromMonthValueAndYearWorkloadEntity() {
-        MonthWorkloadEntity result = workloadMapper.toMonthWorkload(TRAINING_DATE.getMonth());
+        MonthWorkload result = workloadMapper.toMonthWorkload(TRAINING_DATE.getMonth());
 
         assertNotNull(result);
         assertEquals(TRAINING_DATE.getMonth(), result.getMonth());

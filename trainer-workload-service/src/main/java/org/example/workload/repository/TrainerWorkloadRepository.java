@@ -6,7 +6,7 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface TrainerWorkloadRepository extends MongoRepository<TrainerWorkloadEntity, String> {
+public interface TrainerWorkloadRepository extends MongoRepository<TrainerWorkloadDocument, String> {
 
-    Optional<TrainerWorkloadEntity> findByUsernameAndYear(String username, int year);
+    Optional<TrainerWorkloadDocument> findByUsernameAndYear(String username, int year);
 }

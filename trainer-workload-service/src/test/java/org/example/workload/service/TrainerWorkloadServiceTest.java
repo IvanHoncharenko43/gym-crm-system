@@ -4,8 +4,8 @@ import org.example.workload.messaging.TrainerWorkloadUpdateEvent;
 import org.example.workload.controller.dto.request.WorkloadQuery;
 import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
 import org.example.workload.exception.WorkloadNotFoundException;
-import org.example.workload.repository.MonthWorkloadEntity;
-import org.example.workload.repository.TrainerWorkloadEntity;
+import org.example.workload.repository.MonthWorkload;
+import org.example.workload.repository.TrainerWorkloadDocument;
 import org.example.workload.repository.TrainerWorkloadRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,8 +36,8 @@ class TrainerWorkloadServiceTest {
     @Test
     void updateWorkload_OverwriteExistingMonthDuration_ExistingYearAndMonthFound() {
         TrainerWorkloadUpdateEvent event = getTrainerWorkloadRequest(DURATION_MINUTES);
-        TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 100);
+        TrainerWorkloadDocument existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        MonthWorkload monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 100);
         existingWorkload.getMonths().add(monthWorkload);
 
         when(trainerWorkloadRepository.findByUsernameAndYear(TRAINER_USERNAME, event.trainingDate().getYear())).thenReturn(Optional.of(existingWorkload));
@@ -54,8 +54,8 @@ class TrainerWorkloadServiceTest {
     @Test
     void updateWorkload_CreateYearAndMonth_ExistingTrainerAndMonthNotFound() {
         TrainerWorkloadUpdateEvent event = getTrainerWorkloadRequest(DURATION_MINUTES);
-        TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
+        TrainerWorkloadDocument existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        MonthWorkload monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
 
         when(trainerWorkloadRepository.findByUsernameAndYear(TRAINER_USERNAME, event.trainingDate().getYear())).thenReturn(Optional.of(existingWorkload));
         when(workloadMapper.toTrainerWorkloadDocument(event, existingWorkload)).thenReturn(existingWorkload);
@@ -72,8 +72,8 @@ class TrainerWorkloadServiceTest {
     @Test
     void updateWorkload_CreateTrainerYearAndMonth_TrainerNotFound() {
         TrainerWorkloadUpdateEvent event = getTrainerWorkloadRequest(DURATION_MINUTES);
-        TrainerWorkloadEntity trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
+        TrainerWorkloadDocument trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        MonthWorkload monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
 
         when(trainerWorkloadRepository.findByUsernameAndYear(TRAINER_USERNAME, event.trainingDate().getYear())).thenReturn(Optional.empty());
         when(workloadMapper.toTrainerWorkloadDocument(event, null)).thenReturn(trainerWorkload);
@@ -89,8 +89,8 @@ class TrainerWorkloadServiceTest {
     @Test
     void updateWorkload_Idempotent_SameAbsoluteValueAppliedTwice() {
         TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(DURATION_MINUTES);
-        TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
+        TrainerWorkloadDocument existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        MonthWorkload monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
         existingWorkload.getMonths().add(monthWorkload);
 
         when(trainerWorkloadRepository.findByUsernameAndYear(TRAINER_USERNAME, request.trainingDate().getYear())).thenReturn(Optional.of(existingWorkload));
@@ -107,9 +107,9 @@ class TrainerWorkloadServiceTest {
     @Test
     void updateWorkload_OnlyUpdatesTargetedMonth_OtherMonthsUntouched() {
         TrainerWorkloadUpdateEvent event = getTrainerWorkloadRequest(DURATION_MINUTES);
-        TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        MonthWorkloadEntity targetMonth = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
-        MonthWorkloadEntity otherMonth = getMonthWorkloadEntity(Month.DECEMBER, 200);
+        TrainerWorkloadDocument existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        MonthWorkload targetMonth = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
+        MonthWorkload otherMonth = getMonthWorkloadEntity(Month.DECEMBER, 200);
         existingWorkload.getMonths().add(targetMonth);
         existingWorkload.getMonths().add(otherMonth);
 
@@ -126,8 +126,8 @@ class TrainerWorkloadServiceTest {
     @Test
     void getMonthlySummary_ReturnSummaryWithMatchingDuration_YearAndMonthFound() {
         WorkloadQuery request = getWorkloadQuery();
-        TrainerWorkloadEntity workload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        MonthWorkloadEntity month = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), DURATION_MINUTES);
+        TrainerWorkloadDocument workload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        MonthWorkload month = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), DURATION_MINUTES);
         workload.getMonths().add(month);
         TrainerWorkloadSummary expected = getTrainerWorkloadSummary(request.year(), request.month(), DURATION_MINUTES);
 
@@ -142,7 +142,7 @@ class TrainerWorkloadServiceTest {
     @Test
     void getMonthlySummary_ReturnSummaryWithZeroDuration_MonthNotFoundInYear() {
         WorkloadQuery request = getWorkloadQuery();
-        TrainerWorkloadEntity workload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        TrainerWorkloadDocument workload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
         Month otherMonth = Month.DECEMBER;
         workload.getMonths().add(getMonthWorkloadEntity(otherMonth, DURATION_MINUTES));
         TrainerWorkloadSummary expected = getTrainerWorkloadSummary(request.year(), request.month(), 0);

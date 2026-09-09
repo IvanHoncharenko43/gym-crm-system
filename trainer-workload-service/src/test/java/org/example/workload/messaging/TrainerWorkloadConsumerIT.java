@@ -7,8 +7,8 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Header;
 import org.example.workload.controller.dto.FullName;
-import org.example.workload.repository.MonthWorkloadEntity;
-import org.example.workload.repository.TrainerWorkloadEntity;
+import org.example.workload.repository.MonthWorkload;
+import org.example.workload.repository.TrainerWorkloadDocument;
 import org.example.workload.repository.TrainerWorkloadRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,13 +77,13 @@ class TrainerWorkloadConsumerIT {
         long offsetBefore = committedOffset(TOPIC_PARTITION);
         kafkaTemplate.send(TOPIC, event.username(), event);
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
-            TrainerWorkloadEntity persisted = trainerWorkloadRepository.findByUsernameAndYear(username, event.trainingDate().getYear())
+            TrainerWorkloadDocument persisted = trainerWorkloadRepository.findByUsernameAndYear(username, event.trainingDate().getYear())
                     .orElseThrow(() -> new AssertionError("Trainer workload was not persisted"));
             assertThat(persisted.getUsername()).isEqualTo(username);
             assertThat(persisted.getFirstName()).isEqualTo("John");
             assertThat(persisted.getLastName()).isEqualTo("Doe");
             assertThat(persisted.isStatus()).isTrue();
-            MonthWorkloadEntity may = persisted.getMonths().stream()
+            MonthWorkload may = persisted.getMonths().stream()
                     .filter(m -> m.getMonth() == event.trainingDate().getMonth())
                     .findFirst()
                     .orElseThrow(() -> new AssertionError(event.trainingDate().getMonth() + " not created"));
@@ -110,10 +110,10 @@ class TrainerWorkloadConsumerIT {
         long offsetBeforeJune = committedOffset(TOPIC_PARTITION);
         kafkaTemplate.send(TOPIC, juneEvent.username(), juneEvent);
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
-            TrainerWorkloadEntity persisted = trainerWorkloadRepository.findByUsernameAndYear(username, yearOfTheWorkloads)
+            TrainerWorkloadDocument persisted = trainerWorkloadRepository.findByUsernameAndYear(username, yearOfTheWorkloads)
                     .orElseThrow(() -> new AssertionError("Trainer workload was not persisted"));
             assertThat(persisted.getMonths()).hasSize(2);
-            assertThat(persisted.getMonths().stream().map(MonthWorkloadEntity::getMonth))
+            assertThat(persisted.getMonths().stream().map(MonthWorkload::getMonth))
                     .containsExactlyInAnyOrder(Month.MAY, Month.JUNE);
             int juneDuration = persisted.getMonths().stream()
                     .filter(m -> m.getMonth() == Month.JUNE)

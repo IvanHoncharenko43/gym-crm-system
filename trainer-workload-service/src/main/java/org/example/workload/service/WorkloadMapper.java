@@ -3,8 +3,8 @@ package org.example.workload.service;
 import org.example.workload.controller.dto.FullName;
 import org.example.workload.messaging.TrainerWorkloadUpdateEvent;
 import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
-import org.example.workload.repository.MonthWorkloadEntity;
-import org.example.workload.repository.TrainerWorkloadEntity;
+import org.example.workload.repository.MonthWorkload;
+import org.example.workload.repository.TrainerWorkloadDocument;
 import org.springframework.stereotype.Component;
 
 import java.time.Month;
@@ -12,8 +12,8 @@ import java.time.Month;
 @Component
 public class WorkloadMapper {
 
-    public TrainerWorkloadEntity toTrainerWorkloadDocument(TrainerWorkloadUpdateEvent event, TrainerWorkloadEntity existingTrainerWorkloadDocument){
-        TrainerWorkloadEntity trainerWorkloadDocument = new TrainerWorkloadEntity();
+    public TrainerWorkloadDocument toTrainerWorkloadDocument(TrainerWorkloadUpdateEvent event, TrainerWorkloadDocument existingTrainerWorkloadDocument){
+        TrainerWorkloadDocument trainerWorkloadDocument = new TrainerWorkloadDocument();
         trainerWorkloadDocument.setUsername(event.username());
         trainerWorkloadDocument.setFirstName(event.fullName().firstName());
         trainerWorkloadDocument.setLastName(event.fullName().lastName());
@@ -26,7 +26,7 @@ public class WorkloadMapper {
         return trainerWorkloadDocument;
     }
 
-    public TrainerWorkloadSummary toTrainerWorkloadSummary(TrainerWorkloadEntity workload, int year, int month, int durationMinutes) {
+    public TrainerWorkloadSummary toTrainerWorkloadSummary(TrainerWorkloadDocument workload, int year, int month, int durationMinutes) {
         return new TrainerWorkloadSummary(
                 workload.getUsername(),
                 new FullName(workload.getFirstName(), workload.getLastName()),
@@ -37,8 +37,8 @@ public class WorkloadMapper {
         );
     }
 
-    public MonthWorkloadEntity toMonthWorkload(Month month){
-        MonthWorkloadEntity monthWorkload = new MonthWorkloadEntity();
+    public MonthWorkload toMonthWorkload(Month month){
+        MonthWorkload monthWorkload = new MonthWorkload();
         monthWorkload.setMonth(month);
         return monthWorkload;
     }

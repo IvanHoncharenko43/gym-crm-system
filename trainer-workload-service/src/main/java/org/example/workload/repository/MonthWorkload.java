@@ -11,7 +11,7 @@ import java.util.Objects;
 @NoArgsConstructor
 @Getter
 @Setter
-public class MonthWorkloadEntity {
+public class MonthWorkload {
 
     @Field("workload_month")
     private Month month;
@@ -22,7 +22,7 @@ public class MonthWorkloadEntity {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof MonthWorkloadEntity that)) return false;
+        if (!(o instanceof MonthWorkload that)) return false;
         return month != null && month.equals(that.getMonth());
     }
 

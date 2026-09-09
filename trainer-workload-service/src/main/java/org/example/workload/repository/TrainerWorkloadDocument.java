@@ -20,7 +20,7 @@ import java.util.Set;
 @Setter
 @Document(collection = "trainer_year_workloads")
 @CompoundIndex(name = "username_year_index", def = "{'username': 1, 'year': 1}", unique = true)
-public class TrainerWorkloadEntity {
+public class TrainerWorkloadDocument {
     @Id
     private String id;
 
@@ -34,7 +34,7 @@ public class TrainerWorkloadEntity {
     private boolean status;
     private int year;
 
-    private Set<MonthWorkloadEntity> months = new HashSet<>();
+    private Set<MonthWorkload> months = new HashSet<>();
 
     @CreatedDate
     private LocalDateTime createdAt;
@@ -45,7 +45,7 @@ public class TrainerWorkloadEntity {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof TrainerWorkloadEntity that)) return false;
+        if (!(o instanceof TrainerWorkloadDocument that)) return false;
         return username != null && username.equals(that.getUsername());
     }
 
