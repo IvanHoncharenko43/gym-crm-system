@@ -8,6 +8,8 @@ spring:
 
   kafka:
     bootstrap-servers: ${KAFKA_HOST}
+    listener:
+      ack-mode: record
     consumer:
       group-id: workload-service-group
       auto-offset-reset: earliest

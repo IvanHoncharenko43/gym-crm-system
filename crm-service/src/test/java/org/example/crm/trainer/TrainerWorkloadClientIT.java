@@ -1,40 +1,25 @@
 package org.example.crm.trainer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
-import io.github.resilience4j.springboot.circuitbreaker.autoconfigure.CircuitBreakerAutoConfiguration;
-import io.github.resilience4j.springboot.retry.autoconfigure.RetryAutoConfiguration;
 import org.example.crm.config.ClientConfig;
 import org.example.crm.config.RequestHeaderContextResolver;
 import org.example.crm.config.TokenPopulationInterceptor;
 import org.example.crm.config.TraceIdPopulationInterceptor;
 import org.example.crm.core.ClientITConfig;
 import org.example.crm.core.filter.TraceIdFilter;
-import org.example.crm.core.service.GymMapper;
 import org.example.crm.exception.DownstreamClientErrorException;
-import org.example.crm.exception.DownstreamUnavailableException;
+import org.example.crm.trainer.client.TrainerWorkloadClient;
+import org.example.crm.trainer.client.request.TrainerMonthlyWorkloadClientRequest;
 import org.example.crm.trainer.client.response.TrainerWorkloadClientResponse;
-import org.example.crm.trainer.controller.request.TrainerMonthlyWorkloadRequest;
-import org.example.crm.trainer.controller.response.TrainerWorkloadSummary;
-import org.example.crm.trainer.service.TrainerWorkloadService;
 import org.example.crm.user.controller.dto.FullName;
-import org.example.crm.utils.PasswordGenerator;
-import org.example.crm.utils.UsernameGenerator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ProblemDetail;
+import org.springframework.http.*;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -47,17 +32,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.example.crm.TestUtils.TRAINER_USERNAME;
 import static org.example.crm.core.ClientITConfig.WORKLOAD_PORT;
 import static org.example.crm.core.ClientITConfig.WORKLOAD_SERVICE_ID;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestToUriTemplate;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 @SpringBootTest(
         classes = {
                 ClientConfig.class,
-                TrainerWorkloadService.class,
-                GymMapper.class,
                 TokenPopulationInterceptor.class,
                 TraceIdPopulationInterceptor.class,
                 RequestHeaderContextResolver.class,
@@ -65,28 +47,14 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
         },
         webEnvironment = SpringBootTest.WebEnvironment.NONE
 )
-@ImportAutoConfiguration({CircuitBreakerAutoConfiguration.class, RetryAutoConfiguration.class})
 @TestPropertySource(properties = {
-        "app.client.services.workload-id=trainer-workload-service",
-        "resilience4j.retry.instances.trainerWorkloadService.wait-duration=5ms"
+        "app.client.services.workload-id=trainer-workload-service"
 })
-class TrainerWorkloadServiceIT {
+public class TrainerWorkloadClientIT {
 
     private static final String BASE_URL = "http://" + WORKLOAD_SERVICE_ID + ":" + WORKLOAD_PORT;
     private static final String WORKLOAD_URI_TEMPLATE =
             BASE_URL + "/api/v1/trainers/workloads?username={username}&year={year}&month={month}";
-
-    @MockitoBean
-    private UsernameGenerator usernameGenerator;
-
-    @MockitoBean
-    private PasswordGenerator passwordGenerator;
-
-    @MockitoBean
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private TrainerWorkloadService trainerWorkloadService;
 
     @Autowired
     private MockRestServiceServer mockServer;
@@ -95,12 +63,11 @@ class TrainerWorkloadServiceIT {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private CircuitBreakerRegistry circuitBreakerRegistry;
+    private TrainerWorkloadClient trainerWorkloadClient;
 
     @BeforeEach
     void setUp() {
         mockServer.reset();
-        circuitBreakerRegistry.circuitBreaker("trainerWorkloadService").reset();
     }
 
     @AfterEach
@@ -115,7 +82,8 @@ class TrainerWorkloadServiceIT {
         servletRequest.setAttribute(TraceIdFilter.TRACE_ID_KEY, "trace-123");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(servletRequest));
 
-        TrainerMonthlyWorkloadRequest request = new TrainerMonthlyWorkloadRequest(TRAINER_USERNAME, 2026, 8);
+        TrainerMonthlyWorkloadClientRequest request = new TrainerMonthlyWorkloadClientRequest(
+                TRAINER_USERNAME, 2026, 8);
         TrainerWorkloadClientResponse clientResponse = new TrainerWorkloadClientResponse(
                 TRAINER_USERNAME, new FullName("John", "Doe"), true, 2026, 8, 480);
 
@@ -125,20 +93,22 @@ class TrainerWorkloadServiceIT {
                 .andExpect(header(TraceIdFilter.TRACE_ID_HEADER, "trace-123"))
                 .andRespond(withSuccess(objectMapper.writeValueAsString(clientResponse), MediaType.APPLICATION_JSON));
 
-        TrainerWorkloadSummary summary = trainerWorkloadService.getWorkload(request);
+        TrainerWorkloadClientResponse response = trainerWorkloadClient.getWorkload(
+                request.username(), request.year(), request.month());
 
-        assertThat(summary.username()).isEqualTo(TRAINER_USERNAME);
-        assertThat(summary.fullName()).isEqualTo(new FullName("John", "Doe"));
-        assertThat(summary.isActive()).isTrue();
-        assertThat(summary.year()).isEqualTo(2026);
-        assertThat(summary.month()).isEqualTo(8);
-        assertThat(summary.trainingSummaryDurationMinutes()).isEqualTo(480);
+        assertThat(response.username()).isEqualTo(TRAINER_USERNAME);
+        assertThat(response.fullName()).isEqualTo(new FullName("John", "Doe"));
+        assertThat(response.isActive()).isTrue();
+        assertThat(response.year()).isEqualTo(2026);
+        assertThat(response.month()).isEqualTo(8);
+        assertThat(response.trainingSummaryDurationMinutes()).isEqualTo(480);
         mockServer.verify();
     }
 
     @Test
     void getWorkload_ThrowsDownstreamClientErrorException_OnNonRetryable4xx() throws Exception {
-        TrainerMonthlyWorkloadRequest request = new TrainerMonthlyWorkloadRequest(TRAINER_USERNAME, 2026, 8);
+        TrainerMonthlyWorkloadClientRequest request = new TrainerMonthlyWorkloadClientRequest(
+                TRAINER_USERNAME, 2026, 8);
         String detail = "Trainer not found";
 
         mockServer.expect(requestToUriTemplate(WORKLOAD_URI_TEMPLATE, TRAINER_USERNAME, 2026, 8))
@@ -147,7 +117,7 @@ class TrainerWorkloadServiceIT {
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(objectMapper.writeValueAsString(
                                 ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, detail))));
-        assertThatThrownBy(() -> trainerWorkloadService.getWorkload(request))
+        assertThatThrownBy(() -> trainerWorkloadClient.getWorkload(request.username(), request.year(), request.month()))
                 .isInstanceOf(DownstreamClientErrorException.class)
                 .satisfies(ex -> {
                     DownstreamClientErrorException exception = (DownstreamClientErrorException) ex;
@@ -159,33 +129,18 @@ class TrainerWorkloadServiceIT {
     }
 
     @Test
-    void getWorkload_ThrowsDownstreamUnavailableException_ConnectionFailsOnEveryAttempt() {
-        TrainerMonthlyWorkloadRequest request = new TrainerMonthlyWorkloadRequest(TRAINER_USERNAME, 2026, 8);
+    void getWorkload_ThrowsResourceAccessException_ConnectionFailsOnEveryAttempt() {
+        TrainerMonthlyWorkloadClientRequest request = new TrainerMonthlyWorkloadClientRequest(
+                TRAINER_USERNAME, 2026, 8);
 
-        for (int i = 0; i < 3; i++) {
-            mockServer.expect(requestToUriTemplate(WORKLOAD_URI_TEMPLATE, TRAINER_USERNAME, 2026, 8))
-                    .andExpect(method(HttpMethod.GET))
-                    .andRespond(req -> {
-                        throw new IOException("connection failure");
-                    });
-        }
-
-        assertThatThrownBy(() -> trainerWorkloadService.getWorkload(request))
-                .isInstanceOf(DownstreamUnavailableException.class)
-                .satisfies(ex -> {
-                    DownstreamUnavailableException exception = (DownstreamUnavailableException) ex;
-                    assertThat(exception.getServiceId()).isEqualTo(WORKLOAD_SERVICE_ID);
-                    assertThat(exception.getCause()).isInstanceOf(ResourceAccessException.class);
+        mockServer.expect(requestToUriTemplate(WORKLOAD_URI_TEMPLATE, TRAINER_USERNAME, 2026, 8))
+                .andExpect(method(HttpMethod.GET))
+                .andRespond(req -> {
+                    throw new IOException("connection failure");
                 });
+
+        assertThatThrownBy(() -> trainerWorkloadClient.getWorkload(request.username(), request.year(), request.month()))
+                .isInstanceOf(ResourceAccessException.class);
         mockServer.verify();
-    }
-
-    @Test
-    void getWorkload_ThrowsDownstreamUnavailableException_CircuitBreakerIsOpen() {
-        circuitBreakerRegistry.circuitBreaker("trainerWorkloadService").transitionToOpenState();
-        TrainerMonthlyWorkloadRequest request = new TrainerMonthlyWorkloadRequest(TRAINER_USERNAME, 2026, 8);
-
-        assertThatThrownBy(() -> trainerWorkloadService.getWorkload(request))
-                .isInstanceOf(DownstreamUnavailableException.class);
     }
 }

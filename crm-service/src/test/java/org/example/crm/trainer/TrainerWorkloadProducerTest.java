@@ -3,7 +3,7 @@ package org.example.crm.trainer;
 import org.apache.kafka.clients.producer.ProducerRecord;
 import org.example.crm.config.KafkaTopicsConfigurationProperties;
 import org.example.crm.config.RequestHeaderContextResolver;
-import org.example.crm.trainer.messaging.TrainerWorkloadProducerService;
+import org.example.crm.trainer.messaging.TrainerWorkloadProducer;
 import org.example.crm.trainer.messaging.TrainerWorkloadUpdateEvent;
 import org.example.crm.user.controller.dto.FullName;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +30,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class TrainerWorkloadProducerServiceTest {
+class TrainerWorkloadProducerTest {
 
     private static final String TOPIC = "trainer-workload-update-event";
     private static final String TRAINER_USERNAME = "John.Doe";
@@ -41,11 +41,11 @@ class TrainerWorkloadProducerServiceTest {
     @Mock
     private RequestHeaderContextResolver requestHeaderContextResolver;
 
-    private TrainerWorkloadProducerService producerService;
+    private TrainerWorkloadProducer producerService;
 
     @BeforeEach
     void setUp() {
-        producerService = new TrainerWorkloadProducerService(
+        producerService = new TrainerWorkloadProducer(
                 kafkaTemplate, requestHeaderContextResolver, new KafkaTopicsConfigurationProperties(TOPIC));
     }
 

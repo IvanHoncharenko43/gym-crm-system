@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.crm.core.service.GymMapper;
 import org.example.crm.exception.EntityNotFoundException;
-import org.example.crm.trainer.messaging.TrainerWorkloadProducerService;
+import org.example.crm.trainer.messaging.TrainerWorkloadProducer;
 import org.example.crm.trainer.messaging.TrainerWorkloadUpdateEvent;
 import org.example.crm.trainer.repository.TrainerEntity;
 import org.example.crm.trainer.repository.TrainerRepository;
@@ -21,7 +21,7 @@ public class TrainingChangedListener {
     private final TrainingRepository trainingRepository;
     private final TrainerRepository trainerRepository;
     private final GymMapper gymMapper;
-    private final TrainerWorkloadProducerService trainerWorkloadProducerService;
+    private final TrainerWorkloadProducer trainerWorkloadProducer;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleTrainingChanged(TrainingChangedEvent event){
@@ -34,6 +34,6 @@ public class TrainingChangedListener {
                 event.trainerUsername(), year, monthValue
         );
         TrainerWorkloadUpdateEvent trainerWorkloadUpdateEvent = gymMapper.toTrainerWorkloadUpdateEvent(trainer, event.trainingDate(), totalDurationMinutes);
-        trainerWorkloadProducerService.publishTrainerWorkloadUpdateEvent(trainerWorkloadUpdateEvent);
+        trainerWorkloadProducer.publishTrainerWorkloadUpdateEvent(trainerWorkloadUpdateEvent);
     }
 }

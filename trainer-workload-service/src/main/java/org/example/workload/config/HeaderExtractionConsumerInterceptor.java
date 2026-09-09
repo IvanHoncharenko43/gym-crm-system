@@ -27,12 +27,15 @@ public class HeaderExtractionConsumerInterceptor implements RecordInterceptor<Ob
         } else {
             MDC.put(TRACE_ID_KEY, UUID.randomUUID().toString());
         }
+        MDC.put("topic", record.topic());
+        MDC.put("partition", String.valueOf(record.partition()));
+        MDC.put("offset", String.valueOf(record.offset()));
         return record;
     }
 
     @Override
     public void afterRecord(ConsumerRecord<Object, Object> record, Consumer<Object, Object> consumer){
-        MDC.remove(TRACE_ID_KEY);
+        MDC.clear();
         SecurityContextHolder.clearContext();
     }
 }

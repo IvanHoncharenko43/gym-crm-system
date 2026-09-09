@@ -1,68 +1,51 @@
 package org.example.workload.messaging;
 
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Header;
-import org.apache.kafka.common.serialization.StringDeserializer;
-import org.apache.kafka.common.serialization.StringSerializer;
-import org.example.workload.config.KafkaConfig;
 import org.example.workload.controller.dto.FullName;
 import org.example.workload.repository.MonthWorkloadEntity;
 import org.example.workload.repository.TrainerWorkloadEntity;
 import org.example.workload.repository.TrainerWorkloadRepository;
-import org.example.workload.service.TrainerWorkloadService;
-import org.example.workload.service.WorkloadMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.kafka.autoconfigure.KafkaAutoConfiguration;
-import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
-import org.springframework.kafka.core.DefaultKafkaProducerFactory;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.kafka.core.ConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.support.KafkaHeaders;
 import org.springframework.kafka.test.EmbeddedKafkaBroker;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.kafka.test.utils.KafkaTestUtils;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
+import org.testcontainers.containers.MongoDBContainer;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.Month;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 import static org.example.workload.TestUtils.getTrainerWorkloadRequest;
 
-@SpringBootTest(classes = {
-        TrainerWorkloadConsumerService.class,
-        TrainerWorkloadService.class,
-        WorkloadMapper.class,
-        KafkaConfig.class
-}, webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@ImportAutoConfiguration({
-        KafkaAutoConfiguration.class,
-})
-@EntityScan(basePackages = "org.example.workload.repository")
+@SpringBootTest
 @EmbeddedKafka(partitions = 1, topics = {
-        TrainerWorkloadConsumerServiceIT.TOPIC,
-        TrainerWorkloadConsumerServiceIT.DLT_TOPIC
+        TrainerWorkloadConsumerIT.TOPIC,
+        TrainerWorkloadConsumerIT.DLT_TOPIC
 })
-@TestPropertySource(properties = "spring.kafka.bootstrap-servers=${spring.embedded.kafka.brokers}")
-class TrainerWorkloadConsumerServiceIT {
+@ActiveProfiles("kafka-it")
+class TrainerWorkloadConsumerIT {
 
     static final String TOPIC = "trainer-workload-update-event";
     static final String DLT_TOPIC = "trainer-workload-update-event-dlt";
+    private static final String CONSUMER_GROUP = "workload-consumer-it-group";
+    private static final TopicPartition TOPIC_PARTITION = new TopicPartition(TOPIC, 0);
+    private static final TopicPartition DLT_PARTITION = new TopicPartition(DLT_TOPIC, 0);
 
     @Autowired
     private EmbeddedKafkaBroker embeddedKafkaBroker;
@@ -71,38 +54,28 @@ class TrainerWorkloadConsumerServiceIT {
     private TrainerWorkloadRepository trainerWorkloadRepository;
 
     @Autowired
-    private KafkaTemplate<Object, Object> eventKafkaTemplate;
+    private KafkaTemplate<String, Object> kafkaTemplate;
 
     @Autowired
-    private KafkaTemplate<String, String> rawKafkaTemplate;
+    private ConsumerFactory<String, String> consumerFactory;
 
-    @TestConfiguration
-    static class RawProducerTestConfig {
-        @Bean
-        KafkaTemplate<String, String> rawKafkaTemplate(EmbeddedKafkaBroker embeddedKafkaBroker) {
-            Map<String, Object> producerProps = KafkaTestUtils.producerProps(embeddedKafkaBroker);
-            producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-            producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
-            return new KafkaTemplate<>(new DefaultKafkaProducerFactory<>(producerProps));
-        }
-    }
+    @Autowired
+    private AdminClient kafkaAdminClient;
 
-    @DynamicPropertySource
-    static void datasourceProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", () -> "jdbc:h2:mem:workload-consumer-it;DB_CLOSE_DELAY=-1");
-        registry.add("spring.datasource.username", () -> "sa");
-        registry.add("spring.datasource.password", () -> "");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "update");
-    }
+    @ServiceConnection
+    static final MongoDBContainer MONGO = new MongoDBContainer("mongo:8.3.8").withReuse(true);
+
+    static { MONGO.start(); }
 
     @Test
-    void consumeTrainerWorkloadUpdate_CreateNewTrainerWorkload_NewTrainer() {
+    void consumeTrainerWorkloadUpdate_CreateNewTrainerWorkload_NewTrainer() throws Exception {
         String username = uniqueUsername("consumer.create");
         int yearOfTheWorkload = 2026;
         TrainerWorkloadUpdateEvent event = new TrainerWorkloadUpdateEvent(
                 username, new FullName("John", "Doe"), true, LocalDate.of(yearOfTheWorkload, Month.MAY, 12), 90);
 
-        eventKafkaTemplate.send(TOPIC, event.username(), event);
+        long offsetBefore = committedOffset(TOPIC_PARTITION);
+        kafkaTemplate.send(TOPIC, event.username(), event);
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
             TrainerWorkloadEntity persisted = trainerWorkloadRepository.findByUsernameAndYear(username, event.trainingDate().getYear())
                     .orElseThrow(() -> new AssertionError("Trainer workload was not persisted"));
@@ -116,20 +89,26 @@ class TrainerWorkloadConsumerServiceIT {
                     .orElseThrow(() -> new AssertionError(event.trainingDate().getMonth() + " not created"));
             assertThat(may.getTrainingSummaryDurationMinutes()).isEqualTo(90);
         });
+        await().atMost(10, TimeUnit.SECONDS).untilAsserted(() ->
+                assertThat(committedOffset(TOPIC_PARTITION) - offsetBefore).isEqualTo(1));
     }
 
     @Test
-    void consumeTrainerWorkloadUpdate_AddNewMonthToExistingYear_SecondEventDifferentMonth() {
+    void consumeTrainerWorkloadUpdate_AddNewMonthToExistingYear_SecondEventDifferentMonth() throws Exception {
         String username = uniqueUsername("consumer.addmonth");
         int yearOfTheWorkloads = 2026;
         TrainerWorkloadUpdateEvent mayEvent = getTrainerWorkloadRequest(username, LocalDate.of(yearOfTheWorkloads, Month.MAY, 12), 90);
         TrainerWorkloadUpdateEvent juneEvent = getTrainerWorkloadRequest(username, LocalDate.of(yearOfTheWorkloads, Month.JUNE, 3), 60);
 
-        eventKafkaTemplate.send(TOPIC, mayEvent.username(), mayEvent);
+        long offsetBeforeMay = committedOffset(TOPIC_PARTITION);
+        kafkaTemplate.send(TOPIC, mayEvent.username(), mayEvent);
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() ->
                 assertThat(trainerWorkloadRepository.findByUsernameAndYear(username, yearOfTheWorkloads)).isPresent());
+        await().atMost(10, TimeUnit.SECONDS).untilAsserted(() ->
+                assertThat(committedOffset(TOPIC_PARTITION) - offsetBeforeMay).isEqualTo(1));
 
-        eventKafkaTemplate.send(TOPIC, juneEvent.username(), juneEvent);
+        long offsetBeforeJune = committedOffset(TOPIC_PARTITION);
+        kafkaTemplate.send(TOPIC, juneEvent.username(), juneEvent);
         await().atMost(10, TimeUnit.SECONDS).untilAsserted(() -> {
             TrainerWorkloadEntity persisted = trainerWorkloadRepository.findByUsernameAndYear(username, yearOfTheWorkloads)
                     .orElseThrow(() -> new AssertionError("Trainer workload was not persisted"));
@@ -143,23 +122,28 @@ class TrainerWorkloadConsumerServiceIT {
                     .getTrainingSummaryDurationMinutes();
             assertThat(juneDuration).isEqualTo(60);
         });
+        await().atMost(10, TimeUnit.SECONDS).untilAsserted(() ->
+                assertThat(committedOffset(TOPIC_PARTITION) - offsetBeforeJune).isEqualTo(1));
     }
 
     @Test
     void consumeTrainerWorkloadUpdate_RoutesToDlt_OnUndeserializableMessage() {
         String username = uniqueUsername("consumer.dlt");
         String invalidMessage = "invalid-json-for-the-event";
-        String expectedJson = "\"" + invalidMessage + "\"";
-        rawKafkaTemplate.send(TOPIC, username, invalidMessage);
 
         try (Consumer<String, String> dltConsumer = createDltConsumer()) {
-            embeddedKafkaBroker.consumeFromAnEmbeddedTopic(dltConsumer, DLT_TOPIC);
+            embeddedKafkaBroker.consumeFromAnEmbeddedTopic(dltConsumer, true, DLT_TOPIC);
+            long offsetBefore = dltConsumer.position(DLT_PARTITION);
+
+            kafkaTemplate.send(TOPIC, username, invalidMessage);
             ConsumerRecord<String, String> dltRecord =
                     KafkaTestUtils.getSingleRecord(dltConsumer, DLT_TOPIC, Duration.ofSeconds(10));
+            long offsetAfter = dltConsumer.position(DLT_PARTITION);
 
+            assertThat(offsetAfter - offsetBefore).isEqualTo(1);
             assertThat(dltRecord).isNotNull();
             assertThat(dltRecord.key()).isEqualTo(username);
-            assertThat(dltRecord.value()).isEqualTo(expectedJson);
+            assertThat(dltRecord.value()).isEqualTo(invalidMessage);
             Header originalTopicHeader = dltRecord.headers().lastHeader(KafkaHeaders.DLT_ORIGINAL_TOPIC);
             assertThat(originalTopicHeader).isNotNull();
             assertThat(new String(originalTopicHeader.value(), StandardCharsets.UTF_8)).isEqualTo(TOPIC);
@@ -170,14 +154,15 @@ class TrainerWorkloadConsumerServiceIT {
         return prefix + "." + System.nanoTime();
     }
 
+    private long committedOffset(TopicPartition partition) throws Exception {
+        OffsetAndMetadata offsetAndMetadata = kafkaAdminClient.listConsumerGroupOffsets(CONSUMER_GROUP)
+                .partitionsToOffsetAndMetadata()
+                .get(10, TimeUnit.SECONDS)
+                .get(partition);
+        return offsetAndMetadata != null ? offsetAndMetadata.offset() : 0L;
+    }
+
     private Consumer<String, String> createDltConsumer() {
-        Map<String, Object> consumerProps = KafkaTestUtils.consumerProps(
-                embeddedKafkaBroker, "dlt-test-group", false);
-        consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
-        consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-        DefaultKafkaConsumerFactory<String, String> factory =
-                new DefaultKafkaConsumerFactory<>(consumerProps);
-        return factory.createConsumer();
+        return consumerFactory.createConsumer();
     }
 }
