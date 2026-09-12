@@ -30,21 +30,17 @@ public class KafkaConfig {
     }
 
     @Bean
-    public DefaultErrorHandler errorHandler() {
-        DeadLetterPublishingRecoverer recoverer = new DeadLetterPublishingRecoverer(kafkaTemplate,
-                (record, ex) -> new TopicPartition(
-                        kafkaTopicsConfigurationProperties.trainerWorkloadUpdateDlt(), record.partition()));
+    public DefaultErrorHandler errorHandler(DeadLetterPublishingRecoverer recoverer) {
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(recoverer, new FixedBackOff(
                 kafkaRetryConfigurationProperties.backoffIntervalMs(), kafkaRetryConfigurationProperties.maxAttempts()));
         return errorHandler;
     }
 
     @Bean
-    public NewTopic trainerWorkloadUpdateTopic(){
-        return TopicBuilder.name(kafkaTopicsConfigurationProperties.trainerWorkloadUpdate())
-                .partitions(1)
-                .replicas(1)
-                .build();
+    public DeadLetterPublishingRecoverer deadLetterPublishingRecoverer(){
+        return new DeadLetterPublishingRecoverer(kafkaTemplate,
+                (record, ex) -> new TopicPartition(
+                        kafkaTopicsConfigurationProperties.trainerWorkloadUpdateDlt(), -1));
     }
 
     @Bean

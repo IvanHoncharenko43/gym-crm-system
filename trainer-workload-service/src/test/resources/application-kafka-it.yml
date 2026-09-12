@@ -1,0 +1,23 @@
+spring:
+  kafka:
+    bootstrap-servers: ${spring.embedded.kafka.brokers}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: workload-consumer-it-group
+      auto-offset-reset: earliest
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.type.mapping: updateWorkloadEvent:org.example.workload.messaging.TrainerWorkloadUpdateEvent
+        spring.json.trusted.packages: "org.example.workload.messaging"
+        spring.json.value.default.type: org.example.workload.messaging.TrainerWorkloadUpdateEvent
+
+app:
+  kafka:
+    topics:
+      trainer-workload-update: "trainer-workload-update-event"
+      trainer-workload-update-dlt: "trainer-workload-update-event-dlt"

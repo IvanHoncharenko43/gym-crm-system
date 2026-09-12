@@ -2,7 +2,7 @@ package org.example.crm.training;
 
 import org.example.crm.core.service.GymMapper;
 import org.example.crm.exception.EntityNotFoundException;
-import org.example.crm.trainer.messaging.TrainerWorkloadProducerService;
+import org.example.crm.trainer.messaging.TrainerWorkloadProducer;
 import org.example.crm.trainer.messaging.TrainerWorkloadUpdateEvent;
 import org.example.crm.trainer.repository.TrainerEntity;
 import org.example.crm.trainer.repository.TrainerRepository;
@@ -40,7 +40,7 @@ class TrainingChangedListenerTest {
     private GymMapper gymMapper;
 
     @Mock
-    private TrainerWorkloadProducerService trainerWorkloadProducerService;
+    private TrainerWorkloadProducer trainerWorkloadProducer;
 
     @InjectMocks
     private TrainingChangedListener trainingChangedListener;
@@ -64,7 +64,7 @@ class TrainingChangedListenerTest {
         verify(trainerRepository, times(1)).findByUsername(TRAINER_USERNAME);
         verify(trainingRepository, times(1)).sumDurationByTrainerAndMonthAndYear(TRAINER_USERNAME, 2026, 5);
         verify(gymMapper, times(1)).toTrainerWorkloadUpdateEvent(trainer, TRAINING_DATE, 160);
-        verify(trainerWorkloadProducerService, times(1)).publishTrainerWorkloadUpdateEvent(workloadUpdateEvent);
+        verify(trainerWorkloadProducer, times(1)).publishTrainerWorkloadUpdateEvent(workloadUpdateEvent);
     }
 
     @Test
@@ -78,6 +78,6 @@ class TrainingChangedListenerTest {
         assertTrue(exception.getMessage().contains("Trainer"));
         verify(trainingRepository, never()).sumDurationByTrainerAndMonthAndYear(anyString(), anyInt(), anyInt());
         verify(gymMapper, never()).toTrainerWorkloadUpdateEvent(any(), any(LocalDate.class), anyInt());
-        verify(trainerWorkloadProducerService, never()).publishTrainerWorkloadUpdateEvent(any());
+        verify(trainerWorkloadProducer, never()).publishTrainerWorkloadUpdateEvent(any());
     }
 }

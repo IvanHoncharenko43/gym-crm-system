@@ -4,10 +4,9 @@ import org.example.workload.messaging.TrainerWorkloadUpdateEvent;
 import org.example.workload.controller.dto.request.WorkloadQuery;
 import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
 import org.example.workload.exception.WorkloadNotFoundException;
-import org.example.workload.repository.MonthWorkloadEntity;
-import org.example.workload.repository.TrainerWorkloadEntity;
+import org.example.workload.repository.MonthWorkload;
+import org.example.workload.repository.TrainerWorkloadDocument;
 import org.example.workload.repository.TrainerWorkloadRepository;
-import org.example.workload.repository.YearWorkloadEntity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,177 +35,132 @@ class TrainerWorkloadServiceTest {
 
     @Test
     void updateWorkload_OverwriteExistingMonthDuration_ExistingYearAndMonthFound() {
-        TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(DURATION_MINUTES);
-        TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
-        MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 100);
-        yearWorkload.getMonths().add(monthWorkload);
-        existingWorkload.getYears().add(yearWorkload);
+        TrainerWorkloadUpdateEvent event = getTrainerWorkloadRequest(DURATION_MINUTES);
+        TrainerWorkloadDocument existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        MonthWorkload monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 100);
+        existingWorkload.getMonths().add(monthWorkload);
 
-        when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(existingWorkload));
-        when(workloadMapper.toTrainerWorkloadEntity(request, existingWorkload)).thenReturn(existingWorkload);
+        when(trainerWorkloadRepository.findByUsernameAndYear(TRAINER_USERNAME, event.trainingDate().getYear())).thenReturn(Optional.of(existingWorkload));
+        when(workloadMapper.toTrainerWorkloadDocument(event, existingWorkload)).thenReturn(existingWorkload);
 
-        trainerWorkloadService.updateWorkload(request);
+        trainerWorkloadService.updateWorkload(event);
 
-        assertEquals(1, existingWorkload.getYears().size());
-        YearWorkloadEntity createdYear = existingWorkload.getYears().iterator().next();
-        assertEquals(1, createdYear.getMonths().size());
-        assertEquals(DURATION_MINUTES, createdYear.getMonths().iterator().next().getTrainingSummaryDurationMinutes());
+        assertEquals(1, existingWorkload.getMonths().size());
+        assertEquals(DURATION_MINUTES, existingWorkload.getMonths().iterator().next().getTrainingSummaryDurationMinutes());
         verify(trainerWorkloadRepository, times(1)).save(existingWorkload);
-        verify(workloadMapper, never()).toYearWorkloadEntity(anyInt());
-        verify(workloadMapper, never()).toMonthWorkloadEntity(any());
+        verify(workloadMapper, never()).toMonthWorkload(any());
     }
 
     @Test
-    void updateWorkload_CreateYearAndMonth_ExistingTrainerYearNotFound() {
-        TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(DURATION_MINUTES);
-        TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
-        MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
+    void updateWorkload_CreateYearAndMonth_ExistingTrainerAndMonthNotFound() {
+        TrainerWorkloadUpdateEvent event = getTrainerWorkloadRequest(DURATION_MINUTES);
+        TrainerWorkloadDocument existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        MonthWorkload monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
 
-        when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(existingWorkload));
-        when(workloadMapper.toTrainerWorkloadEntity(request, existingWorkload)).thenReturn(existingWorkload);
-        when(workloadMapper.toYearWorkloadEntity(TRAINING_DATE.getYear()))
-                .thenReturn(yearWorkload);
-        when(workloadMapper.toMonthWorkloadEntity(TRAINING_DATE.getMonth()))
-                .thenReturn(monthWorkload);
+        when(trainerWorkloadRepository.findByUsernameAndYear(TRAINER_USERNAME, event.trainingDate().getYear())).thenReturn(Optional.of(existingWorkload));
+        when(workloadMapper.toTrainerWorkloadDocument(event, existingWorkload)).thenReturn(existingWorkload);
+        when(workloadMapper.toMonthWorkload(TRAINING_DATE.getMonth())).thenReturn(monthWorkload);
 
-        trainerWorkloadService.updateWorkload(request);
+        trainerWorkloadService.updateWorkload(event);
 
-        assertEquals(1, existingWorkload.getYears().size());
-        YearWorkloadEntity createdYear = existingWorkload.getYears().iterator().next();
-        assertEquals(1, createdYear.getMonths().size());
-        assertEquals(DURATION_MINUTES, createdYear.getMonths().iterator().next().getTrainingSummaryDurationMinutes());
+        assertEquals(1, existingWorkload.getMonths().size());
+        assertEquals(1, existingWorkload.getMonths().size());
+        assertEquals(DURATION_MINUTES, existingWorkload.getMonths().iterator().next().getTrainingSummaryDurationMinutes());
         verify(trainerWorkloadRepository, times(1)).save(existingWorkload);
     }
 
     @Test
     void updateWorkload_CreateTrainerYearAndMonth_TrainerNotFound() {
-        TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(DURATION_MINUTES);
-        TrainerWorkloadEntity trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
-        MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
+        TrainerWorkloadUpdateEvent event = getTrainerWorkloadRequest(DURATION_MINUTES);
+        TrainerWorkloadDocument trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        MonthWorkload monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
 
-        when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.empty());
-        when(workloadMapper.toTrainerWorkloadEntity(request, null)).thenReturn(trainerWorkload);
-        when(workloadMapper.toYearWorkloadEntity(TRAINING_DATE.getYear()))
-                .thenReturn(yearWorkload);
-        when(workloadMapper.toMonthWorkloadEntity(TRAINING_DATE.getMonth()))
-                .thenReturn(monthWorkload);
+        when(trainerWorkloadRepository.findByUsernameAndYear(TRAINER_USERNAME, event.trainingDate().getYear())).thenReturn(Optional.empty());
+        when(workloadMapper.toTrainerWorkloadDocument(event, null)).thenReturn(trainerWorkload);
+        when(workloadMapper.toMonthWorkload(TRAINING_DATE.getMonth())).thenReturn(monthWorkload);
 
-        trainerWorkloadService.updateWorkload(request);
-        assertEquals(1, trainerWorkload.getYears().size());
-        YearWorkloadEntity createdYear = trainerWorkload.getYears().iterator().next();
-        assertEquals(1, createdYear.getMonths().size());
-        assertEquals(DURATION_MINUTES, createdYear.getMonths().iterator().next().getTrainingSummaryDurationMinutes());
+        trainerWorkloadService.updateWorkload(event);
+        assertEquals(1, trainerWorkload.getMonths().size());
+        assertEquals(1, trainerWorkload.getMonths().size());
+        assertEquals(DURATION_MINUTES, trainerWorkload.getMonths().iterator().next().getTrainingSummaryDurationMinutes());
         verify(trainerWorkloadRepository, times(1)).save(trainerWorkload);
     }
 
     @Test
     void updateWorkload_Idempotent_SameAbsoluteValueAppliedTwice() {
         TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(DURATION_MINUTES);
-        TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        YearWorkloadEntity yearWorkload = getYearWorkloadEntity(TRAINING_DATE.getYear());
-        MonthWorkloadEntity monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
-        yearWorkload.getMonths().add(monthWorkload);
-        existingWorkload.getYears().add(yearWorkload);
+        TrainerWorkloadDocument existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        MonthWorkload monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
+        existingWorkload.getMonths().add(monthWorkload);
 
-        when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(existingWorkload));
-        when(workloadMapper.toTrainerWorkloadEntity(request, existingWorkload)).thenReturn(existingWorkload);
+        when(trainerWorkloadRepository.findByUsernameAndYear(TRAINER_USERNAME, request.trainingDate().getYear())).thenReturn(Optional.of(existingWorkload));
+        when(workloadMapper.toTrainerWorkloadDocument(request, existingWorkload)).thenReturn(existingWorkload);
 
         trainerWorkloadService.updateWorkload(request);
         trainerWorkloadService.updateWorkload(request);
 
-        assertEquals(1, existingWorkload.getYears().size());
-        YearWorkloadEntity theOnlyYear = existingWorkload.getYears().iterator().next();
-        assertEquals(1, theOnlyYear.getMonths().size());
-        assertEquals(DURATION_MINUTES, theOnlyYear.getMonths().iterator().next().getTrainingSummaryDurationMinutes());
+        assertEquals(1, existingWorkload.getMonths().size());
+        assertEquals(DURATION_MINUTES, existingWorkload.getMonths().iterator().next().getTrainingSummaryDurationMinutes());
         verify(trainerWorkloadRepository, times(2)).save(existingWorkload);
     }
 
     @Test
-    void updateWorkload_OnlyUpdatesTargetedMonth_OtherMonthsAndYearsUntouched() {
-        TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(DURATION_MINUTES);
-        TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        YearWorkloadEntity targetYear = getYearWorkloadEntity(TRAINING_DATE.getYear());
-        MonthWorkloadEntity targetMonth = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
-        MonthWorkloadEntity otherMonth = getMonthWorkloadEntity(Month.DECEMBER, 200);
-        targetYear.getMonths().add(targetMonth);
-        targetYear.getMonths().add(otherMonth);
-        YearWorkloadEntity otherYear = getYearWorkloadEntity(TRAINING_DATE.getYear() - 1);
-        MonthWorkloadEntity otherYearMonth = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 300);
-        otherYear.getMonths().add(otherYearMonth);
-        existingWorkload.getYears().add(targetYear);
-        existingWorkload.getYears().add(otherYear);
+    void updateWorkload_OnlyUpdatesTargetedMonth_OtherMonthsUntouched() {
+        TrainerWorkloadUpdateEvent event = getTrainerWorkloadRequest(DURATION_MINUTES);
+        TrainerWorkloadDocument existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        MonthWorkload targetMonth = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), 0);
+        MonthWorkload otherMonth = getMonthWorkloadEntity(Month.DECEMBER, 200);
+        existingWorkload.getMonths().add(targetMonth);
+        existingWorkload.getMonths().add(otherMonth);
 
-        when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(existingWorkload));
-        when(workloadMapper.toTrainerWorkloadEntity(request, existingWorkload)).thenReturn(existingWorkload);
+        when(trainerWorkloadRepository.findByUsernameAndYear(TRAINER_USERNAME, event.trainingDate().getYear())).thenReturn(Optional.of(existingWorkload));
+        when(workloadMapper.toTrainerWorkloadDocument(event, existingWorkload)).thenReturn(existingWorkload);
 
-        trainerWorkloadService.updateWorkload(request);
+        trainerWorkloadService.updateWorkload(event);
 
         assertEquals(DURATION_MINUTES, targetMonth.getTrainingSummaryDurationMinutes());
         assertEquals(200, otherMonth.getTrainingSummaryDurationMinutes());
-        assertEquals(300, otherYearMonth.getTrainingSummaryDurationMinutes());
         verify(trainerWorkloadRepository, times(1)).save(existingWorkload);
     }
 
     @Test
     void getMonthlySummary_ReturnSummaryWithMatchingDuration_YearAndMonthFound() {
-        WorkloadQuery query = getWorkloadQuery();
-        TrainerWorkloadEntity workload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        YearWorkloadEntity year = getYearWorkloadEntity(TRAINING_DATE.getYear());
-        MonthWorkloadEntity month = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), DURATION_MINUTES);
-        year.getMonths().add(month);
-        workload.getYears().add(year);
-        TrainerWorkloadSummary expected = getTrainerWorkloadSummary(query.year(), query.month(), DURATION_MINUTES);
+        WorkloadQuery request = getWorkloadQuery();
+        TrainerWorkloadDocument workload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        MonthWorkload month = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), DURATION_MINUTES);
+        workload.getMonths().add(month);
+        TrainerWorkloadSummary expected = getTrainerWorkloadSummary(request.year(), request.month(), DURATION_MINUTES);
 
-        when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(workload));
-        when(workloadMapper.toTrainerWorkloadSummary(workload, query.year(), query.month(), DURATION_MINUTES)).thenReturn(expected);
+        when(trainerWorkloadRepository.findByUsernameAndYear(TRAINER_USERNAME, request.year())).thenReturn(Optional.of(workload));
+        when(workloadMapper.toTrainerWorkloadSummary(workload, request.year(), request.month(), DURATION_MINUTES)).thenReturn(expected);
 
-        TrainerWorkloadSummary result = trainerWorkloadService.getMonthlySummary(query);
+        TrainerWorkloadSummary result = trainerWorkloadService.getMonthlySummary(request);
         assertEquals(expected, result);
-        verify(workloadMapper, times(1)).toTrainerWorkloadSummary(workload, query.year(), query.month(), DURATION_MINUTES);
-    }
-
-    @Test
-    void getMonthlySummary_ReturnSummaryWithZeroDuration_YearNotFound() {
-        WorkloadQuery query = getWorkloadQuery();
-        TrainerWorkloadEntity workload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        workload.getYears().add(getYearWorkloadEntity(query.year() - 1));
-        TrainerWorkloadSummary expected = getTrainerWorkloadSummary(query.year(), query.month(), 0);
-
-        when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(workload));
-        when(workloadMapper.toTrainerWorkloadSummary(workload, query.year(), query.month(), 0)).thenReturn(expected);
-
-        TrainerWorkloadSummary result = trainerWorkloadService.getMonthlySummary(query);
-        assertEquals(expected, result);
-        verify(workloadMapper, times(1)).toTrainerWorkloadSummary(workload, query.year(), query.month(), 0);
+        verify(workloadMapper, times(1)).toTrainerWorkloadSummary(workload, request.year(), request.month(), DURATION_MINUTES);
     }
 
     @Test
     void getMonthlySummary_ReturnSummaryWithZeroDuration_MonthNotFoundInYear() {
-        WorkloadQuery query = getWorkloadQuery();
-        TrainerWorkloadEntity workload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        YearWorkloadEntity year = getYearWorkloadEntity(query.year());
+        WorkloadQuery request = getWorkloadQuery();
+        TrainerWorkloadDocument workload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
         Month otherMonth = Month.DECEMBER;
-        year.getMonths().add(getMonthWorkloadEntity(otherMonth, DURATION_MINUTES));
-        workload.getYears().add(year);
-        TrainerWorkloadSummary expected = getTrainerWorkloadSummary(query.year(), query.month(), 0);
+        workload.getMonths().add(getMonthWorkloadEntity(otherMonth, DURATION_MINUTES));
+        TrainerWorkloadSummary expected = getTrainerWorkloadSummary(request.year(), request.month(), 0);
 
-        when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.of(workload));
-        when(workloadMapper.toTrainerWorkloadSummary(workload, query.year(), query.month(), 0)).thenReturn(expected);
+        when(trainerWorkloadRepository.findByUsernameAndYear(TRAINER_USERNAME, request.year())).thenReturn(Optional.of(workload));
+        when(workloadMapper.toTrainerWorkloadSummary(workload, request.year(), request.month(), 0)).thenReturn(expected);
 
-        TrainerWorkloadSummary result = trainerWorkloadService.getMonthlySummary(query);
+        TrainerWorkloadSummary result = trainerWorkloadService.getMonthlySummary(request);
         assertEquals(expected, result);
-        verify(workloadMapper, times(1)).toTrainerWorkloadSummary(workload, query.year(), query.month(), 0);
+        verify(workloadMapper, times(1)).toTrainerWorkloadSummary(workload, request.year(), request.month(), 0);
     }
 
     @Test
     void getMonthlySummary_ThrowWorkloadNotFoundException_WorkloadMissing() {
-        WorkloadQuery query = getWorkloadQuery();
+        WorkloadQuery request = getWorkloadQuery();
 
-        when(trainerWorkloadRepository.findByUsername(TRAINER_USERNAME)).thenReturn(Optional.empty());
-        assertThrows(WorkloadNotFoundException.class, () -> trainerWorkloadService.getMonthlySummary(query));
+        when(trainerWorkloadRepository.findByUsernameAndYear(TRAINER_USERNAME, request.year())).thenReturn(Optional.empty());
+        assertThrows(WorkloadNotFoundException.class, () -> trainerWorkloadService.getMonthlySummary(request));
         verify(workloadMapper, never()).toTrainerWorkloadSummary(any(), anyInt(), anyInt(), anyInt());
     }
 }

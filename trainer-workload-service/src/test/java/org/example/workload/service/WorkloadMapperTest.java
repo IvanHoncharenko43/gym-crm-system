@@ -2,10 +2,11 @@ package org.example.workload.service;
 
 import org.example.workload.messaging.TrainerWorkloadUpdateEvent;
 import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
-import org.example.workload.repository.MonthWorkloadEntity;
-import org.example.workload.repository.TrainerWorkloadEntity;
-import org.example.workload.repository.YearWorkloadEntity;
+import org.example.workload.repository.MonthWorkload;
+import org.example.workload.repository.TrainerWorkloadDocument;
 import org.junit.jupiter.api.Test;
+
+import java.time.Month;
 
 import static org.example.workload.TestUtils.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -16,7 +17,7 @@ class WorkloadMapperTest {
 
     @Test
     void toTrainerWorkloadSummary_MapCorrectly_FromWorkloadEntityAndYearAndMonthAndDuration() {
-        TrainerWorkloadEntity trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        TrainerWorkloadDocument trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
 
         TrainerWorkloadSummary result = workloadMapper.toTrainerWorkloadSummary(
                 trainerWorkload, TRAINING_DATE.getYear(), TRAINING_DATE.getMonthValue(), DURATION_MINUTES
@@ -32,10 +33,10 @@ class WorkloadMapperTest {
     }
 
     @Test
-    void toTrainerWorkloadEntity_MapCorrectly_FromRequest() {
+    void toTrainerWorkloadDocument_MapCorrectly_FromRequest() {
         TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(DURATION_MINUTES);
 
-        TrainerWorkloadEntity result = workloadMapper.toTrainerWorkloadEntity(request, null);
+        TrainerWorkloadDocument result = workloadMapper.toTrainerWorkloadDocument(request, null);
 
         assertNotNull(result);
         assertNull(result.getId());
@@ -43,44 +44,36 @@ class WorkloadMapperTest {
         assertEquals(request.fullName().firstName(), result.getFirstName());
         assertEquals(request.fullName().lastName(), result.getLastName());
         assertEquals(request.isActive(), result.isStatus());
-        assertTrue(result.getYears().isEmpty());
-    }
-
-    @Test
-    void toTrainerWorkloadEntity_MapCorrectly_FromRequestAndTrainerWorkloadEntity() {
-        TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(DURATION_MINUTES);
-        TrainerWorkloadEntity existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        existingWorkload.setId(21L);
-        YearWorkloadEntity existingYear = getYearWorkloadEntity(TRAINING_DATE.getYear());
-        existingWorkload.getYears().add(existingYear);
-
-        TrainerWorkloadEntity result = workloadMapper.toTrainerWorkloadEntity(request, existingWorkload);
-
-        assertNotNull(result);
-        assertEquals(21L, result.getId());
-        assertEquals(request.username(), result.getUsername());
-        assertEquals(request.fullName().firstName(), result.getFirstName());
-        assertEquals(request.fullName().lastName(), result.getLastName());
-        assertEquals(request.isActive(), result.isStatus());
-        assertEquals(existingWorkload.getYears(), result.getYears());
-    }
-
-    @Test
-    void toYearWorkloadEntity_MapCorrectly_FromYearValueAndTrainerWorkloadEntity() {
-        YearWorkloadEntity result = workloadMapper.toYearWorkloadEntity(TRAINING_DATE.getYear());
-
-        assertNotNull(result);
-        assertNull(result.getId());
-        assertEquals(TRAINING_DATE.getYear(), result.getYear());
+        assertEquals(request.trainingDate().getYear(), result.getYear());
         assertTrue(result.getMonths().isEmpty());
     }
 
     @Test
-    void toMonthWorkloadEntity_MapCorrectly_FromMonthValueAndYearWorkloadEntity() {
-        MonthWorkloadEntity result = workloadMapper.toMonthWorkloadEntity(TRAINING_DATE.getMonth());
+    void toTrainerWorkloadDocument_MapCorrectly_FromRequestAndTrainerWorkloadEntity() {
+        TrainerWorkloadUpdateEvent request = getTrainerWorkloadRequest(DURATION_MINUTES);
+        TrainerWorkloadDocument existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
+        String id = "21";
+        existingWorkload.setId(id);
+        MonthWorkload monthWorkload = getMonthWorkloadEntity(Month.MAY, 0);
+        existingWorkload.getMonths().add(monthWorkload);
+
+        TrainerWorkloadDocument result = workloadMapper.toTrainerWorkloadDocument(request, existingWorkload);
 
         assertNotNull(result);
-        assertNull(result.getId());
+        assertEquals(id, result.getId());
+        assertEquals(request.username(), result.getUsername());
+        assertEquals(request.fullName().firstName(), result.getFirstName());
+        assertEquals(request.fullName().lastName(), result.getLastName());
+        assertEquals(request.isActive(), result.isStatus());
+        assertEquals(request.trainingDate().getYear(), result.getYear());
+        assertEquals(existingWorkload.getMonths(), result.getMonths());
+    }
+
+    @Test
+    void toMonthWorkload_MapCorrectly_FromMonthValueAndYearWorkloadEntity() {
+        MonthWorkload result = workloadMapper.toMonthWorkload(TRAINING_DATE.getMonth());
+
+        assertNotNull(result);
         assertEquals(TRAINING_DATE.getMonth(), result.getMonth());
         assertEquals(0, result.getTrainingSummaryDurationMinutes());
     }
