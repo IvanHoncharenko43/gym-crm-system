@@ -4,7 +4,7 @@ import org.example.workload.controller.dto.FullName;
 import org.example.workload.messaging.TrainerWorkloadUpdateEvent;
 import org.example.workload.controller.dto.request.WorkloadQuery;
 import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
-import org.example.workload.repository.MonthWorkload;
+import org.example.workload.repository.MonthWorkloadDocument;
 import org.example.workload.repository.TrainerWorkloadDocument;
 
 import java.time.LocalDate;
@@ -72,8 +72,8 @@ public class TestUtils {
         return entity;
     }
 
-    public static MonthWorkload getMonthWorkloadEntity(Month month, int trainingSummaryDurationMinutes) {
-        MonthWorkload entity = new MonthWorkload();
+    public static MonthWorkloadDocument getMonthWorkloadEntity(Month month, int trainingSummaryDurationMinutes) {
+        MonthWorkloadDocument entity = new MonthWorkloadDocument();
         entity.setMonth(month);
         entity.setTrainingSummaryDurationMinutes(trainingSummaryDurationMinutes);
         return entity;
