@@ -1,7 +1,7 @@
 Feature: Trainer Profile Management
   As a registered trainer
-  I want to be able to view, update, and manage my profile
-  So that my information remains accurate and my account can be controlled
+  I want to be easily update my bio, and other profile-related information
+  So that I can attract clients by looking professional
 
   Scenario: Retrieve a profile information
     Given an authenticated user with a role 'TRAINER' and ID 1

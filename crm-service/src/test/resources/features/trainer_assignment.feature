@@ -1,7 +1,7 @@
 Feature: Trainer Assignment
   As a registered trainee
-  I want to view available trainers and update my assigned trainers list
-  So that I can customize my fitness training program
+  I want to browse available trainers, see their specialities and choose who I want to work with
+  So that I find the most appropriate coach for my fitness goals
 
   Scenario: Retrieve not assigned trainers successfully
     Given an authenticated user with a role 'TRAINEE' and username "John.Doe"

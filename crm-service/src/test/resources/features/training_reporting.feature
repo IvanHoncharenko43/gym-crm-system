@@ -1,7 +1,7 @@
 Feature: Training Reporting
   As a registered user
-  I want to search my training records and view my workload summaries
-  So that I can monitor my fitness schedule and activity levels
+  I want to search my trainings history and trainers' workload summaries
+  So that I can monitor my fitness schedule and information about trainers' workloads
 
   Scenario: Retrieve a trainer's trainings successfully with all parameters
     Given an authenticated user with a role 'TRAINER' and username "Trainer.Name"

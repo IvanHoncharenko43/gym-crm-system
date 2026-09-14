@@ -1,6 +1,7 @@
 Feature: User Password Management
   As a registered user
-  I want to be able to change my password
+  I want to easily change my password
+  So that I can keep my personal data safely with no additional burden
 
   Scenario: Change password successfully
     Given an authenticated user with a role 'TRAINEE' and ID 1

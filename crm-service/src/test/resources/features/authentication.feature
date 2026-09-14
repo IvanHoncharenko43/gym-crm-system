@@ -1,7 +1,7 @@
 Feature: System Authentication
-  As a registered gym user
-  I want to securely log in and log out
-  So that my session is managed
+  As a registered user
+  I want to log in quickly and securely
+  So that I can continue my work where I left off without burden
 
   Scenario: Successfully log in and receive a token
     Given an anonymous user

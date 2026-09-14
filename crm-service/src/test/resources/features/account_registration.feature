@@ -1,7 +1,7 @@
 Feature: Account Registration
   As an unauthenticated user
   I want to be able to register as a trainee or a trainer
-  So that I can access the system's capabilities
+  So that I can get access to finding coaches or clients
 
   Scenario: Register a new trainee with all parameters successfully
     Given an anonymous user

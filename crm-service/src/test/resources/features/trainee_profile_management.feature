@@ -1,4 +1,7 @@
 Feature: Trainee Profile Management
+  As a registered trainee
+  I want to be able to view, and manage my profile details
+  So that my coaches have enough information about me and I can easily control my data
 
   Scenario: Retrieve a profile information
     Given an authenticated user with a role 'TRAINEE' and ID 1
