@@ -6,7 +6,6 @@ import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
 import org.example.crm.core.dto.ChangePasswordRequest;
 import org.example.crm.exception.EntityNotFoundException;
-import org.example.crm.security.service.OwnershipVerifier;
 import org.example.crm.user.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;

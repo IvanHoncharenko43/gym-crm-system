@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.example.crm.exception.AccessForbiddenException;
 import org.example.crm.exception.EntityNotFoundException;
 import org.example.crm.trainer.controller.request.UpdateTrainerRequest;
 import org.example.crm.trainer.controller.response.TrainerSummary;

@@ -4,25 +4,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.example.crm.exception.AccessForbiddenException;
 import org.example.crm.exception.EntityNotFoundException;
-import org.example.crm.trainee.controller.request.CreateTraineeRequest;
 import org.example.crm.trainee.controller.request.UpdateTraineeTrainersRequest;
-import org.example.crm.trainee.controller.response.TraineeSummary;
 import org.example.crm.trainee.service.TraineeService;
-import org.example.crm.trainer.controller.request.CreateTrainerRequest;
 import org.example.crm.trainer.controller.response.TrainerSummary;
 import org.example.crm.trainer.controller.response.Trainers;
 import org.example.crm.trainer.service.TrainerService;
 import org.example.crm.trainingType.dto.TrainingType;
-import org.example.crm.user.controller.dto.FullName;
 import org.example.crm.user.controller.dto.UserProfile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 
-import java.time.LocalDate;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
