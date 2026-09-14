@@ -7,7 +7,9 @@ import io.cucumber.java.en.When;
 import org.example.crm.TestUtils;
 import org.example.crm.cucumber.config.TestContext;
 import org.example.crm.trainee.controller.request.GetTraineeTrainingsRequest;
+import org.example.crm.trainee.controller.response.TraineeSummary;
 import org.example.crm.trainer.controller.request.GetTrainerTrainingsRequest;
+import org.example.crm.trainer.controller.response.TrainerSummary;
 import org.example.crm.trainer.controller.response.TrainerWorkloadSummary;
 import org.example.crm.trainer.service.TrainerWorkloadService;
 import org.example.crm.training.controller.response.TrainingSummary;
@@ -15,6 +17,7 @@ import org.example.crm.training.controller.response.Trainings;
 import org.example.crm.training.service.TrainingService;
 import org.example.crm.trainingType.dto.TrainingType;
 import org.example.crm.user.controller.dto.FullName;
+import org.example.crm.user.controller.dto.UserProfile;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -75,7 +78,9 @@ public class TrainingReportingSteps {
 
     @Given("valid trainer training records exist for {string}")
     public void valid_trainer_training_records_exist(String username) {
-        TrainingSummary trainingSummary = TestUtils.getTrainingSummary();
+        TraineeSummary traineeSummary = new TraineeSummary(1L, new UserProfile("John.Doe"), LocalDate.of(2007, 3, 25), "Home 21 Street");
+        TrainerSummary trainerSummary = new TrainerSummary(1L, new UserProfile("John.Doe1"), TrainingType.YOGA);
+        TrainingSummary trainingSummary = new TrainingSummary(1L, trainerSummary, traineeSummary, "Training name", TrainingType.YOGA, LocalDate.of(2026, 12, 31), 60);
         Trainings trainings = new Trainings(List.of(trainingSummary));
         when(trainingService.getTrainerTrainingList(any(GetTrainerTrainingsRequest.class))).thenReturn(trainings);
     }
@@ -106,7 +111,9 @@ public class TrainingReportingSteps {
 
     @Given("valid trainee training records exist for {string}")
     public void valid_trainee_training_records_exist(String username) {
-        TrainingSummary trainingSummary = TestUtils.getTrainingSummary();
+        TraineeSummary traineeSummary = new TraineeSummary(1L, new UserProfile("John.Doe"), LocalDate.of(2007, 3, 25), "Home 21 Street");
+        TrainerSummary trainerSummary = new TrainerSummary(1L, new UserProfile("John.Doe1"), TrainingType.YOGA);
+        TrainingSummary trainingSummary = new TrainingSummary(1L, trainerSummary, traineeSummary, "Training name", TrainingType.YOGA, LocalDate.of(2026, 12, 31), 60);
         Trainings trainings = new Trainings(List.of(trainingSummary));
         when(trainingService.getTraineeTrainingList(any(GetTraineeTrainingsRequest.class))).thenReturn(trainings);
     }
