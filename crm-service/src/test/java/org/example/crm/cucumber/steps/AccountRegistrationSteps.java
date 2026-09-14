@@ -1,9 +1,10 @@
-package org.example.crm.user.steps;
+package org.example.crm.cucumber.steps;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.example.crm.cucumber.config.TestContext;
 import org.example.crm.trainee.controller.request.CreateTraineeRequest;
 import org.example.crm.trainee.controller.response.TraineeSummary;
 import org.example.crm.trainee.service.TraineeService;

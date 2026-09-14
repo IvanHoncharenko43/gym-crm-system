@@ -1,4 +1,4 @@
-package org.example.crm.user.steps;
+package org.example.crm.cucumber.config;
 
 import io.cucumber.spring.ScenarioScope;
 import lombok.Getter;

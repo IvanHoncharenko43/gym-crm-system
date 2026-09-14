@@ -1,9 +1,10 @@
-package org.example.crm.user.steps;
+package org.example.crm.cucumber.steps;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
+import org.example.crm.cucumber.config.TestContext;
 import org.example.crm.exception.TooManyLoginAttemptsException;
 import org.example.crm.security.controller.dto.LoginDetails;
 import org.example.crm.security.controller.dto.LoginRequest;

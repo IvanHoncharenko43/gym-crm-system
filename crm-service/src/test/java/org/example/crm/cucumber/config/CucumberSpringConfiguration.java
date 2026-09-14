@@ -1,4 +1,4 @@
-package org.example.crm.core;
+package org.example.crm.cucumber.config;
 
 import io.cucumber.spring.CucumberContextConfiguration;
 import org.example.crm.config.SecurityConfig;
@@ -15,7 +15,6 @@ import org.example.crm.trainer.service.TrainerWorkloadService;
 import org.example.crm.training.service.TrainingService;
 import org.example.crm.user.controller.UserController;
 import org.example.crm.user.service.UserService;
-import org.example.crm.user.steps.TestContext;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.core.userdetails.UserDetailsService;

@@ -1,4 +1,4 @@
-package org.example.crm.core;
+package org.example.crm.cucumber.config;
 
 import org.junit.platform.suite.api.*;
 

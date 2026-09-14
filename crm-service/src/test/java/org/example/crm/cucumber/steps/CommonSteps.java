@@ -1,8 +1,9 @@
-package org.example.crm.user.steps;
+package org.example.crm.cucumber.steps;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
+import org.example.crm.cucumber.config.TestContext;
 import org.example.crm.exception.AccessForbiddenException;
 import org.example.crm.security.service.OwnershipVerifier;
 import org.springframework.beans.factory.annotation.Autowired;
