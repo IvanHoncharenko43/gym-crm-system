@@ -15,6 +15,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -77,6 +78,7 @@ public class AuthenticationSteps {
     @Given("an authenticated user with a valid bearer token")
     public void an_authenticated_user_with_a_valid_bearer_token() {
         testContext.setSecurityProcessor(user("John.Doe").roles("TRAINEE"));
+        testContext.setBearerToken(BEARER_TOKEN);
         doNothing().when(authService).logout(BEARER_TOKEN);
     }
 
@@ -91,10 +93,12 @@ public class AuthenticationSteps {
 
     @When("the user sends a POST request to log out")
     public void the_user_sends_a_post_request_to_log_out() throws Exception {
-        ResultActions resultActions = mockMvc.perform(post("/api/v1/auth/logout")
-                .with(testContext.getSecurityProcessor())
-                .header("Authorization", BEARER_TOKEN));
-        testContext.setResultActions(resultActions);
+        MockHttpServletRequestBuilder requestBuilder = post("/api/v1/auth/logout")
+                .with(testContext.getSecurityProcessor());
+        if(testContext.getBearerToken() != null) {
+            requestBuilder.header("Authorization", testContext.getBearerToken());
+        }
+        testContext.setResultActions(mockMvc.perform(requestBuilder));
     }
 
     @Then("the login details containing a token are returned")
@@ -111,6 +115,6 @@ public class AuthenticationSteps {
 
     @Then("the logout is processed by the auth service")
     public void the_logout_is_processed() {
-        verify(authService, times(1)).logout(BEARER_TOKEN);
+        verify(authService, times(1)).logout(testContext.getBearerToken());
     }
 }

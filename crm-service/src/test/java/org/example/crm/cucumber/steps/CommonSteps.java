@@ -77,12 +77,6 @@ public class CommonSteps {
         verify(ownershipVerifier, times(1)).verifyOwnership(eq(username), any());
     }
 
-    @Then("the response is a ProblemDetail with title {string} containing invalid fields")
-    public void the_response_is_a_problem_detail_with_title_containing_invalid_fields(String title) throws Exception {
-        testContext.getResultActions().andExpect(jsonPath("$.title").value(title))
-                .andExpect(jsonPath("$.invalidFields").isNotEmpty());
-    }
-
     @Then("the response is a ProblemDetail with title {string} and detail {string}")
     public void the_response_is_a_problem_detail_with_title_and_detail(String title, String detail) throws Exception {
         testContext.getResultActions().andExpect(jsonPath("$.title").value(title))

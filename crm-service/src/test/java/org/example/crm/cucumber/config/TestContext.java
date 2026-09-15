@@ -14,4 +14,5 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 public class TestContext {
     private RequestPostProcessor securityProcessor;
     private ResultActions resultActions;
+    private String bearerToken;
 }
