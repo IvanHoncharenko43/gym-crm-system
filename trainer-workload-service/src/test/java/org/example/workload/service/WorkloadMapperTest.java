@@ -2,7 +2,7 @@ package org.example.workload.service;
 
 import org.example.workload.messaging.TrainerWorkloadUpdateEvent;
 import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
-import org.example.workload.repository.MonthWorkload;
+import org.example.workload.repository.MonthWorkloadDocument;
 import org.example.workload.repository.TrainerWorkloadDocument;
 import org.junit.jupiter.api.Test;
 
@@ -54,7 +54,7 @@ class WorkloadMapperTest {
         TrainerWorkloadDocument existingWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
         String id = "21";
         existingWorkload.setId(id);
-        MonthWorkload monthWorkload = getMonthWorkloadEntity(Month.MAY, 0);
+        MonthWorkloadDocument monthWorkload = getMonthWorkloadEntity(Month.MAY, 0);
         existingWorkload.getMonths().add(monthWorkload);
 
         TrainerWorkloadDocument result = workloadMapper.toTrainerWorkloadDocument(request, existingWorkload);
@@ -70,8 +70,8 @@ class WorkloadMapperTest {
     }
 
     @Test
-    void toMonthWorkload_MapCorrectly_FromMonthValueAndYearWorkloadEntity() {
-        MonthWorkload result = workloadMapper.toMonthWorkload(TRAINING_DATE.getMonth());
+    void toMonthWorkloadDocument_MapCorrectly_FromMonthValueAndYearWorkloadEntity() {
+        MonthWorkloadDocument result = workloadMapper.toMonthWorkloadDocument(TRAINING_DATE.getMonth());
 
         assertNotNull(result);
         assertEquals(TRAINING_DATE.getMonth(), result.getMonth());

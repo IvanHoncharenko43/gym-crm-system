@@ -43,7 +43,7 @@ class TrainerWorkloadRepositoryIT {
     @Test
     void save_PersistTrainerWorkloadWithYearsAndMonths_EntityHasYearsAndMonths() {
         TrainerWorkloadDocument trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        MonthWorkload monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), DURATION_MINUTES);
+        MonthWorkloadDocument monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), DURATION_MINUTES);
         trainerWorkload.getMonths().add(monthWorkload);
 
         TrainerWorkloadDocument savedWorkload = trainerWorkloadRepository.save(trainerWorkload);
@@ -52,7 +52,7 @@ class TrainerWorkloadRepositoryIT {
         assertThat(existingWorkload).isNotNull();
         assertThat(existingWorkload.getYear()).isEqualTo(TRAINING_DATE.getYear());
         assertThat(existingWorkload.getMonths()).hasSize(1);
-        MonthWorkload existingMonth = existingWorkload.getMonths().iterator().next();
+        MonthWorkloadDocument existingMonth = existingWorkload.getMonths().iterator().next();
         assertThat(existingMonth.getMonth()).isEqualTo(TRAINING_DATE.getMonth());
         assertThat(existingMonth.getTrainingSummaryDurationMinutes()).isEqualTo(DURATION_MINUTES);
     }
@@ -60,7 +60,7 @@ class TrainerWorkloadRepositoryIT {
     @Test
     void findByUsernameAndYear_ReturnEntityWithYearsAndMonths_UsernameExists() {
         TrainerWorkloadDocument trainerWorkload = getTrainerWorkloadEntity(TRAINER_USERNAME, FIRST_NAME, LAST_NAME, true);
-        MonthWorkload monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), DURATION_MINUTES);
+        MonthWorkloadDocument monthWorkload = getMonthWorkloadEntity(TRAINING_DATE.getMonth(), DURATION_MINUTES);
         trainerWorkload.getMonths().add(monthWorkload);
         mongoTemplate.save(trainerWorkload);
 

@@ -6,10 +6,11 @@ import org.example.workload.messaging.TrainerWorkloadUpdateEvent;
 import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
 import org.example.workload.controller.dto.request.WorkloadQuery;
 import org.example.workload.exception.WorkloadNotFoundException;
-import org.example.workload.repository.MonthWorkload;
+import org.example.workload.repository.MonthWorkloadDocument;
 import org.example.workload.repository.TrainerWorkloadDocument;
 import org.example.workload.repository.TrainerWorkloadRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Month;
 
@@ -21,21 +22,22 @@ public class TrainerWorkloadService {
     private final TrainerWorkloadRepository trainerWorkloadRepository;
     private final WorkloadMapper workloadMapper;
 
+    @Transactional
     public void updateWorkload(TrainerWorkloadUpdateEvent event){
         int requestYear = event.trainingDate().getYear();
         TrainerWorkloadDocument existingTrainerWorkloadDocument = trainerWorkloadRepository.findByUsernameAndYear(event.username(), requestYear)
                 .orElse(null);
         TrainerWorkloadDocument trainerWorkloadDocument = workloadMapper.toTrainerWorkloadDocument(event, existingTrainerWorkloadDocument);
         Month requestMonth = event.trainingDate().getMonth();
-        MonthWorkload monthWorkload = trainerWorkloadDocument.getMonths().stream()
+        MonthWorkloadDocument monthWorkloadDocument = trainerWorkloadDocument.getMonths().stream()
                 .filter(m -> m.getMonth() == requestMonth)
                 .findFirst()
                 .orElseGet(() -> {
-                    MonthWorkload createdMonthWorkload = workloadMapper.toMonthWorkload(requestMonth);
-                    trainerWorkloadDocument.getMonths().add(createdMonthWorkload);
-                    return createdMonthWorkload;
+                    MonthWorkloadDocument createdMonthWorkloadDocument = workloadMapper.toMonthWorkloadDocument(requestMonth);
+                    trainerWorkloadDocument.getMonths().add(createdMonthWorkloadDocument);
+                    return createdMonthWorkloadDocument;
                 });
-        monthWorkload.setTrainingSummaryDurationMinutes(event.trainingSummaryDurationMinutes());
+        monthWorkloadDocument.setTrainingSummaryDurationMinutes(event.trainingSummaryDurationMinutes());
         trainerWorkloadRepository.save(trainerWorkloadDocument);
         log.info("Upserted trainer's {} workload to {} minutes", event.trainingDate(), event.trainingSummaryDurationMinutes());
     }
@@ -48,7 +50,7 @@ public class TrainerWorkloadService {
         int durationMinutes = workload.getMonths().stream()
                 .filter(m -> m.getMonth() == requestedMonth)
                 .findFirst()
-                .map(MonthWorkload::getTrainingSummaryDurationMinutes)
+                .map(MonthWorkloadDocument::getTrainingSummaryDurationMinutes)
                 .orElse(0);
         return workloadMapper.toTrainerWorkloadSummary(workload, query.year(), query.month(), durationMinutes);
     }

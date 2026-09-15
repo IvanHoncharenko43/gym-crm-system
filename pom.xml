@@ -26,6 +26,7 @@
     <jwt.version>0.13.0</jwt.version>
     <spring-cloud.version>2025.1.2</spring-cloud.version>
     <resilience4j-spring-boot4.version>2.4.0</resilience4j-spring-boot4.version>
+    <cucumber.version>7.34.8</cucumber.version>
   </properties>
 
   <modules>

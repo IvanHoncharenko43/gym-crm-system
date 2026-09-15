@@ -34,7 +34,7 @@ public class TrainerWorkloadDocument {
     private boolean status;
     private int year;
 
-    private Set<MonthWorkload> months = new HashSet<>();
+    private Set<MonthWorkloadDocument> months = new HashSet<>();
 
     @CreatedDate
     private LocalDateTime createdAt;

@@ -3,7 +3,7 @@ package org.example.workload.service;
 import org.example.workload.controller.dto.FullName;
 import org.example.workload.messaging.TrainerWorkloadUpdateEvent;
 import org.example.workload.controller.dto.response.TrainerWorkloadSummary;
-import org.example.workload.repository.MonthWorkload;
+import org.example.workload.repository.MonthWorkloadDocument;
 import org.example.workload.repository.TrainerWorkloadDocument;
 import org.springframework.stereotype.Component;
 
@@ -38,9 +38,9 @@ public class WorkloadMapper {
         );
     }
 
-    public MonthWorkload toMonthWorkload(Month month){
-        MonthWorkload monthWorkload = new MonthWorkload();
-        monthWorkload.setMonth(month);
-        return monthWorkload;
+    public MonthWorkloadDocument toMonthWorkloadDocument(Month month){
+        MonthWorkloadDocument monthWorkloadDocument = new MonthWorkloadDocument();
+        monthWorkloadDocument.setMonth(month);
+        return monthWorkloadDocument;
     }
 }
