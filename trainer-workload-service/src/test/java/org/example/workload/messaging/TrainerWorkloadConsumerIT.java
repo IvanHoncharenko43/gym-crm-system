@@ -7,7 +7,7 @@ import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.header.Header;
 import org.example.workload.controller.dto.FullName;
-import org.example.workload.repository.MonthWorkload;
+import org.example.workload.repository.MonthWorkloadDocument;
 import org.example.workload.repository.TrainerWorkloadDocument;
 import org.example.workload.repository.TrainerWorkloadRepository;
 import org.junit.jupiter.api.Test;
@@ -83,7 +83,7 @@ class TrainerWorkloadConsumerIT {
             assertThat(persisted.getFirstName()).isEqualTo("John");
             assertThat(persisted.getLastName()).isEqualTo("Doe");
             assertThat(persisted.isStatus()).isTrue();
-            MonthWorkload may = persisted.getMonths().stream()
+            MonthWorkloadDocument may = persisted.getMonths().stream()
                     .filter(m -> m.getMonth() == event.trainingDate().getMonth())
                     .findFirst()
                     .orElseThrow(() -> new AssertionError(event.trainingDate().getMonth() + " not created"));
@@ -113,7 +113,7 @@ class TrainerWorkloadConsumerIT {
             TrainerWorkloadDocument persisted = trainerWorkloadRepository.findByUsernameAndYear(username, yearOfTheWorkloads)
                     .orElseThrow(() -> new AssertionError("Trainer workload was not persisted"));
             assertThat(persisted.getMonths()).hasSize(2);
-            assertThat(persisted.getMonths().stream().map(MonthWorkload::getMonth))
+            assertThat(persisted.getMonths().stream().map(MonthWorkloadDocument::getMonth))
                     .containsExactlyInAnyOrder(Month.MAY, Month.JUNE);
             int juneDuration = persisted.getMonths().stream()
                     .filter(m -> m.getMonth() == Month.JUNE)
