@@ -8,7 +8,6 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
-import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -26,10 +25,8 @@ public class TrainerWorkloadDocument {
 
     private String username;
 
-    @Field("first_name")
     private String firstName;
 
-    @Field("last_name")
     private String lastName;
     private boolean status;
     private int year;
