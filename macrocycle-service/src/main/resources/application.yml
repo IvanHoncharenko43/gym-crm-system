@@ -1,3 +1,11 @@
+spring:
+  mongodb:
+    uri: ${SPRING_MONGODB_URI}
+  ai:
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY}
+
 server:
   port: ${SERVER_PORT}
 
@@ -6,6 +14,16 @@ app:
     secret-key: ${JWT_SECRET_KEY}
     expiration: ${JWT_EXPIRATION}
     roles-claim: roles
+
+macrocycle:
+  generation:
+    max-iterations: 3
+    planner-timeout: 60s
+    verifier-timeout: 30s
+    job-timeout: 5m
+    core-pool-size: 2
+    max-pool-size: 5
+  job-retention-days: 7
 
 springdoc:
   api-docs:
