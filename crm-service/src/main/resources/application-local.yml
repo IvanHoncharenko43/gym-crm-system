@@ -27,6 +27,7 @@ app:
   client:
     services:
       workload-id: ${WORKLOAD_ID:trainer-workload-service}
+      macrocycle-id: ${MACROCYCLE_ID:macrocycle-service}
 
 eureka:
   client:

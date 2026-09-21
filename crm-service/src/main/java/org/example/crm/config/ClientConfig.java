@@ -2,6 +2,7 @@ package org.example.crm.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.example.crm.macrocycle.client.MacrocycleClient;
 import org.example.crm.trainer.client.TrainerWorkloadClient;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.cloud.client.ServiceInstance;
@@ -42,9 +43,33 @@ public class ClientConfig {
     }
 
     @Bean
-    public TrainerWorkloadClient trainerWorkloadClient(RestClient restClient){
-        RestClientAdapter adapter = RestClientAdapter.create(restClient);
+    public TrainerWorkloadClient trainerWorkloadClient(RestClient trainerWorkloadRestClient){
+        RestClientAdapter adapter = RestClientAdapter.create(trainerWorkloadRestClient);
         HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(adapter).build();
         return factory.createClient(TrainerWorkloadClient.class);
+    }
+
+    @Bean
+    public RestClient macrocycleRestClient(
+            RestClient.Builder restClientBuilder,
+            TokenPopulationInterceptor tokenPopulationInterceptor,
+            TraceIdPopulationInterceptor traceIdPopulationInterceptor){
+
+        List<ServiceInstance> instances = discoveryClient.getInstances(clientConfigurationProperties.macrocycleId());
+        String resolveUrl = instances.getFirst().getUri().toString();
+        return restClientBuilder
+                .baseUrl(resolveUrl)
+                .requestInterceptor(tokenPopulationInterceptor)
+                .requestInterceptor(traceIdPopulationInterceptor)
+                .defaultStatusHandler(HttpStatusCode::isError,
+                        new DownstreamErrorStatusHandler(clientConfigurationProperties.macrocycleId(), objectMapper))
+                .build();
+    }
+
+    @Bean
+    public MacrocycleClient macrocycleClient(RestClient macrocycleRestClient){
+        RestClientAdapter adapter = RestClientAdapter.create(macrocycleRestClient);
+        HttpServiceProxyFactory factory = HttpServiceProxyFactory.builderFor(adapter).build();
+        return factory.createClient(MacrocycleClient.class);
     }
 }

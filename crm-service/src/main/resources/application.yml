@@ -43,6 +43,7 @@ app:
   client:
     services:
       workload-id: ${WORKLOAD_ID}
+      macrocycle-id: ${MACROCYCLE_ID}
   kafka:
     topics:
       trainer-workload-update: "trainer-workload-update-event"
@@ -93,9 +94,34 @@ resilience4j:
           - java.io.IOException
         ignore-exceptions:
           - org.example.crm.exception.DownstreamClientErrorException
+      macrocycleService:
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        record-exceptions:
+          - org.example.crm.exception.DownstreamServerErrorException
+          - org.example.crm.exception.DownstreamRetryableClientException
+          - org.springframework.web.client.ResourceAccessException
+          - java.io.IOException
+        ignore-exceptions:
+          - org.example.crm.exception.DownstreamClientErrorException
   retry:
     instances:
       trainerWorkloadService:
+        max-attempts: 3
+        wait-duration: 1s
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - org.example.crm.exception.DownstreamServerErrorException
+          - org.example.crm.exception.DownstreamRetryableClientException
+          - org.springframework.web.client.ResourceAccessException
+          - java.io.IOException
+        ignore-exceptions:
+          - org.example.crm.exception.DownstreamClientErrorException
+      macrocycleService:
         max-attempts: 3
         wait-duration: 1s
         enable-exponential-backoff: true
