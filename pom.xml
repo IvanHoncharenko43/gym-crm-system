@@ -27,12 +27,14 @@
     <spring-cloud.version>2025.1.2</spring-cloud.version>
     <resilience4j-spring-boot4.version>2.4.0</resilience4j-spring-boot4.version>
     <cucumber.version>7.34.8</cucumber.version>
+    <spring-ai.version>2.0.1</spring-ai.version>
   </properties>
 
   <modules>
     <module>crm-service</module>
     <module>trainer-workload-service</module>
     <module>discovery-service</module>
+    <module>macrocycle-service</module>
   </modules>
 
   <dependencyManagement>
@@ -41,6 +43,13 @@
         <groupId>org.springframework.cloud</groupId>
         <artifactId>spring-cloud-dependencies</artifactId>
         <version>${spring-cloud.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.ai</groupId>
+        <artifactId>spring-ai-bom</artifactId>
+        <version>${spring-ai.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

@@ -26,6 +26,19 @@ services:
     volumes:
       - mongodb_data:/data/db
 
+  mongodb-macrocycle:
+    image: mongo:8.3.8
+    container_name: gym_mongodb_macrocycle
+    restart: no
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MACROCYCLE_MONGO_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MACROCYCLE_MONGO_PASSWORD:-adminPassword}
+      MONGO_INITDB_DATABASE: ${MACROCYCLE_MONGO_DB:-macrocycles}
+    ports:
+      - "${MACROCYCLE_MONGO_PORT:-27021}:27017"
+    volumes:
+      - mongodb_macrocycle_data:/data/db
+
   kafka:
     image: apache/kafka:3.8.0
     container_name: gym_kafka
@@ -62,4 +75,5 @@ services:
 volumes:
   postgres_data:
   mongodb_data:
+  mongodb_macrocycle_data:
   kafka_data:
