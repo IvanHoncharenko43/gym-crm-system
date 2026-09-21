@@ -1,0 +1,44 @@
+server:
+  port: ${SERVER_PORT}
+
+app:
+  jwt:
+    secret-key: ${JWT_SECRET_KEY}
+    expiration: ${JWT_EXPIRATION}
+    roles-claim: roles
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE}
+    healthcheck:
+      enabled: true
+  instance:
+    prefer-ip-address: true
+
+management:
+  server:
+    port: ${MANAGEMENT_PORT}
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      group:
+        liveness:
+          include:
+            - livenessState
+        readiness:
+          include:
+            - readinessState
+
+info:
+  app:
+    name: Macrocycle Generation Service
+    description: Spring AI-driven multi-week training plan generation
+    version: 1.0.0

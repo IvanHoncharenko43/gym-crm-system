@@ -1,0 +1,20 @@
+logging:
+  level:
+    root: warn
+    org.example.macrocycle: info
+    org.springframework.web: warn
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      show-details: never
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false

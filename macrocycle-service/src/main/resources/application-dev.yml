@@ -1,0 +1,5 @@
+logging:
+  level:
+    root: info
+    org.example.macrocycle: debug
+    org.springframework.web: info
