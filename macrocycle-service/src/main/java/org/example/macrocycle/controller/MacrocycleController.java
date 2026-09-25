@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.example.macrocycle.controller.request.GenerateMacrocycleJobRequest;
 import org.example.macrocycle.controller.response.MacrocycleJobAccepted;
 import org.example.macrocycle.controller.response.MacrocycleJobStatusResponse;
-import org.example.macrocycle.repository.MacrocycleJobDocument;
 import org.example.macrocycle.service.MacrocycleJobService;
 import org.example.macrocycle.service.MacrocycleOrchestrator;
 import org.springframework.http.HttpStatus;
@@ -38,10 +37,9 @@ public class MacrocycleController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public MacrocycleJobAccepted generate(@Valid @RequestBody GenerateMacrocycleJobRequest request) {
         log.info("POST /api/v1/macrocycles endpoint called for trainee {}", request.traineeUsername());
-        MacrocycleJobDocument job = macrocycleJobService.create(request);
-        macrocycleOrchestrator.runAsync(job.getId());
-        log.info("POST /api/v1/macrocycles endpoint executed, job {} started", job.getId());
-        return new MacrocycleJobAccepted(job.getId(), job.getStatus());
+        MacrocycleJobStatusResponse response = macrocycleOrchestrator.startProcessing(request);
+        log.info("POST /api/v1/macrocycles endpoint executed, job {} started", response.jobId());
+        return new MacrocycleJobAccepted(response.jobId(), response.status());
     }
 
     @Operation(summary = "Get macrocycle job status", description = "Returns the current status and, once ready, the generated plan")
@@ -50,9 +48,7 @@ public class MacrocycleController {
             @Parameter(in = ParameterIn.PATH, description = "Macrocycle job ID")
             @PathVariable String jobId) {
         log.info("GET /api/v1/macrocycles/{jobId} endpoint called");
-        MacrocycleJobDocument job = macrocycleJobService.getJob(jobId);
-        return new MacrocycleJobStatusResponse(job.getId(), job.getTraineeUsername(), job.getSupervisingTrainerUsername(),
-                job.getStatus(), job.getPlan(), job.getWarnings(), job.getFailureReason());
+        return macrocycleJobService.getJob(jobId);
     }
 
     @Operation(summary = "Discard a macrocycle job", description = "Deletes a job and its generated plan")

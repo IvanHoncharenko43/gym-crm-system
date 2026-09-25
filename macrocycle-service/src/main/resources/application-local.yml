@@ -4,7 +4,8 @@ spring:
   ai:
     google:
       genai:
-        api-key: ${GEMINI_API_KEY:}
+        chat:
+          model: ${AI_MODEL:gemini-3.7-flash}
   data:
     mongodb:
       auto-index-creation: true
