@@ -12,6 +12,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql
       - ./crm-service/src/main/resources/db:/docker-entrypoint-initdb.d/
+    networks:
+      - gym-network
 
   mongodb:
     image: mongo:8.3.8
@@ -25,19 +27,21 @@ services:
       - "${MONGO_PORT:-27020}:27017"
     volumes:
       - mongodb_data:/data/db
+    networks:
+      - gym-network
 
   kafka:
     image: apache/kafka:3.8.0
     container_name: gym_kafka
     restart: no
     ports:
-      - "9092:9092"
+      - "${KAFKA_PORT:-9092}:9092"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: controller,broker
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
       KAFKA_LISTENERS: INTERNAL://:29092,EXTERNAL://:9092,CONTROLLER://:9093
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:${KAFKA_PORT:-9092}
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
@@ -46,18 +50,107 @@ services:
       KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
     volumes:
       - kafka_data:/var/lib/kafka/data
+    networks:
+      - gym-network
 
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
     container_name: gym_kafka_ui
     restart: no
     ports:
-      - "8090:8080"
+      - "${KAFKA_UI_PORT:-8090}:8080"
     environment:
       - KAFKA_CLUSTERS_0_NAME=local-dev
       - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:29092
     depends_on:
       - kafka
+    networks:
+      - gym-network
+
+  discovery-service:
+    build:
+      context: .
+      dockerfile: discovery-service/Dockerfile
+    container_name: gym_discovery_service
+    restart: no
+    ports:
+      - "${DISCOVERY_SERVICE_PORT:-8761}:8761"
+    networks:
+      - gym-network
+
+  crm-service:
+    build:
+      context: .
+      dockerfile: crm-service/Dockerfile
+    container_name: gym_crm_service
+    restart: on-failure
+    depends_on:
+      postgres-db:
+        condition: service_started
+      kafka:
+        condition: service_started
+      discovery-service:
+        condition: service_started
+      trainer-workload-service:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      KAFKA_HOST: kafka:29092
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-7200000}
+      ADMIN_USERNAMES: ${ADMIN_USERNAMES:-John.Doe}
+      WORKLOAD_ID: trainer-workload-service
+      SERVER_PORT: ${CRM_SERVICE_PORT:-8080}
+      MANAGEMENT_PORT: ${CRM_SERVICE_MANAGEMENT_PORT:-8081}
+    ports:
+      - "${CRM_SERVICE_PORT:-8080}:8080"
+      - "${CRM_SERVICE_MANAGEMENT_PORT:-8081}:8081"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${CRM_SERVICE_MANAGEMENT_PORT:-8081}/actuator/health/readiness"]
+      interval: 30s
+      timeout: 3s
+      start_period: 30s
+      retries: 3
+    networks:
+      - gym-network
+
+  trainer-workload-service:
+    build:
+      context: .
+      dockerfile: trainer-workload-service/Dockerfile
+    container_name: gym_trainer_workload_service
+    restart: no
+    depends_on:
+      - mongodb
+      - kafka
+      - discovery-service
+    environment:
+      SPRING_PROFILES_ACTIVE: local
+      SPRING_MONGODB_URI: mongodb://${MONGO_USER:-admin}:${MONGO_PASSWORD:-adminPassword}@mongodb:27017/${MONGO_DB:-trainer_workloads}?authSource=admin
+      KAFKA_HOST: kafka:29092
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://discovery-service:8761/eureka/
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-7200000}
+      SERVER_PORT: ${WORKLOAD_SERVICE_PORT:-8082}
+      MANAGEMENT_PORT: ${WORKLOAD_SERVICE_MANAGEMENT_PORT:-8083}
+    ports:
+      - "${WORKLOAD_SERVICE_PORT:-8082}:8082"
+      - "${WORKLOAD_SERVICE_MANAGEMENT_PORT:-8083}:8083"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:${WORKLOAD_SERVICE_MANAGEMENT_PORT:-8083}/actuator/health/readiness"]
+      interval: 30s
+      timeout: 3s
+      start_period: 30s
+      retries: 3
+    networks:
+      - gym-network
+
+networks:
+  gym-network:
 
 volumes:
   postgres_data:
